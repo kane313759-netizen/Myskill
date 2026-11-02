@@ -25,13 +25,14 @@ For UI/chat-only instructions or unavailable original files, capture provenance-
 
 Inspect baseline command side effects and network use before execution. Bound checks using remaining exam time, expected runtime, and time needed for implementation, review, submission, and follow-up preparation. Record unavailable checks with reasons; never fabricate a passing baseline. Activate data/tool/domain playbooks only with task/grader evidence.
 
-In the same task-router pass, have MAIN select optional helpers under
-`references/optional-tools.md` only with original task evidence. Existing tools/NONE
-are preferred. Put the compact mode/fallback/data-guard/budget decision in the
-existing SPEC_DRAFT verification plan for CP1 review. Tool inventory only observes
-unverified PATH candidates. Permitted acquisition stays isolated outside the task
-repo, preserving its configs, protected files and submission. Do not add another
-agent framework, checkpoint, routine confirmation or speculative installation pass.
+Keep normal routing on original task tools, kit helpers and the standard library;
+optional additions are NONE. Do not automatically inventory, adopt or install catalog
+helpers, even if already present. Preserve permitted original project setup and
+genuinely necessary product dependencies for a new task; convenience alone does not
+make an optional helper required. MAIN records original evidence, required setup,
+fallback, guards and budget in the existing SPEC verification plan for CP1. Missing
+required work remains blocked/partial. The optional catalog is for separate preparation
+or a new specific request, not a routine search or participant-approval loop.
 
 MAIN reports classification and intake outcomes; ORCHESTRATOR alone updates STATE. Ask the participant only material scoring/feasibility/business-rule questions. Otherwise record a reversible non-blocking ASSUMPTION and continue safely. No mandatory per-step interaction, teach-back, or manufactured human contribution.
 
@@ -68,11 +69,12 @@ MAIN builds the smallest scoring-relevant end-to-end path. Preserve contracts/te
 
 At the first working scoring-relevant path, run clean CODE_RED and then Recorder. Repeat Constraint Red only for a material assumption/constraint/objective risk. Inspect dynamic-test side effects; isolate temporary data, processes, and ports, and avoid MAIN's live DB/process. Report necessary checks that cannot safely run as UNVERIFIED. MAIN sends factual evidence to Recorder, which maintains ongoing notes and prepares six-axis follow-up coverage early.
 
-Reuse the reviewed helper mode after routine edits. MAIN sends actual helper errors/
-results to Recorder. Material dependency, mutation or network/data-route changes
-use the normal reopen/review rule before affected work. At CP3 check that optional
-helpers/reports/caches stay outside the collected submission. PATH presence, lint
-success or empty extraction is not product verification.
+Reuse the reviewed task toolchain after routine edits; do not add optional helper
+experiments. MAIN sends actual errors/results to Recorder. Material dependency,
+mutation or network/data-route changes use the normal reopen/review rule before
+affected work; ordinary setup/use already reviewed does not itself reopen CP1.
+At CP3 keep helper reports/caches outside the collected submission. PATH presence,
+lint success or empty extraction is not product verification.
 
 # CP3 — PRE-SUBMIT
 

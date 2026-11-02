@@ -27,20 +27,25 @@ Return classification to ORCHESTRATOR for STATE.md and to MAIN for SPEC_DRAFT:
 - explicitly **not applicable** playbooks
 - highest-risk boundaries
 
-Select optional helpers in the same pass. Start with NONE and the provided toolchain;
-only a task/grader-backed need justifies another tool. Read the relevant portion of
-`.hackathon-kit/references/optional-tools.md` when needed. If useful, run
-`python -I -S -B .hackathon-kit/scripts/tool_inventory.py --task-root .` once: it observes PATH
-candidates without executing them and does not verify identity/version, package
-availability, compatibility or safety. It never grants approval or installs anything.
+Use the task toolchain only by default: original supplied/declared/required tools,
+kit helpers and the standard library. Optional additions are NONE, even when a
+catalog helper happens to be installed. Do not scan PATH, consult the optional
+catalog, fetch upstream workflows or try an optional helper during normal routing.
+Python/CSV/JSON/PDF vocabulary or possible convenience is not a requirement.
 
-Return a compact decision with need/source, selected mode or NONE, actual availability/
-provenance/version status, existing fallback, data/side-effect guards and reserved
-time. MAIN records it in SPEC_DRAFT's existing verification plan for normal CP1
-review, preserving headings. Prefer existing local tools; do not stack upstream
-skills/hooks, separate AI, UI automation or external task-data routes. Later material
-changes use existing ownership/reopen rules, with no extra checkpoint or participant
-technical-approval step.
+Preserve ordinary task-required README/manifest/official setup, including permitted
+dependency installation. For a new project without a toolchain, choose the smallest
+implementation route that meets the actual deliverable; justify a genuinely needed
+product dependency in normal SPEC/CP1. Do not relabel an optional analysis/lint/agent
+helper as required merely for speed or polish. Missing required capability remains
+an explicit blocker or valid partial-result limitation, not a silent skip.
+
+Return the task tools with original source evidence, required setup/availability,
+fallback, important data/side-effect guards and budget. MAIN records the compact plan
+in SPEC_DRAFT's existing verification plan, preserving headings. Later material
+changes use existing ownership/reopen rules. No new checkpoint or routine technical
+approval is needed. `references/optional-tools.md` is retained for separate preparation
+or a new explicit request for a particular optional mode, not automatic adoption.
 
 Activation rule:
 - use a domain playbook only when task material or grader contract supports it
