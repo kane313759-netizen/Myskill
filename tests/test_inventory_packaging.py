@@ -124,7 +124,7 @@ class PackagingTests(unittest.TestCase):
             self.assertIn("install.sh", names)
             self.assertIn(".agents/skills/hackathon-orchestrator/SKILL.md", names)
             self.assertIn("tests/test_example.py", names)
-            self.assertEqual(archive.read("EXAM_POLICY.md"), b"official policy\n")
+            self.assertEqual(archive.read("EXAM_POLICY.md"), (self.root / "EXAM_POLICY.md").read_bytes())
             self.assertFalse(any(name.endswith((".zip", ".pyc")) for name in names))
             self.assertFalse(any(".hackathon-kit" in name or ".env" in name for name in names))
 

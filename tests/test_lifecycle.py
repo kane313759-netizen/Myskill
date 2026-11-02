@@ -329,6 +329,7 @@ class LifecycleTests(unittest.TestCase):
             self.assert_rc(r, 2)
             self.assertIn('invalid or missing status constraint_gate', r.stdout)
 
+    @unittest.skipUnless(os.name == 'posix' and shutil.which('bash'), 'Bash entry points are exercised on POSIX; Windows uses PowerShell')
     def test_bash_wrappers_use_shared_backend(self):
         r = subprocess.run(['bash', str(self.source / 'install.sh'), str(self.target)], capture_output=True, text=True)
         self.assert_rc(r, 0)
