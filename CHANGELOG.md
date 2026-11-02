@@ -1,5 +1,18 @@
 # Changes
 
+## 2026-11-02-operational-r5
+
+- A local nondeveloper simulation exposed gaps between prepared evidence and the
+  explanation actually delivered to the participant. Clarified final explanation
+  coverage for real task components, changed/preserved behavior, and expressly
+  excluded preferences.
+- CP3 now checks delivery of the existing explanation and six outlines before
+  preparation is complete. No new checkpoint, per-step teach-back, second quiz,
+  unconditional container requirement, or extension of the submission deadline.
+- The full integrated simulation used r4. These later explanation clarifications
+  do not retroactively change that run's answers, criteria, or results.
+- EXAM_POLICY.md remains byte-for-byte unchanged.
+
 ## 2026-11-02-operational-r4
 
 - Ran three actual-agent synthetic operational trials with independent examiner checks,
