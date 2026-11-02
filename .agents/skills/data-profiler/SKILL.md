@@ -1,23 +1,27 @@
 ---
 name: data-profiler
-description: Profile provided CSV, JSON, spreadsheet, or structured files before business logic is written.
+description: Profile explicit provided data files safely and boundedly when the task actually contains structured data; do not recursively scan a repository.
 ---
 
-Inspect actual supplied data.
+Read GRADER.md first.
+
+Use only explicit task data files or paths identified from task evidence.
+Do not recursively scan `.`, `node_modules`, environments, build output, or the repository.
+
+When useful run:
+`python .hackathon-kit/scripts/profile_data.py <explicit files>`
+
+The helper is bounded by row limits and refuses oversized JSON by default.
 
 Report:
-- files and sizes/row counts
-- columns/keys and inferred types
-- candidate primary/join keys
-- null/blank counts
-- duplicate keys
-- distinct counts
-- min/max/ranges
-- inconsistent formats
-- impossible or suspicious values
-- cross-file referential gaps
-- resource counts that may imply hidden operational limits
+- sampled row count / cap
+- columns/keys and likely semantic type
+- candidate join keys
+- null/blank
+- duplicates in sample
+- distinct/sample distribution
+- numeric range only for fields that are meaningfully numeric
+- cross-file referential gaps when explicitly checked
+- observations that suggest a question, clearly separated from confirmed business rules
 
-Separate observations from business-rule assumptions.
-
-When useful, run local scripts under .hackathon-kit/scripts or create a minimal deterministic profiler in the workspace.
+Do not infer business constraints from a surprising statistic alone.
