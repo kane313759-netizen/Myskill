@@ -1,27 +1,38 @@
 # Constraint discovery matrix
 
-Scan every task across these dimensions.
+Start with **grading/contract constraints**, then apply only relevant domain lenses.
 
-| Dimension | Questions |
+| Common dimension | Questions |
 |---|---|
-| Resource | Is a count limited? Can adding unlimited resources game the objective? |
-| Cost | Is anything treated as free that would be expensive operationally? |
-| Time | deadlines, windows, max wait, max duration, timezone |
-| Capacity | seats, concurrency, storage, throughput |
-| Physical | distance, location, impossible movement, device/runtime limits |
-| Human burden | wait, walk, detour, repetitive steps, cognitive load |
-| Fairness | is burden concentrated on a subset? |
-| Scale | does solution still make sense at real data size? |
-| State | persistence, restart, stale state, session |
-| Retry | duplicates, idempotency, partial failure |
-| Data | missing, duplicate, conflict, future/stale records |
-| External | API availability, auth, timeout, rate limit |
-| Security/privacy | secrets, PII, leakage, authorization |
+| Grading / submission | What is scored? Which output/path/command is required? Hidden-test contract? |
+| Immutable contract | Which API/schema/file/test/interface must remain compatible? |
+| Input/output | Exact format, ordering, encoding, tolerance, malformed input behavior |
+| Runtime | time, memory, CPU/GPU, network availability, dependencies |
+| State | persistence, restart, stale state, sessions |
+| Retry / duplicate | idempotency, partial failure, duplicate side effects |
+| Reproducibility | seed, time, timezone, nondeterminism |
+| Security/privacy | secrets, PII, authorization, leakage |
+| Scale | real input size vs sample size |
+| Failure / scoring | hard failure, partial credit, fallback behavior |
+
+## Conditional domain lenses
+
+Optimization/operations only:
+resource/cost/capacity/utilization/unassigned/wait/travel/fairness/extremes.
+
+Web/API/automation only:
+latency/timeout/rate limit/retry/idempotency/auth/persistence.
+
+Data/ML only:
+missingness/leakage/split/metric/seed/class balance/baseline.
+
+Algorithm/parser only:
+complexity/exact I/O/determinism/precision/tolerance/malformed cases.
 
 Always distinguish:
-- explicit hard constraint
-- explicit soft objective
-- implicit reality candidate
-- open question
+- CONFIRMED — evidence or explicit answer
+- ASSUMPTION — plausible but unconfirmed
+- OPEN QUESTION — material unknown
+- NOT_APPLICABLE
 
-Never invent a numeric threshold just because one seems reasonable.
+Never invent a numeric threshold because it seems reasonable.
