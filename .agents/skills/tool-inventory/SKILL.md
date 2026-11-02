@@ -5,9 +5,10 @@ description: Explain unfamiliar mandatory technologies and locate their real rol
 
 Read the task README and the manifests/config/code references that actually exist. Inspect Dockerfiles only when the task uses containers. Do not dump environment values, credential files, or secrets.
 
-This skill explains evidenced project technologies. Optional-helper selection belongs
-to task-router and `references/optional-tools.md`; the similarly named PATH helper
-only observes candidates and never chooses, runs, installs or approves a tool.
+This skill explains evidenced project technologies under task-router's task-tools-only
+default; it does not recommend additional catalog helpers. The similarly named PATH
+script is a separate manual diagnostic, absent from normal startup. It only observes
+candidates and never chooses, runs, installs or approves a tool.
 
 For each unfamiliar technology/tool explain:
 - why this task uses it, or UNKNOWN when the reason is not evidenced

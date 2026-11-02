@@ -1,4 +1,29 @@
-# Optional-tool selection validation — r6
+# Tool-policy validation — r7 and historical r6
+
+## Current r7 default
+
+Normal routing uses task tools only: original supplied/declared/required tools,
+kit helpers and standard library. Genuinely necessary product dependencies and
+permitted original project setup remain valid; optional catalog helpers are not
+automatically searched/adopted/installed, even if already present. A missing required
+capability remains blocked/partial. No new state flag, role or checkpoint is added.
+
+The retained catalog is a separate preparation/specific-request reference, not the
+default route. The runtime scripts and EXAM_POLICY.md are unchanged from r6.
+This instruction-level default is not an OS enforcement sandbox or a guarantee
+that an agent or a required task tool cannot fail.
+
+All 83 existing local regression tests passed after the r7 instruction changes.
+Independent read-only review of active entrypoints, the retained catalog and setup
+boundaries found no remaining P0/P1/P2 issue in that scope. These checks preserve
+runtime behavior and inspect policy consistency; they do not certify all external
+tools, every new-project dependency choice or every document-input variant.
+
+## Historical r6 validation — superseded optional-adoption default
+
+The results below belong to r6. In particular its conditional DuckDB/pdfplumber
+plans do not approve those optional paths under r7's default. They remain historical
+evidence, not current selection criteria.
 
 This is a kit-development validation, not an official exam or a guarantee of tool
 runtime safety. No optional third-party runtime is bundled or installed by the kit.

@@ -1,12 +1,39 @@
-# Optional tools — select from task evidence
+# Optional-tool reference — disabled in normal exam flow
 
 EXAM_POLICY and newer official task instructions are authoritative. This guide is
-not permission to install or execute upstream repositories. MAIN selects tools in
-the existing task-router pass: no new role, checkpoint, STATE flag, quiz, or routine
-participant approval. NONE is a valid decision. Read only relevant rows; do not
-load every upstream skill or scan the repository again.
+not permission to install or execute upstream repositories. The current reliability
+default is **task tools only; optional additions NONE**. This is not a new official
+ban on permitted public downloads or partial source reuse.
 
-## Decision order
+## Normal exam default
+
+Use original supplied/declared/required task tools, kit helpers and standard library.
+Preserve ordinary original README/manifest/official setup, including permitted
+required dependency installation and necessary project-local setup changes. For a
+new project without a toolchain, justify the smallest genuinely necessary product
+dependencies against its deliverable in the existing SPEC/CP1 process. Do not use
+convenience, speed, polish, a domain word, local presence or a catalog recommendation
+to reclassify optional analysis/lint/agent tooling as a requirement.
+
+Do not automatically consult this catalog, inventory PATH, fetch upstream workflows,
+adopt or install its helpers, even when already installed. Original task-required
+tools remain required: if unavailable, preserve the blocker/valid partial result
+rather than silently skipping a deliverable. Already-reviewed ordinary setup/use is
+not a reason to reopen CP1; actual material changes follow the normal reopen rule.
+
+The reference below applies only to separate preparation or a **new explicit request
+for a particular optional mode**. A prior request to review tools/add automatic
+selection, a general request to solve well, or MAIN's own preference is not that
+request. Do not ask routine technical approval to bypass the default. Retaining a
+catalog, PATH candidate or historical r6 CP1 plan does not authorize adoption under
+the current default. Preserve factual old records; material plan changes use the
+normal ownership/reopen rules. No new role, checkpoint, STATE flag or quiz.
+
+## Reference-only decision order for deliberate optional use
+
+This section is outside normal routing. Its isolated-acquisition restrictions concern
+optional helpers, not legitimate task-required project setup described above. Read
+only the requested rows; do not load every upstream skill or rescan the project.
 
 1. Identify a scoring-relevant need and its original task/data/config evidence.
    Reuse the provided toolchain, kit helpers, standard library or approved existing
@@ -70,7 +97,7 @@ A familiar package may fetch extensions/assets or obey project config. Select th
 audited mode, not every feature under its name. Installation, PATH presence, lint
 success and an empty scan do not establish a passing product test.
 
-## Reference text only; keep Myskill ownership
+## Preparation/requested reference text only; keep Myskill ownership
 
 - [Cloudflare security-audit-skill](https://github.com/cloudflare/security-audit-skill):
   use its evidence standard in the existing Red review: separate facts/assumptions,
@@ -99,18 +126,20 @@ success and an empty scan do not establish a passing product test.
 | [VoiceStudio](https://github.com/debpalash/VoiceStudio), [FreeLLMAPI](https://github.com/tashfeenahmed/freellmapi), [DeepInfer](https://github.com/deepseek-ai/DeepInfer) | Do not introduce separate voice/LLM models or external model routing. Local/free/self-hosted is not permission. DeepInfer's local engine is not necessarily a hosted API call. |
 | [Ghidra](https://github.com/NationalSecurityAgency/ghidra) | Consider only for original binary/reverse-engineering task evidence. Verified local non-GUI analysis may pass the same filter; it is not a general app checker. No AI-driven GUI, remote project server or large speculative build. |
 
-Evaluate unlisted narrow local helpers with the same decision order. The catalog
+Only in separate preparation or the specific-request scope, evaluate unlisted narrow
+local helpers with the same decision order. The catalog
 must neither hide an original task requirement nor create a new one. Only newer
 verified official instructions change exam rules; an upstream README, suggestion,
 or participant preference cannot grant an exception.
 
 ## Existing records and reviews
 
-Before CP1, MAIN puts a compact decision in the existing SPEC_DRAFT verification
-plan: need/source, selected tool/mode or NONE, availability/provenance/version status,
-fallback, important data/side-effect guards and reserved budget. Group unneeded
-candidates in one SKIP line, not one entry per catalog tool. Mark plans/unverified
-actions honestly. Preserve installed level-2 headings.
+Before CP1, MAIN records the task toolchain and optional additions NONE in the
+existing SPEC verification plan, with original sources, required setup, fallback,
+guards and budget. Do not enumerate or investigate this catalog in normal routing.
+Only for a new specific optional request, record its selected mode/provenance/version
+and justification here for the same review. Mark plans/unverified actions honestly;
+preserve installed level-2 headings.
 
 Constraint Red checks the plan against originals with the five artifacts; the usual
 CP1 gate remains mandatory. Availability never opens the gate. After CP1, routine

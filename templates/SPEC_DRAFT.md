@@ -23,9 +23,9 @@
 <!-- State NONE with evidence if none remain. Unsupported penalties are not confirmed objectives. -->
 
 ## Verification plan
-<!-- Optional tools: NONE/existing tooling by default. If justified, record need/source,
-selected mode, availability/provenance/version status, fallback, data/side-effect guards
-and budget here for normal CP1 review. No extra heading or tool approval flag. -->
+<!-- Task tools only: original supplied/declared/required tools, kit helpers and stdlib.
+Optional additions NONE, even if installed. Record task source/setup, availability,
+fallback, data/side-effect guards and budget in normal CP1; no extra flag/heading. -->
 
 ## Domain playbooks activated
 - none by default

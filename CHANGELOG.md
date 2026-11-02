@@ -1,5 +1,19 @@
 # Changes
 
+## 2026-11-02-operational-r7
+
+- Replaced r6 automatic optional-tool selection with task tools only: supplied,
+  declared or genuinely required task dependencies, kit helpers and standard library.
+  Optional additions are NONE, even if a catalog helper is already installed.
+- Normal routing no longer consults the catalog or inventories/tries/installs optional
+  helpers. The catalog and observational utility remain separate preparation/manual
+  references; no extra role, state flag or routine participant approval was added.
+- Preserved legitimate original project setup, minimum necessary product dependencies,
+  required-deliverable blockers and ordinary material-change CP1 rules. This is a kit
+  reliability default, not a new official prohibition on public tools.
+- EXAM_POLICY.md and runtime scripts are unchanged. Historical r6 selection-plan
+  passes are labeled separately from the current conservative policy validation.
+
 ## 2026-11-02-operational-r6
 
 - task-router now selects optional helpers from original task evidence in the existing

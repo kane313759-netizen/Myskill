@@ -9,5 +9,6 @@ Do not merge this into a task's existing AGENTS.md unless the task allows it. Re
 - CP1 requires evidence, an actual independent review, current reviewed-artifact hashes, and verified dispositions for every blocker. CLOSED alone is insufficient; gate_check.py must pass. Material spec/contract changes reopen the gate.
 - Freeze the five reviewed intake/spec artifacts after CP1; keep routine later results in ongoing evidence notes. Never weaken tests, hard-code samples, or replace the submission wholesale with external code.
 - Confirmed constraints require original evidence or explicit allowed answers. Domain playbooks are conditional; unsupported limits/objectives/soft penalties must not alter the official scoring contract.
+- Use original task tools, kit helpers and standard library by default. Optional additions are NONE, even if installed; no automatic catalog/PATH search or optional helper trial/install. Preserve permitted task-required project setup and record missing required work honestly.
 - Record only actual participant actions or explicitly confirmed personal judgment. Do not manufacture human contribution or AI failure.
 - Complete the single six-question no-AI follow-up preparation flow before cleanup. Preserve notes; remove helpers only if the submission format requires it. No unresolved P0/P1 may be waived at submission.
