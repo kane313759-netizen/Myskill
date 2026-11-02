@@ -250,17 +250,23 @@ shutil.which, os.access, os.stat = bounded_which, guarded_access, guarded_stat
         # The real candidate is first, followed by one incomplete overlong entry.
         # The prefix of that entry is deliberately a plausible PATH directory.
         long_entry = str(self.task / "partial") + "x" * 32768
-        prefix = '''import os, shutil
+        # Windows cannot reliably start a child with a >32767-character native
+        # environment variable (or -c argument). Generate this boundary input
+        # after startup and expose a detached, read-only environment view; the
+        # real helper must still pass only the bounded prefix to native which.
+        prefix = '''import os, shutil, types
 original_which = shutil.which
 expected_path = %r
+long_entry = %r + "x" * 32768
+os.environ = types.MappingProxyType(dict(
+    os.environ, PATH=os.pathsep.join((expected_path, long_entry))))
 def bounded_which(name, path=None):
     if path != expected_path or len(path) > 32768:
         raise AssertionError("partial or unbounded PATH entry supplied")
     return original_which(name, path=path)
 shutil.which = bounded_which
-''' % str(self.bin)
-        output = self.run_inventory(path=os.pathsep.join((str(self.bin), long_entry)),
-                                    prefix=prefix)
+''' % (str(self.bin), str(self.task / "partial"))
+        output = self.run_inventory(prefix=prefix)
         self.assertTrue(output["path_scope"]["truncated"])
         self.assertEqual(output["path_scope"]["entries_supplied"], 1)
         commands = self.by_name(output)

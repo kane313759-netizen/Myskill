@@ -13,6 +13,10 @@ and CP1 review. The helper observes bounded availability and grants no approval.
   installation, environment mutation or task-file mutation is permitted by the guard.
 - Unicode/spaced/relative PATHs, local precedence, symlink origins, lookup errors,
   entry/character truncation and isolated `-I -S -B` startup are covered.
+- The oversized PATH fixture is generated after child startup through a detached,
+  read-only environment view. Its original native-environment fixture prevented
+  Windows Python from starting; this setup correction retains the real helper,
+  native lookup and boundary assertions without exceeding Windows launch limits.
 - Windows lookup is also bounded by PATHEXT. Oversized suffix counts/characters
   skip native lookup and retain UNKNOWN; possible native cwd lookup is disclosed.
   In the reviewer's mocked Windows reproducer, 200 suffixes previously caused
