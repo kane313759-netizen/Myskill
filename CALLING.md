@@ -1,62 +1,72 @@
-# 빠른 호출법
+# Quick calling guide
 
-## 0. 설치
+## 0. Install outside the task repo
 
 ```bash
-git clone https://github.com/kane313759-netizen/Myskill.git _hackathon_kit
-bash _hackathon_kit/install.sh .
+KIT_DIR="$(mktemp -d)"
+git clone --depth 1 https://github.com/kane313759-netizen/Myskill.git "$KIT_DIR"
+bash "$KIT_DIR/install.sh" .
 ```
 
-## 1. 시험 시작
+## 1. Start
 
 ```text
-Use the hackathon-orchestrator skill. Start from Phase 0.
-Keep Terra as orchestrator, create one persistent Sol 6.1 MAIN BUILDER,
-and let that MAIN own specification through implementation.
-Do not implement until the constraint gate is complete.
+Use the hackathon-orchestrator skill.
+Read .hackathon-kit/EXAM_POLICY.md first.
+Start with grader-intake and baseline.
+Do not implement product logic until CP1 Spec Freeze closes the constraint gate.
 ```
 
-## 2. 제약만 다시 공격
+## 2. CP1 — Spec Freeze
 
 ```text
-Use the constraint-discovery skill.
-Re-read the original requirements and current result.
-Separate explicit constraints, implicit reality candidates, and soft constraints.
-Do not invent numeric limits.
-```
-
-## 3. 코드 레드팀
-
-```text
-Spawn a Terra code-review subagent using .hackathon-kit/prompts/CODE_RED.md.
-Report only. Do not edit source files.
-```
-
-## 4. 현실성/제약 레드팀
-
-```text
-Spawn a new independent Sol 6.1 constraint-review subagent using
+Create a fresh independent Constraint Red review using
 .hackathon-kit/prompts/CONSTRAINT_RED.md.
-Do not give it MAIN's assumptions as facts.
-Report only. Do not edit source files.
+Give it original task/grading/test paths, GRADER.md, IMMUTABLES.md,
+data profile if any, and SPEC_DRAFT.md.
+Do not give DECISIONS.md as facts.
 ```
 
-## 5. 기록
+## 3. CP2 — First end-to-end
 
 ```text
-Spawn a Luna recorder using .hackathon-kit/prompts/RECORDER.md.
-Update only the work records. Do not edit product source.
+Create a fresh Code Red using .hackathon-kit/prompts/CODE_RED.md.
+Then run Recorder using .hackathon-kit/prompts/RECORDER.md.
+Run another Constraint Red only if CP1 left material assumptions,
+the task is optimization/operations-like, or result metrics show a constraint/realism risk.
 ```
 
-## 6. 제출 전
+## 4. Repeated failure
+
+```text
+Use .hackathon-kit/prompts/ESCALATE_SOL.md for a fresh analysis.
+MAIN remains the only product-source writer.
+```
+
+## 5. CP3 — Pre-submit
 
 ```text
 Stop adding features.
-Use the final-explain skill and prepare me for the no-AI follow-up.
-Use only facts supported by the actual code, configuration, tests,
-business-person answers, and things I directly verified.
+Run final fresh Code Red and fresh Constraint Red.
+Finalize Recorder notes.
+Use verification and final-explain.
+Prepare me for the official no-AI follow-up using only actual evidence.
 ```
 
-## 기억할 한 줄
+## 6. Doctor
 
-**Sol이 만들고 → Terra가 코드를 깨고 → 다른 Sol이 문제 정의를 깨고 → Luna가 기록한다.**
+```bash
+bash .hackathon-kit/scripts/doctor.sh
+```
+
+## 7. Optional cleanup
+
+Only if submission rules require helper files to be absent:
+
+```bash
+bash .hackathon-kit/scripts/clean.sh --apply
+```
+
+## One-line memory
+
+**grader → baseline → spec attack → MAIN builds → code attack → final attack → explain**
