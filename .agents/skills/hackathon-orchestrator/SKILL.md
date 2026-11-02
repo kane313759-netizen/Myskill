@@ -1,59 +1,89 @@
 ---
 name: hackathon-orchestrator
-description: Orchestrate an unfamiliar hackathon task from intake through constraints, persistent Sol MAIN implementation, independent red teams, verification, and final no-AI explanation.
+description: Orchestrate the SK hynix AI hackathon workflow from grader intake through one Sol MAIN, fixed review gates, verification, cleanup, and final no-AI follow-up preparation.
 ---
 
-# Role topology
+Read `.hackathon-kit/EXAM_POLICY.md` first. Official exam/task instructions always win.
 
-- Parent/default Terra = ORCHESTRATOR ONLY.
-- Persistent Sol 6.1 = MAIN BUILDER and sole product-source writer.
-- Terra = CODE RED reviewer, no edits.
-- New independent Sol 6.1 = CONSTRAINT RED reviewer, no edits.
-- Luna = RECORDER, no product-source edits.
+# Roles
 
-Keep MAIN Sol's context when possible. Constraint Red must be independent.
+- ORCHESTRATOR: default Terra session. **No product-source edits.**
+- MAIN_BUILDER: one persistent Sol 6.1 when available. Sole product-source writer.
+- CODE_RED: fresh Terra review context. No product-source edits.
+- CONSTRAINT_RED: fresh independent Sol 6.1 review context. No product-source edits.
+- RECORDER: Luna when available. Writes only under `.hackathon-kit/run/`.
 
-# Phase 0 — before implementation
+If a named model is unavailable, preserve the role separation and use the strongest allowed available substitute. Record the actual model.
 
-Have MAIN perform, in order:
-1. task-router
-2. problem-intake
-3. constraint-discovery
-4. data-profiler when data exists
-5. tool-inventory when unfamiliar tooling exists
+# Phase 0 — intake, before implementation
 
-Do not implement until the Constraint Gate is complete.
+Have MAIN perform:
+1. `grader-intake`
+2. `immutable-inventory`
+3. `task-router`
+4. `problem-intake`
+5. `constraint-discovery`
+6. data/tool playbooks only when relevant
 
-# Constraint Gate
+Create `.hackathon-kit/run/STATE.md` from the template if missing.
 
-Require:
-- explicit hard/soft constraints
-- implicit reality candidates
-- resource/cost/time/capacity/physical limits
-- human burden and fairness
-- persistence/retry/duplicate/idempotency risks
-- extreme values and objective loopholes
+Do not implement product logic while `constraint_gate: OPEN`.
 
-Do not invent unstated numeric thresholds. Turn them into questions or soft candidates.
+# CP1 — SPEC FREEZE
 
-# Build loop
+Before implementation:
+- MAIN writes a short spec draft under `.hackathon-kit/run/SPEC_DRAFT.md`.
+- Spawn a **fresh independent CONSTRAINT_RED**.
+- Reviewer reads original task/spec paths directly, plus GRADER.md, IMMUTABLES.md, data profile if present, and SPEC_DRAFT.md as the thing to attack.
+- Do not provide MAIN's DECISIONS.md as facts.
+- Reviewer returns up to 3 highest-impact attacks, or attempted attacks that did not succeed.
 
-MAIN implements the smallest end-to-end happy path first.
-At meaningful checkpoints:
-- run Terra Code Red
-- run Luna Recorder
+A constraint can become CONFIRMED only from original task evidence or an explicit user/business-contact answer.
+Unanswered non-blocking items remain ASSUMPTION.
+When the gate requirements in STATE.md are satisfied, set `constraint_gate: CLOSED`.
 
-After the first real end-to-end result:
-- run an independent Sol Constraint Red using original requirements, data summary, and result metrics
+# Build
 
-Return findings to MAIN. MAIN alone fixes and integrates.
+MAIN implements the smallest scoring-relevant end-to-end path first.
+Do not weaken baseline tests or hard-code sample outputs.
 
-# Finish
+User interaction must not block routine implementation:
+- record questions/assumptions
+- ask only material questions
+- if no answer is available, use a conservative reversible ASSUMPTION and continue when safe
+- do not repeatedly quiz the user during implementation
+
+# CP2 — FIRST END-TO-END
+
+When the first scoring-relevant path works:
+- fresh CODE_RED reviews code/tests
+- RECORDER updates run notes
+- run CONSTRAINT_RED again only when the task is optimization/operations-like, CP1 left material assumptions, or result metrics expose a realism/constraint risk
+
+CODE_RED dynamic tests must avoid colliding with MAIN: prefer static review and existing tests; if extra runtime tests are needed, use isolated temp data/ports when possible.
+
+# CP3 — PRE-SUBMIT
 
 15–20 minutes before submission:
 - stop feature expansion
-- final Code Red
-- final Constraint Red
-- final Recorder
-- MAIN runs final-explain
-- quiz the user one item at a time and correct only mistakes
+- final fresh CODE_RED
+- final fresh CONSTRAINT_RED
+- RECORDER finalizes run notes
+- MAIN runs `verification`
+- MAIN runs `final-explain`
+- run `doctor`/cleanup checks as appropriate
+
+Only now quiz the user for the no-AI follow-up. The official follow-up is why this step is mandatory.
+
+# MAIN context replacement
+
+Persistent MAIN is preferred, not sacred.
+If context is saturated or repeated reasoning degrades:
+- write `.hackathon-kit/run/HANDOFF.md`
+- start a new allowed MAIN
+- continue from evidence files, not memory
+
+# Review cap
+
+There are only 3 planned checkpoints above. Do not spawn review agents for every small edit.
+Extra review is reserved for a new P0 risk, major architecture change, or repeated failure.
