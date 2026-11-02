@@ -1,59 +1,118 @@
-# AI Hackathon Starter Kit
+# SK hynix AI Hackathon Starter Kit
 
-범용 Codex 해커톤 스타터킷입니다. 특정 과제 정답이 아니라 **문제 이해 → 제약 → 명세 → 구현 → 검증 → 설명** 절차를 제공합니다.
+This repository is a **task-domain-agnostic workflow kit for the SK hynix AI hackathon exam format**.
+It is intentionally exam-specific about rules and follow-up preparation, but it does **not** assume the task itself is routing, web, Docker, ML, or any other domain.
 
-## 최종 역할
+## Official-exam priorities
 
-- **Terra 5.6 — ORCHESTRATOR ONLY**: 단계 관리, subagent 호출, findings 취합
-- **Sol 6.1 — persistent MAIN BUILDER**: 문제 이해, 요구사항/명세, 설계, 구현, 통합, 어려운 오류 수정, 최종 설명
-- **Terra 5.6 — CODE RED**: 코드 버그·경계값·회귀·저장 문제 독립 리뷰
-- **Sol 6.1 — independent CONSTRAINT RED**: 암묵 제약·현실성·trade-off·목표함수 허점 공격
-- **Luna 6 — RECORDER**: 결정·검증·시스템 지도·후속질문 대비 기록
+Read `EXAM_POLICY.md` first.
 
-> **Sol이 만들고, Terra가 코드를 깨고, 다른 Sol이 문제 정의를 깨고, Luna가 기록한다.**
+Core confirmed constraints include:
+- task solving up to 180 minutes
+- no Computer Use / automated UI control
+- no external AI/model connection
+- no external transmission of problem/files/results
+- no Git Push
+- public GitHub tools / Skills / MCP / Plugins may be downloaded subject to those restrictions
+- follow-up written test is 6 × 5 minutes without AI/copy-paste
+- recommended provided models include Sol 6.1, Terra 5.6, Luna 6, Sol 6.0
 
-## 시험장에서 설치
+Newer official exam/task instructions always override this kit.
+
+## Role policy
+
+- **ORCHESTRATOR — Terra 5.6 when available:** state/checkpoint management only; no product-source edits.
+- **MAIN_BUILDER — persistent Sol 6.1 when available:** sole product-source writer from specification through implementation.
+- **CODE_RED — fresh Terra context:** code/contract/regression review only.
+- **CONSTRAINT_RED — fresh independent Sol 6.1 context:** spec/assumption/objective review only.
+- **RECORDER — Luna when available:** writes evidence notes only under `.hackathon-kit/run/`.
+
+If an exact model is unavailable, preserve the role separation and use the strongest allowed available substitute. Verify actual model selection in the provided Codex environment.
+
+## Safe install — clone outside the task repository
 
 Linux / cloud shell:
 
 ```bash
-git clone https://github.com/kane313759-netizen/Myskill.git _hackathon_kit
-bash _hackathon_kit/install.sh .
+KIT_DIR="$(mktemp -d)"
+git clone --depth 1 https://github.com/kane313759-netizen/Myskill.git "$KIT_DIR"
+bash "$KIT_DIR/install.sh" .
 ```
 
 PowerShell:
 
 ```powershell
-git clone https://github.com/kane313759-netizen/Myskill.git _hackathon_kit
-powershell -ExecutionPolicy Bypass -File _hackathon_kit/install.ps1 -Target .
+$KitDir = Join-Path $env:TEMP ("Myskill-" + [guid]::NewGuid())
+git clone --depth 1 https://github.com/kane313759-netizen/Myskill.git $KitDir
+powershell -ExecutionPolicy Bypass -File (Join-Path $KitDir "install.ps1") -Target .
 ```
 
-설치 뒤 Codex 첫 메시지:
+The installer:
+- does not overwrite an existing skill directory
+- copies exam policy/support files into `.hackathon-kit/`
+- initializes runtime notes under `.hackathon-kit/run/` without overwriting them on reinstall
+- adds kit paths to local `.git/info/exclude` when a Git worktree exists
+- records exactly which skill directories it installed
+
+Offline backup: keep a frozen ZIP of this repository before exam day.
+
+## First Codex message
 
 ```text
-Use the hackathon-orchestrator skill. Start from Phase 0.
-Keep Terra as orchestrator, create one persistent Sol 6.1 MAIN BUILDER,
-and let that MAIN own specification through implementation.
-Do not implement until the constraint gate is complete.
+Use the hackathon-orchestrator skill.
+Read .hackathon-kit/EXAM_POLICY.md first.
+Start from grader intake and baseline.
+Do not implement product logic until CP1 Spec Freeze closes the constraint gate.
 ```
 
-전체 시작문은 `BOOTSTRAP_PROMPT.md`, 짧은 호출법은 `CALLING.md`를 참고합니다.
+## Fixed checkpoints
 
-## 핵심 원칙
+- **CP1 SPEC FREEZE:** fresh Constraint Red before implementation.
+- **CP2 FIRST END-TO-END:** fresh Code Red + Recorder; Constraint Red only if risk warrants.
+- **CP3 PRE-SUBMIT:** final Code Red + Constraint Red + Recorder + verification + final-explain.
 
-1. 시험 규칙과 과제 문서가 이 키트보다 항상 우선합니다.
-2. 문서에 없는 제한을 사실처럼 만들지 않습니다.
-3. **규칙상 맞는가? + 현실에서도 쓸 수 있는가?** 둘 다 검사합니다.
-4. Red Team과 Recorder는 source를 수정하지 않습니다.
-5. 실제 source writer는 persistent MAIN Sol 하나만 둡니다.
-6. 외부 AI, 외부 데이터 전송, 원격 push, Computer Use는 과제 규칙이 명시적으로 허용하지 않는 한 사용하지 않습니다.
+No review agent should be spawned for every small edit.
 
-## 구조
+## Core vs conditional playbooks
 
-- `.agents/skills/` — Codex repo-local skills
-- `prompts/` — 하위 에이전트 역할 프롬프트
-- `references/` — 모델 정책·과제 유형·제약 체크리스트
-- `templates/` — 시스템 지도·결정·검증 기록
-- `scripts/` — 로컬 데이터/환경 sanity 검사
+Always-start core:
+- grader-intake
+- immutable-inventory
+- task-router
+- problem-intake
+- constraint-discovery
+- verification
+- final-explain
 
-이 저장소는 **답을 미리 정하는 키트가 아니라, 답을 찾는 절차를 재사용하는 키트**입니다.
+Conditional only when task evidence supports them:
+- optimization
+- web-app
+- api-integration
+- agent-chatbot
+- automation
+- debugging
+- data-profiler
+- algorithm-cli
+- ml-data-science
+- document-processing
+- security-review
+
+## Before submission
+
+Run:
+
+```bash
+bash .hackathon-kit/scripts/doctor.sh
+```
+
+Use cleanup only after final explanation prep and only if the submission format requires removing local helper files:
+
+```bash
+bash .hackathon-kit/scripts/clean.sh --apply
+```
+
+The cleanup script backs up `.hackathon-kit/run/` to a local temp directory before removal.
+
+## Mental rule
+
+> **First learn what is scored. Then freeze the contract. Then implement. Then attack the code and the problem separately. Finally explain only what actually exists.**
