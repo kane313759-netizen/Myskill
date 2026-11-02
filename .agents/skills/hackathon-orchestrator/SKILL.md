@@ -71,9 +71,10 @@ CODE_RED dynamic tests must avoid colliding with MAIN: prefer static review and 
 - stop feature expansion
 - final fresh CODE_RED
 - final fresh CONSTRAINT_RED
-- RECORDER finalizes run notes
+- RECORDER finalizes run notes, including HUMAN_JUDGMENT / EDGE_CASES / AI_FAILURES / LIMITATIONS
 - MAIN runs `verification`
 - MAIN runs `final-explain`
+- MAIN runs `followup-prep` to produce FOLLOWUP_CHEATSHEET.md and the 6 hardest practice questions
 - run doctor/cleanup checks as appropriate
 
 Only now quiz the user for the official no-AI follow-up.
