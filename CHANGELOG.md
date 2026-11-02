@@ -1,5 +1,21 @@
 # Changes
 
+## 2026-11-02-operational-r6
+
+- task-router now selects optional helpers from original task evidence in the existing
+  intake pass. Existing tools/NONE are preferred; narrow local modes, provenance,
+  data/side-effect guards, fallbacks and budget go into the existing CP1 spec review.
+- Added a bounded stdlib PATH inventory that never runs candidates, probes packages,
+  installs or approves tools. Presence is explicitly unverified.
+- Added task-conditional local-tool/reference guidance, exact-value/ID preservation,
+  full secret redaction, no automatic extensions/fixes/hooks, isolated acquisition,
+  and ordinary reopen/submission rules. No upstream runtime or new AI is bundled.
+- Existing roles/checkpoints and EXAM_POLICY.md remain unchanged. Tool selection is
+  an instruction/evidence workflow, not an OS/network enforcement sandbox.
+- Validation: 83 local tests, targeted independent review and ten actual-agent
+  decision replays; scope and untested runtime paths are recorded in
+  [tool-selection-validation.md](references/tool-selection-validation.md).
+
 ## 2026-11-02-operational-r5
 
 - A local nondeveloper simulation exposed gaps between prepared evidence and the

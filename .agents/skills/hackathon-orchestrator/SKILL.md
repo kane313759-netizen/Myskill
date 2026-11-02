@@ -25,6 +25,14 @@ For UI/chat-only instructions or unavailable original files, capture provenance-
 
 Inspect baseline command side effects and network use before execution. Bound checks using remaining exam time, expected runtime, and time needed for implementation, review, submission, and follow-up preparation. Record unavailable checks with reasons; never fabricate a passing baseline. Activate data/tool/domain playbooks only with task/grader evidence.
 
+In the same task-router pass, have MAIN select optional helpers under
+`references/optional-tools.md` only with original task evidence. Existing tools/NONE
+are preferred. Put the compact mode/fallback/data-guard/budget decision in the
+existing SPEC_DRAFT verification plan for CP1 review. Tool inventory only observes
+unverified PATH candidates. Permitted acquisition stays isolated outside the task
+repo, preserving its configs, protected files and submission. Do not add another
+agent framework, checkpoint, routine confirmation or speculative installation pass.
+
 MAIN reports classification and intake outcomes; ORCHESTRATOR alone updates STATE. Ask the participant only material scoring/feasibility/business-rule questions. Otherwise record a reversible non-blocking ASSUMPTION and continue safely. No mandatory per-step interaction, teach-back, or manufactured human contribution.
 
 # Clean review launch — every Red checkpoint
@@ -59,6 +67,12 @@ Freeze GRADER, BASELINE, IMMUTABLES, SPEC_DRAFT, and CONSTRAINTS after approval.
 MAIN builds the smallest scoring-relevant end-to-end path. Preserve contracts/tests; never hard-code samples or replace the submission wholesale with external code. Partial reuse must respect the official brief and task rules.
 
 At the first working scoring-relevant path, run clean CODE_RED and then Recorder. Repeat Constraint Red only for a material assumption/constraint/objective risk. Inspect dynamic-test side effects; isolate temporary data, processes, and ports, and avoid MAIN's live DB/process. Report necessary checks that cannot safely run as UNVERIFIED. MAIN sends factual evidence to Recorder, which maintains ongoing notes and prepares six-axis follow-up coverage early.
+
+Reuse the reviewed helper mode after routine edits. MAIN sends actual helper errors/
+results to Recorder. Material dependency, mutation or network/data-route changes
+use the normal reopen/review rule before affected work. At CP3 check that optional
+helpers/reports/caches stay outside the collected submission. PATH presence, lint
+success or empty extraction is not product verification.
 
 # CP3 — PRE-SUBMIT
 

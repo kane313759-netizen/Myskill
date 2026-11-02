@@ -23,6 +23,9 @@
 <!-- State NONE with evidence if none remain. Unsupported penalties are not confirmed objectives. -->
 
 ## Verification plan
+<!-- Optional tools: NONE/existing tooling by default. If justified, record need/source,
+selected mode, availability/provenance/version status, fallback, data/side-effect guards
+and budget here for normal CP1 review. No extra heading or tool approval flag. -->
 
 ## Domain playbooks activated
 - none by default

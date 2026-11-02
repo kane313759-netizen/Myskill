@@ -23,6 +23,14 @@ Build the smallest scoring-relevant end-to-end path. Preserve public contracts a
 
 Invoke domain playbooks only with task-router evidence. Do not force frontend/backend/Docker/DB concepts onto unrelated tasks or invent resource limits, objective terms, soft penalties, or tie-breakers. Unsupported concerns remain explicit questions/assumptions.
 
+Follow task-router and `references/optional-tools.md` for needed local helpers.
+Prefer the existing environment; PATH inventory is observation, not approval.
+Record the initial choice/guards/fallback/budget in SPEC_DRAFT's verification plan
+before CP1. Do not import whole upstream skills/hooks or alter project configs for
+optional installation. Preserve originals, exact values and secrets; send routine
+outcomes to Recorder and request normal reopen for material dependency/data/precision
+or extraction-scope changes. Acquisition/build hooks need review before they run.
+
 Ask participant/business-contact questions only when answers materially change scoring, feasibility, or an explicit rule. Otherwise record a conservative reversible non-blocking ASSUMPTION and residual risk, then continue safely. No routine quizzes or manufactured participant contribution. Only the participant's actual actions or explicitly confirmed judgment may be recorded as personal contribution; Tutor explanations are not proof of those actions.
 
 ## Repeated failure and handoff

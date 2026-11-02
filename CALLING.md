@@ -9,6 +9,8 @@ Use the README installation steps with a pre-exam verified SHA or frozen flat ZI
 Use the hackathon-orchestrator skill.
 Read .hackathon-kit/EXAM_POLICY.md first.
 One evidence pass for grader intake, safe baseline, immutables, routing and constraints.
+Include evidence-based optional-tool selection in that pass: existing tools/NONE first,
+local guarded modes only, with the decision in SPEC's existing verification plan for CP1.
 MAIN alone writes product source; ORCHESTRATOR alone writes STATE/gate/receipts.
 Do not implement until independent CP1 review and gate_check pass.
 ```

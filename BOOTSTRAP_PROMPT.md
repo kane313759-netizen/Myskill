@@ -21,6 +21,9 @@ CONSTRAINTS and SPEC_DRAFT using their installed template headings. Run gate_che
 before Red review; it checks format only and never authorizes implementation.
 Inspect command side effects/network/time before baseline.
 Record original source paths or provenance-marked TASK_EVIDENCE for UI/chat-only originals.
+During task-router, select optional helpers only from task evidence under optional-tools.md.
+Prefer existing tools/NONE; inventory never authorizes use. Record mode/guards/fallback/budget
+in the existing SPEC verification plan for CP1. No whole upstream skill/hook/framework installs.
 
 Before implementation, independent CP1 Constraint Red must review the actual specification.
 ORCHESTRATOR records CP1_RED.md and CP1_REVIEW.json with original sources,
