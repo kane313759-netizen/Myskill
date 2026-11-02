@@ -1,28 +1,34 @@
 ---
 name: task-router
-description: Classify an unfamiliar task before implementation and select only the relevant playbooks.
+description: Classify an unfamiliar task after grader intake and select only evidence-supported playbooks; do not activate domain playbooks merely because their vocabulary appears once.
 ---
 
-Read the task brief, provided files, existing code, config, tests, and example outputs.
+Read `.hackathon-kit/run/GRADER.md` and task material.
 
-Classify as one or more:
-1. data analysis / anomaly detection
-2. optimization / assignment / scheduling
-3. web app / CRUD / dashboard
-4. API / external integration
-5. AI agent / chatbot / RAG
-6. debugging / repair
-7. automation / scheduler / workflow
-8. mixed
+Classify one or more:
+1. algorithm / CLI / parser
+2. data analysis / anomaly detection
+3. ML / data science
+4. optimization / assignment / scheduling / operations
+5. web app / CRUD / dashboard
+6. API / external integration
+7. AI agent / chatbot / RAG
+8. automation / scheduler / workflow / data pipeline
+9. security / auth / permission
+10. document / multimodal extraction or transformation
+11. debugging / repair of existing repository
+12. mixed
 
-Return:
+Return to `.hackathon-kit/run/STATE.md` or SPEC_DRAFT:
 - task type(s)
-- business problem in one sentence
-- expected input and output
-- storage/state needs
-- external connections
-- mandatory tools
+- classification evidence
+- scoring-relevant path
+- relevant playbooks
+- explicitly **not applicable** playbooks
 - highest-risk boundaries
-- relevant skills to invoke next
 
-Do not infer domain rules that are not supported by task material.
+Activation rule:
+- use a domain playbook only when task material or grader contract supports it
+- if classification confidence is low, stay with core skills instead of stacking multiple playbooks
+
+Reference `.hackathon-kit/references/task-types.md` when present.
