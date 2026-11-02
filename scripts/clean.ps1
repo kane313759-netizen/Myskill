@@ -31,6 +31,7 @@ try {
   git -C $Root rev-parse --git-dir *> $null
   if($LASTEXITCODE -eq 0){
     $exclude=(git -C $Root rev-parse --git-path info/exclude).Trim()
+    if(-not [System.IO.Path]::IsPathRooted($exclude)){ $exclude=Join-Path $Root $exclude }
     if(Test-Path $exclude){
       $remove=@(".hackathon-kit/") + ($names | ForEach-Object { ".agents/skills/" + $_ + "/" })
       @(Get-Content $exclude | Where-Object { $remove -notcontains $_ }) | Set-Content -Encoding UTF8 $exclude
