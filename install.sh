@@ -34,7 +34,7 @@ for f in EXAM_POLICY.md BOOTSTRAP_PROMPT.md CALLING.md AGENTS.snippet.md; do
 done
 
 # Initialize run notes only when missing.
-for f in STATE BASELINE GRADER IMMUTABLES SPEC_DRAFT SYSTEM_MAP CONSTRAINTS DECISIONS VERIFY HANDOFF; do
+for f in STATE BASELINE GRADER IMMUTABLES SPEC_DRAFT SYSTEM_MAP CONSTRAINTS DECISIONS VERIFY HANDOFF HUMAN_JUDGMENT EDGE_CASES AI_FAILURES LIMITATIONS FOLLOWUP_CHEATSHEET; do
   src="$TARGET/.hackathon-kit/templates/$f.md"
   dst="$TARGET/.hackathon-kit/run/$f.md"
   if [ -f "$src" ] && [ ! -e "$dst" ]; then
