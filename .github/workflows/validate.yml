@@ -81,3 +81,14 @@ jobs:
           bash /tmp/task/.hackathon-kit/scripts/clean.sh --apply
           test ! -e /tmp/task/.hackathon-kit
           test -f /tmp/task/.agents/skills/existing-skill/KEEP.txt
+
+      - name: Package review ZIP
+        run: |
+          zip -qr /tmp/Myskill-review.zip . -x '.git/*' -x '__pycache__/*' -x '*.pyc'
+
+      - name: Upload review ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Myskill-review
+          path: /tmp/Myskill-review.zip
+          if-no-files-found: error
