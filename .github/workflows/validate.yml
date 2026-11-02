@@ -33,6 +33,13 @@ jobs:
           test -f /tmp/task/.hackathon-kit/run/STATE.md
           test -f /tmp/task/.hackathon-kit/run/BASELINE.md
           test -f /tmp/task/.hackathon-kit/run/SPEC_DRAFT.md
+          test -f /tmp/task/.hackathon-kit/run/HUMAN_JUDGMENT.md
+          test -f /tmp/task/.hackathon-kit/run/EDGE_CASES.md
+          test -f /tmp/task/.hackathon-kit/run/AI_FAILURES.md
+          test -f /tmp/task/.hackathon-kit/run/LIMITATIONS.md
+          test -f /tmp/task/.hackathon-kit/run/FOLLOWUP_CHEATSHEET.md
+          test -f /tmp/task/.hackathon-kit/prompts/TUTOR.md
+          test -f /tmp/task/.agents/skills/followup-prep/SKILL.md
           test -f /tmp/task/.agents/skills/existing-skill/KEEP.txt
           grep -qxF ".hackathon-kit/" /tmp/task/.git/info/exclude
 
