@@ -3,8 +3,8 @@
 from pathlib import Path
 import re, sys
 
-root=Path(__file__).resolve().parents[2]
-state=root/"run"/"STATE.md"
+kit=Path(__file__).resolve().parents[1]
+state=kit/"run"/"STATE.md"
 if not state.is_file():
     raise SystemExit("GATE FAIL: run/STATE.md missing")
 text=state.read_text(encoding="utf-8",errors="replace")
