@@ -59,6 +59,10 @@ fi
 # Hide helper files from local git status without modifying .gitignore.
 if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
   exclude="$(git -C "$TARGET" rev-parse --git-path info/exclude)"
+  case "$exclude" in
+    /*) ;;
+    *) exclude="$TARGET/$exclude" ;;
+  esac
   mkdir -p "$(dirname "$exclude")"
   touch "$exclude"
   grep -qxF ".hackathon-kit/" "$exclude" 2>/dev/null || echo ".hackathon-kit/" >> "$exclude"
