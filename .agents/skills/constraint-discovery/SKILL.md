@@ -1,52 +1,48 @@
 ---
 name: constraint-discovery
-description: Find explicit constraints, implicit reality candidates, soft quality goals, extreme-value failures, and objective loopholes before or during implementation.
+description: Build an evidence-backed constraint register for an unfamiliar task; use before implementation and again only when a material requirement or result risk changes.
 ---
 
-Do not implement while running this skill.
+Read:
+- `.hackathon-kit/EXAM_POLICY.md`
+- `.hackathon-kit/run/GRADER.md`
+- `.hackathon-kit/run/IMMUTABLES.md`
+when present.
 
-# Extract explicit constraints
+# Common constraints first
 
-Look for:
-- counts and resource limits
-- min/max values
-- capacity
-- time windows
-- distance
-- uniqueness / one-to-one rules
-- exclusions
-- priority
-- failure behavior
-- date/time semantics
-- persistence / restart behavior
-- external-system boundaries
+Inspect original task material, tests, schemas, sample I/O, runtime config, and submission rules for:
+- input/output contract
+- allowed/forbidden changes
+- time and memory
+- network/external dependencies
+- state/persistence/retry/duplicate behavior
+- reproducibility/seed/timezone/tolerance/encoding
+- security/privacy/auth boundaries when relevant
+- failure/partial-credit conditions
+- performance/scale requirements
+- explicit domain limits
 
-For each record:
-constraint | hard/soft | evidence | violation impact | implementation location | test
+Every CONFIRMED constraint needs an evidence path/location or explicit user/business-contact answer.
+Without evidence, label it ASSUMPTION or OPEN QUESTION.
 
-# Find implicit reality candidates
+# Domain lenses are conditional
 
-Scan:
-- resource count
-- cost/budget
-- time
-- physical limits
-- human waiting/walking/detour/repetition
-- fairness
-- utilization
-- scale
-- retry/duplication
-- operations feasibility
+Only after task-router classifies the task, apply relevant lenses:
+- optimization/operations: resources, capacity, utilization, unassigned items, wait/travel/fairness/extremes
+- web/API/automation: contract, latency/timeout, retries, idempotency, persistence, authorization
+- data/ML: leakage, split/seed, missing data, class balance, metric definition
+- algorithm/CLI/parser: exact I/O, determinism, complexity, tolerance, malformed input
 
-Never convert an unstated candidate into a hard fact.
+Do not leak optimization vocabulary into unrelated tasks.
 
 # Extreme-value attack
 
-Ask:
-- What can be increased without limit to improve the objective?
-- What can approach zero and create a pathological solution?
-- Can averages look good while max values become absurd?
-- Can the system satisfy rules with a result no operator/user would accept?
+For the relevant domain ask:
+- what can be increased without limit to game the score?
+- what can approach zero and create a pathological result?
+- can a summary metric hide a catastrophic worst case?
+- can visible samples pass while the contract is violated?
 
-For each candidate report:
-problem | why suspicious | pathological example | hard/soft/question recommendation | metric/test
+Write/update `.hackathon-kit/run/CONSTRAINTS.md`.
+A MAIN may propose, but only evidence/user answer may promote ASSUMPTION → CONFIRMED.
