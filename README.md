@@ -65,6 +65,38 @@ Start from grader intake and baseline.
 Do not implement product logic until CP1 Spec Freeze closes the constraint gate.
 ```
 
+## Optional second terminal — read-only Tutor
+
+If the provided environment supports opening another terminal, a second Codex session can be used only for the participant's understanding.
+
+Recommended:
+- model: **Sol 6.1** when available
+- role: read-only Tutor / explainer
+- same workspace may be read
+- **no product-source edits**
+- no mutating commands
+- no Computer Use
+- no external AI/services
+- no implementation decisions on behalf of MAIN
+
+Start that terminal with:
+
+```text
+Read .hackathon-kit/prompts/TUTOR.md and follow it.
+You are read-only. Explain the current task and implementation to me,
+but do not edit product source or make implementation decisions for MAIN.
+```
+
+Use it for questions such as:
+- "지금까지 뭘 만들었는지 입-처-저-출-외로 설명해."
+- "방금 바뀐 게 왜 필요한지 쉬운 말로 설명해."
+- "가장 까다로운 edge case와 실제 검증 근거는?"
+- "AI가 한 것과 내가 직접 판단한 걸 구분해."
+- "이 기술은 시스템 어디에 있고 실패하면 뭐가 깨져?"
+- "후속 질문에 나오면 내가 어떻게 설명해야 해?"
+
+This terminal is a tutor, not a second implementer.
+
 ## Fixed checkpoints
 
 - **CP1 SPEC FREEZE:** fresh Constraint Red before implementation.
