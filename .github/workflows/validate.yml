@@ -1,0 +1,83 @@
+name: validate-starter-kit
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python syntax
+        run: python -m py_compile scripts/*.py
+
+      - name: Build disposable task repo
+        run: |
+          mkdir -p /tmp/task/.agents/skills/existing-skill
+          echo original > /tmp/task/.agents/skills/existing-skill/KEEP.txt
+          cd /tmp/task
+          git init -q
+          git config user.email test@example.com
+          git config user.name test
+          echo task > README.md
+          git add README.md
+          git commit -qm baseline
+
+      - name: Install
+        run: |
+          bash install.sh /tmp/task
+          test -f /tmp/task/.hackathon-kit/EXAM_POLICY.md
+          test -f /tmp/task/.hackathon-kit/run/STATE.md
+          test -f /tmp/task/.hackathon-kit/run/BASELINE.md
+          test -f /tmp/task/.hackathon-kit/run/SPEC_DRAFT.md
+          test -f /tmp/task/.agents/skills/existing-skill/KEEP.txt
+          grep -qxF ".hackathon-kit/" /tmp/task/.git/info/exclude
+
+      - name: Reinstall preserves run notes
+        run: |
+          echo KEEP_ME >> /tmp/task/.hackathon-kit/run/DECISIONS.md
+          bash install.sh /tmp/task
+          grep -q KEEP_ME /tmp/task/.hackathon-kit/run/DECISIONS.md
+
+      - name: Gate fails open and passes closed
+        run: |
+          set +e
+          python /tmp/task/.hackathon-kit/scripts/gate_check.py
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          sed -i 's/grader_contract: NOT_INSPECTED/grader_contract: RECORDED/' /tmp/task/.hackathon-kit/run/STATE.md
+          sed -i 's/baseline: NOT_RUN/baseline: RECORDED/' /tmp/task/.hackathon-kit/run/STATE.md
+          sed -i 's/immutable_inventory: NOT_RUN/immutable_inventory: RECORDED/' /tmp/task/.hackathon-kit/run/STATE.md
+          sed -i 's/cp1_constraint_red: NOT_RUN/cp1_constraint_red: DONE/' /tmp/task/.hackathon-kit/run/STATE.md
+          sed -i 's/constraint_gate: OPEN/constraint_gate: CLOSED/' /tmp/task/.hackathon-kit/run/STATE.md
+          python /tmp/task/.hackathon-kit/scripts/gate_check.py
+
+      - name: CP949 profile and bounded sanity
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text='id,대기시간\n001,10\n002,180\n'
+          Path('/tmp/task/sample.csv').write_bytes(text.encode('cp949'))
+          PY
+          python /tmp/task/.hackathon-kit/scripts/profile_data.py /tmp/task/sample.csv --max-rows 10
+          python /tmp/task/.hackathon-kit/scripts/sanity_check.py /tmp/task/sample.csv --max-rows 10
+
+      - name: Test-summary does not flag zero failures
+        run: |
+          printf '23 passed, 0 failed, 0 errors\n' > /tmp/task/test.log
+          out="$(python /tmp/task/.hackathon-kit/scripts/test_summary.py /tmp/task/test.log)"
+          echo "$out"
+          echo "$out" | grep -q 'FAILURE_LIKE_LINES.*0'
+
+      - name: Doctor
+        run: bash /tmp/task/.hackathon-kit/scripts/doctor.sh
+
+      - name: Cleanup only removes kit-owned helpers
+        run: |
+          bash /tmp/task/.hackathon-kit/scripts/clean.sh --apply
+          test ! -e /tmp/task/.hackathon-kit
+          test -f /tmp/task/.agents/skills/existing-skill/KEEP.txt
