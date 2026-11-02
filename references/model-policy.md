@@ -1,64 +1,47 @@
-# Model role policy — FINAL
+# Model role policy — exam-specific
 
-## ORCHESTRATOR — Terra 5.6
+The official brief recommends Sol 6.1, Terra 5.6, Luna 6, and Sol 6.0.
+Actual model availability must be verified in the provided Codex environment.
 
-Owns:
-- workflow state
-- checkpoint timing
-- subagent dispatch
-- findings aggregation
+## Roles
 
-Does **not** own normal implementation.
+### ORCHESTRATOR
+Preferred: Terra 5.6.
+Owns phase/checkpoint state and agent dispatch.
+**No product-source edits.**
 
-## MAIN BUILDER — Sol 6.1
+### MAIN_BUILDER
+Preferred: Sol 6.1.
+Owns problem understanding, specification, architecture, implementation, integration, difficult fixes, final explanation.
+Sole product-source writer.
 
-Owns:
-- problem understanding
-- requirements/specification
-- architecture and system boundaries
-- implementation
-- integration
-- difficult debugging
-- final explanation
+### CODE_RED
+Preferred: fresh Terra context.
+Reviews implementation, contract compatibility, regression, persistence/retry, and tests.
+No product-source edits.
 
-Keep the same MAIN context/worker when possible.
+### CONSTRAINT_RED
+Preferred: fresh independent Sol 6.1 context.
+Reviews spec assumptions, grader contract, constraints, objective loopholes, and domain-specific realism only when applicable.
+No product-source edits.
 
-## CODE RED — Terra 5.6
+### RECORDER
+Preferred: Luna 6.
+Writes only evidence notes under .hackathon-kit/run/.
 
-Independent review only:
-- implementation bugs
-- boundary values
-- missing/duplicate data paths
-- persistence and retry
-- regression
-- bad tests
+## Fallback
 
-No source edits.
+If a preferred model is unavailable:
+1. keep the role boundaries
+2. use the strongest allowed available model appropriate to the role
+3. record the actual model used
+4. never claim a model switch occurred without verifying it
 
-## CONSTRAINT RED — independent Sol 6.1
+## Review priority by task
 
-Independent problem-definition review:
-- explicit constraint gaps
-- implicit reality constraints
-- unlimited-resource loopholes
-- human burden
-- fairness
-- trade-offs
-- extreme values
-- objective-function exploits
+- optimization/operations: Constraint Red is especially important
+- debugging/web/API: Code Red may be the stronger CP2 reviewer
+- algorithm/parser: exact contract and hidden-test behavior dominate
+- ML/data science: metric/leakage/reproducibility dominate
 
-No source edits. Treat MAIN assumptions as hypotheses, not facts.
-
-## RECORDER — Luna 6
-
-Records only:
-- input/process/storage/output/external map
-- constraints
-- decisions
-- verification evidence
-- unresolved risks
-- follow-up explanation points
-
-## Mental model
-
-> Sol builds. Terra breaks the code. Another Sol breaks the problem definition. Luna records.
+CP1 and CP3 remain independent reviews regardless of type.
