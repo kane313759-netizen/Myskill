@@ -1,16 +1,16 @@
-# Optional AGENTS.md snippet
+# Optional project instruction snippet
 
-시험 프로젝트의 기존 AGENTS.md가 없거나, 과제 규칙과 충돌하지 않을 때만 참고한다.
+Do not merge this into a task's existing AGENTS.md unless the task allows it.
+The installed hackathon-orchestrator skill and EXAM_POLICY.md are the primary policy sources.
 
-## Hackathon operating policy
-
-- Task-provided rules and requirements always override this starter kit.
-- Keep the default Terra session as orchestrator, not the main implementer.
-- Use one persistent Sol 6.1 MAIN BUILDER for understanding, specification, design, implementation, integration, and difficult fixes.
-- Only MAIN edits product source.
-- Use Terra Code Red for independent implementation review.
-- Use a separate Sol 6.1 Constraint Red for requirements, realism, trade-off, and objective-loophole review.
-- Use Luna Recorder for evidence-based work logs.
-- Do not turn unstated assumptions into facts.
-- Do not claim a UI/manual check was completed unless the user actually performed it.
-- Before submission, stop feature work and explain the real system as input → processing → storage → output → external connections.
+- Official exam/task instructions override this kit.
+- For this exam, Computer Use/automated UI control is prohibited.
+- Do not transmit task data externally, connect external AI models, or Git Push.
+- Discover grading/submission contracts and baseline tests before edits.
+- ORCHESTRATOR must not edit product source.
+- MAIN_BUILDER is the sole product-source writer.
+- Fresh Code Red and Constraint Red contexts review independently.
+- Recorder writes only under .hackathon-kit/run/.
+- Confirmed constraints need original evidence or explicit user/business-contact answers.
+- Domain playbooks are conditional; do not invent frontend/backend/Docker/optimization structure when absent.
+- Final no-AI follow-up preparation is mandatory for this exam.
