@@ -1,23 +1,28 @@
 ---
 name: problem-intake
-description: Explain a new task to a non-developer before coding and separate confirmed facts from open questions.
+description: Explain the task and user value before coding, while separating confirmed facts, unknowns, and non-goals without blocking implementation on repeated user teach-back.
 ---
 
-Before implementation, explain:
-1. who is doing what work
-2. what currently hurts or fails
-3. what goes into the system
-4. what must come out
-5. one normal example
-6. one stop/failure/hold example
-7. what harm a wrong implementation could cause
+Read `.hackathon-kit/EXAM_POLICY.md` and `.hackathon-kit/run/GRADER.md` first when present.
 
-Then draw:
-input → processing → storage → output → external connections
+Explain concisely:
+1. who/what uses the result
+2. what problem is being solved
+3. required input
+4. required output
+5. one normal example grounded in task material if available
+6. one failure/hold/invalid example if supported
+7. what a wrong result would break
 
-For every unclear business rule:
-- do not invent an answer
-- mark evidence source
-- propose a concise question for the task/business contact
+Map only the components that actually exist:
+input → processing → storage (if any) → output → external connections (if any)
 
-Ask the user to restate the problem in one sentence. Correct only the incorrect part.
+Do not force web/backend/DB/Docker concepts onto tasks that do not have them.
+
+For unclear rules:
+- mark OPEN QUESTION
+- cite task/test/config evidence already checked
+- ask only if the answer materially changes scoring, feasibility, or a required business rule
+
+Do not stop implementation for user teach-back here.
+Recorder should accumulate explanation notes; interactive explanation practice happens in final-explain before submission.
