@@ -13,7 +13,7 @@ Read `.hackathon-kit/EXAM_POLICY.md` first. Official exam/task instructions alwa
 - CONSTRAINT_RED: fresh independent Sol 6.1 review context. No product-source edits.
 - RECORDER: Luna when available. Writes only under `.hackathon-kit/run/`.
 
-If a named model is unavailable, preserve the role separation and use the strongest allowed available substitute. Record the actual model.
+If a named model is unavailable, preserve role separation and use the strongest allowed available substitute. Record the actual model.
 
 # Phase 0 — intake, before implementation
 
@@ -23,24 +23,27 @@ Have MAIN perform:
 3. `task-router`
 4. `problem-intake`
 5. `constraint-discovery`
-6. data/tool playbooks only when relevant
+6. data/tool/domain playbooks only when evidence says they apply
 
 Create `.hackathon-kit/run/STATE.md` from the template if missing.
 
-Do not implement product logic while `constraint_gate: OPEN`.
-
 # CP1 — SPEC FREEZE
 
-Before implementation:
-- MAIN writes a short spec draft under `.hackathon-kit/run/SPEC_DRAFT.md`.
+Before product implementation:
+- MAIN writes `.hackathon-kit/run/SPEC_DRAFT.md`.
 - Spawn a **fresh independent CONSTRAINT_RED**.
-- Reviewer reads original task/spec paths directly, plus GRADER.md, IMMUTABLES.md, data profile if present, and SPEC_DRAFT.md as the thing to attack.
+- Reviewer reads original task/spec paths directly, plus GRADER.md, IMMUTABLES.md, data profile if present, and SPEC_DRAFT.md as the object to attack.
 - Do not provide MAIN's DECISIONS.md as facts.
 - Reviewer returns up to 3 highest-impact attacks, or attempted attacks that did not succeed.
+- Record `cp1_constraint_red: DONE`.
 
-A constraint can become CONFIRMED only from original task evidence or an explicit user/business-contact answer.
+A constraint becomes CONFIRMED only from original task evidence or an explicit user/business-contact answer.
 Unanswered non-blocking items remain ASSUMPTION.
-When the gate requirements in STATE.md are satisfied, set `constraint_gate: CLOSED`.
+
+When all STATE gate requirements are satisfied, set `constraint_gate: CLOSED` and run:
+`python .hackathon-kit/scripts/gate_check.py`
+
+If gate_check fails, do not begin product logic.
 
 # Build
 
@@ -58,9 +61,9 @@ User interaction must not block routine implementation:
 When the first scoring-relevant path works:
 - fresh CODE_RED reviews code/tests
 - RECORDER updates run notes
-- run CONSTRAINT_RED again only when the task is optimization/operations-like, CP1 left material assumptions, or result metrics expose a realism/constraint risk
+- run CONSTRAINT_RED again only when task type/risk warrants it
 
-CODE_RED dynamic tests must avoid colliding with MAIN: prefer static review and existing tests; if extra runtime tests are needed, use isolated temp data/ports when possible.
+CODE_RED dynamic tests must avoid colliding with MAIN: prefer static review and existing tests; if extra runtime tests are needed, use isolated temp data/ports when practical.
 
 # CP3 — PRE-SUBMIT
 
@@ -71,9 +74,9 @@ CODE_RED dynamic tests must avoid colliding with MAIN: prefer static review and 
 - RECORDER finalizes run notes
 - MAIN runs `verification`
 - MAIN runs `final-explain`
-- run `doctor`/cleanup checks as appropriate
+- run doctor/cleanup checks as appropriate
 
-Only now quiz the user for the no-AI follow-up. The official follow-up is why this step is mandatory.
+Only now quiz the user for the official no-AI follow-up.
 
 # MAIN context replacement
 
@@ -85,5 +88,5 @@ If context is saturated or repeated reasoning degrades:
 
 # Review cap
 
-There are only 3 planned checkpoints above. Do not spawn review agents for every small edit.
+There are only 3 planned checkpoints above.
 Extra review is reserved for a new P0 risk, major architecture change, or repeated failure.
