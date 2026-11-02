@@ -62,6 +62,7 @@ try {
   git -C $Target rev-parse --git-dir *> $null
   if ($LASTEXITCODE -eq 0) {
     $exclude = (git -C $Target rev-parse --git-path info/exclude).Trim()
+    if (-not [System.IO.Path]::IsPathRooted($exclude)) { $exclude = Join-Path (Resolve-Path $Target).Path $exclude }
     $excludeDir = Split-Path -Parent $exclude
     New-Item -ItemType Directory -Force -Path $excludeDir | Out-Null
     if (-not (Test-Path $exclude)) { New-Item -ItemType File -Path $exclude | Out-Null }
