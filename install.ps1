@@ -37,7 +37,7 @@ foreach ($f in @("EXAM_POLICY.md","BOOTSTRAP_PROMPT.md","CALLING.md","AGENTS.sni
   Copy-Item -Force (Join-Path $KitDir $f) (Join-Path $KitDst $f)
 }
 
-foreach ($f in @("STATE","BASELINE","GRADER","IMMUTABLES","SPEC_DRAFT","SYSTEM_MAP","CONSTRAINTS","DECISIONS","VERIFY","HANDOFF")) {
+foreach ($f in @("STATE","BASELINE","GRADER","IMMUTABLES","SPEC_DRAFT","SYSTEM_MAP","CONSTRAINTS","DECISIONS","VERIFY","HANDOFF","HUMAN_JUDGMENT","EDGE_CASES","AI_FAILURES","LIMITATIONS","FOLLOWUP_CHEATSHEET")) {
   $src = Join-Path $KitDst ("templates/" + $f + ".md")
   $dst = Join-Path $RunDst ($f + ".md")
   if ((Test-Path $src) -and -not (Test-Path $dst)) { Copy-Item $src $dst }
