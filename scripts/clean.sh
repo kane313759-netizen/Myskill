@@ -37,6 +37,10 @@ fi
 # Remove only exact local exclude entries created by this installer.
 if git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
   exclude="$(git -C "$ROOT" rev-parse --git-path info/exclude)"
+  case "$exclude" in
+    /*) ;;
+    *) exclude="$ROOT/$exclude" ;;
+  esac
   if [ -f "$exclude" ]; then
     tmp="$(mktemp)"
     cp "$exclude" "$tmp"
