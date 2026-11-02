@@ -1,27 +1,8 @@
 # HUMAN JUDGMENT
 
-Record only actions the participant actually took.
+Recorder records only material actions the participant actually took. This table may remain empty. A Tutor question, acknowledgement, or repeated explanation does not establish a challenge, decision, or manual verification.
 
-## AI proposal I did not accept as-is
-- AI proposal:
-- What I questioned:
-- Evidence checked:
-- My decision:
-- Result:
+| Time / event reference | Participant's actual action / words | Material question / choice / observation / direct check | Why it mattered | Original answer / source / evidence | Result / verification | Remaining uncertainty |
+|---|---|---|---|---|---|---|
 
-## Material ambiguity I escalated / asked about
-- Unknown:
-- Why it mattered:
-- Answer/evidence:
-- My decision:
-
-## Problem I noticed that automation/AI had not treated as a problem
-- Observation:
-- Why it mattered:
-- What I changed/requested:
-- Verification:
-
-## Manual check I personally performed
-- What I checked:
-- Why automation was insufficient:
-- Result:
+For a direct check, retain the participant's explicit statement of what they checked and the result. Identify automated verification separately. Do not rewrite AI-only work as participant contribution or invent a human challenge when no event is recorded.

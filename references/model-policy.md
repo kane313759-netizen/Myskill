@@ -1,47 +1,20 @@
 # Model role policy — exam-specific
 
-The official brief recommends Sol 6.1, Terra 5.6, Luna 6, and Sol 6.0.
-Actual model availability must be verified in the provided Codex environment.
+The official brief recommends Sol 6.1, Terra 5.6, Luna 6, and Sol 6.0. Verify actual availability and selection in the provided Codex environment. EXAM_POLICY.md remains authoritative; no external AI connection or restricted model may be introduced as a fallback.
 
-## Roles
+The canonical role/checkpoint protocol is `hackathon-orchestrator`. Preferred assignments remain:
 
-### ORCHESTRATOR
-Preferred: Terra 5.6.
-Owns phase/checkpoint state and agent dispatch.
-**No product-source edits.**
+| Role | Preferred model | Ownership |
+|---|---|---|
+| ORCHESTRATOR | Terra 5.6 | Agent dispatch; exclusive STATE/checkpoint/gate records; no product edits |
+| MAIN_BUILDER | Sol 6.1 | One active product-source writer; Phase 0 intake/spec; implementation/fixes/explanation |
+| CODE_RED | Terra 5.6, clean context | Independent implementation/contract/regression review; returns evidence only |
+| CONSTRAINT_RED | Sol 6.1, clean context | Independent spec/objective/constraint review; returns evidence only |
+| RECORDER | Luna 6 | Sole ongoing evidence-note writer; no STATE/checkpoint/receipt/frozen-artifact edits |
+| TUTOR | Sol 6.1, optional | Strictly read-only explanation; no inferred participant judgments or file writes |
 
-### MAIN_BUILDER
-Preferred: Sol 6.1.
-Owns problem understanding, specification, architecture, implementation, integration, difficult fixes, final explanation.
-Sole product-source writer.
+Use the preferred available model; do not downgrade merely to shorten the workflow. If unavailable, preserve role boundaries, use the strongest allowed available substitute appropriate to the role, and record verified actual selection. Never claim a model switch without checking it.
 
-### CODE_RED
-Preferred: fresh Terra context.
-Reviews implementation, contract compatibility, regression, persistence/retry, and tests.
-No product-source edits.
+Each Red review starts without inherited MAIN history: explicitly `fork_turns="none"` where supported, otherwise a genuinely clean session. Pass EXAM_POLICY and original task evidence first; treat MAIN-authored artifacts as claims. Record actual model/context, recognizing that a machine receipt cannot prove those runtime facts.
 
-### CONSTRAINT_RED
-Preferred: fresh independent Sol 6.1 context.
-Reviews spec assumptions, grader contract, constraints, objective loopholes, and domain-specific realism only when applicable.
-No product-source edits.
-
-### RECORDER
-Preferred: Luna 6.
-Writes only evidence notes under .hackathon-kit/run/.
-
-## Fallback
-
-If a preferred model is unavailable:
-1. keep the role boundaries
-2. use the strongest allowed available model appropriate to the role
-3. record the actual model used
-4. never claim a model switch occurred without verifying it
-
-## Review priority by task
-
-- optimization/operations: Constraint Red is especially important
-- debugging/web/API: Code Red may be the stronger CP2 reviewer
-- algorithm/parser: exact contract and hidden-test behavior dominate
-- ML/data science: metric/leakage/reproducibility dominate
-
-CP1 and CP3 remain independent reviews regardless of type.
+Review priority remains task-dependent: optimization/operations emphasizes Constraint Red; debugging/web/API emphasizes Code Red; algorithm/parser emphasizes exact contracts/hidden-test behavior; ML emphasizes metrics/leakage/reproducibility. CP1 and CP3 remain independent reviews for every task type. Changing model assignments is not a substitute for fixing blockers or completing six-question follow-up preparation.

@@ -9,6 +9,8 @@ Read:
 - `.hackathon-kit/run/IMMUTABLES.md`
 when present.
 
+Use the shared Phase 0 evidence pass defined by `hackathon-orchestrator`; reuse original-source observations rather than repeating full scans. MAIN/Recorder notes are claims to verify against original sources, not additional authority. Only ORCHESTRATOR writes STATE/gate/checkpoint records.
+
 # Common constraints first
 
 Inspect original task material, tests, schemas, sample I/O, runtime config, and submission rules for:
@@ -46,3 +48,7 @@ For the relevant domain ask:
 
 Write/update `.hackathon-kit/run/CONSTRAINTS.md`.
 A MAIN may propose, but only evidence/user answer may promote ASSUMPTION → CONFIRMED.
+
+MAIN authors this register during Phase 0; freeze it after CP1. Unsupported concerns must not become extra hard constraints, objective terms, soft penalties, or tie-breakers. Preserve the official scoring/feasibility contract. Non-blocking unknowns may use reversible assumptions; a known official-rule conflict is a blocking finding, not an assumption to waive.
+
+Send routine later observations to Recorder for DECISIONS/VERIFY/LIMITATIONS. For a material new requirement or spec/constraint change, report it to ORCHESTRATOR, reopen the affected gate, and obtain a targeted clean Constraint Red recheck. Updated artifacts/hashes must match what the reviewer actually validated before affected implementation resumes.

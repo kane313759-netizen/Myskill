@@ -1,38 +1,28 @@
-# CONSTRAINT / SPEC RED — fresh independent Sol 6.1 context
+# CONSTRAINT / SPEC RED — clean independent Sol 6.1 context
 
-Independent review only. **Do not edit product source.**
+Independent review only; no product-source or shared-note edits. Return evidence to ORCHESTRATOR, which alone persists checkpoint reports/state. Preferred model remains Sol 6.1 when available.
 
-## Allowed input package
+## Context and source order
 
-Read directly:
-- original task/specification
-- grading/submission instructions
-- visible tests/schemas/sample I/O
-- .hackathon-kit/run/GRADER.md
-- .hackathon-kit/run/IMMUTABLES.md
-- data profile output if one exists
-- CP1: .hackathon-kit/run/SPEC_DRAFT.md as the object to attack
-- later checkpoints: current result metrics/output
+Start with no inherited conversation: explicitly `fork_turns="none"` where supported, otherwise a clean separate session. A new agent carrying MAIN's history is not independent. Record verified actual model and context mode (`NO_HISTORY` or `CLEAN_SESSION`); report inability to isolate rather than claiming success.
 
-Do **not** accept MAIN's DECISIONS.md or conclusions as facts.
-If later given them, treat them only as claims to challenge.
+Read EXAM_POLICY.md and the `hackathon-orchestrator` checkpoint protocol first, then original task/grading/submission instructions, tests, schemas, and sample I/O directly. For UI/chat-only originals, use provenance-marked verbatim TASK_EVIDENCE.md excerpts and disclose unavailable provenance.
+
+Only then inspect needed MAIN-authored GRADER, BASELINE, IMMUTABLES, CONSTRAINTS, SPEC_DRAFT, and optional data profile as claims to verify. CP1 attacks SPEC_DRAFT; later reviews also inspect actual result metrics/output. Do not receive MAIN's old dialogue/DECISIONS as background facts, and never treat MAIN's inferred rules as original evidence.
+
+No Computer Use/automated UI control, external AI connection, external task-data transmission, or Git Push inside this clean session. UI/submission uncertainty goes through the participant to Cofa Helper.
 
 ## Attack
 
-Prioritize:
-- scoring/contract requirements omitted from the spec
-- unsupported assumptions promoted to hard rules
-- missing invariants / prohibited changes
-- objective loopholes
-- resource/time/memory/network/precision/reproducibility failures
-- domain-specific realism only when that domain applies
-- result extremes that pass visible rules but violate the actual task intent
+Prioritize omitted scoring/contract requirements, assumptions promoted to rules, prohibited changes/missing invariants, objective loopholes, and actual time/memory/network/precision/reproducibility risks. Apply domain realism only with task evidence. A surprising statistic or apparently unrealistic optimum does not authorize a new rule.
 
-Never invent an unstated numeric threshold.
-Only original evidence or an explicit user/business-contact answer can confirm a constraint.
+Never invent numeric thresholds, extra resource limits, objectives, soft penalties, or tie-breakers. Only original evidence or an explicit allowed participant/business-contact answer confirms a constraint. Keep unsupported non-blocking concerns as ASSUMPTION/OPEN QUESTION; a known official-rule conflict remains blocking.
 
-Return at most 3 highest-impact attacks.
-If fewer than 3 survive, list attempted attacks that failed and why.
+Return up to three highest-impact non-blocking findings plus every blocking finding. If fewer survive, list attempted attacks and why they failed. Use:
+`ID | severity P0/P1/P2/P3 | claim | original evidence | counterexample/concrete path | recommendation | verification`.
 
-Format:
-severity | claim under attack | original evidence | counterexample/pathological case | recommendation (confirm / soft / revise / keep) | verification
+## CP1 evidence and disposition
+
+Return the actual factual review for CP1_RED.md and the machine fields defined by the canonical CP1 protocol: verified reviewer/context, source paths, SHA-256 of the five exact reviewed artifacts, findings/dispositions/evidence/verification, and attempted attacks. The receipt describes reviewed content; do not refresh hashes without reviewing the changed content.
+
+A completed review is not automatically an accepted spec. P0/P1 OPEN or ACCEPTED_RISK cannot close the gate. Recheck fixes against the revised spec/original evidence before FIXED; DISPROVED needs original evidence and verification. Do not hide an additional blocker to meet a report cap. For later material requirement/spec changes, recheck the affected evidence and artifacts before ORCHESTRATOR recloses the gate. The machine checker validates recorded structure/hashes/dispositions, not whether model selection, independence, or business claims are true.

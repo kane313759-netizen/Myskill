@@ -1,86 +1,84 @@
 # Quick calling guide
 
-## 0. Install outside the task repo
+Read EXAM_POLICY.md first. Canonical roles/checkpoints live in hackathon-orchestrator.
+Use the README installation steps with a pre-exam verified SHA or frozen flat ZIP.
 
-```bash
-KIT_DIR="$(mktemp -d)"
-git clone --depth 1 https://github.com/kane313759-netizen/Myskill.git "$KIT_DIR"
-bash "$KIT_DIR/install.sh" .
-```
-
-## 1. Start
+## Start
 
 ```text
 Use the hackathon-orchestrator skill.
 Read .hackathon-kit/EXAM_POLICY.md first.
-Start with grader-intake and baseline.
-Do not implement product logic until CP1 Spec Freeze closes the constraint gate.
+One evidence pass for grader intake, safe baseline, immutables, routing and constraints.
+MAIN alone writes product source; ORCHESTRATOR alone writes STATE/gate/receipts.
+Do not implement until independent CP1 review and gate_check pass.
 ```
 
 ## Optional second terminal — Tutor
 
-Open another Codex terminal only if the exam environment supports it.
-
-Recommended model: Sol 6.1.
+Only when supported by the provided environment; Sol 6.1 preferred when available.
 
 ```text
-Read .hackathon-kit/prompts/TUTOR.md and follow it.
-You are read-only. Explain the current task and implementation to me.
-Do not edit product source, run mutating commands, or make decisions for MAIN.
+Read .hackathon-kit/prompts/TUTOR.md and EXAM_POLICY.md.
+You are strictly read-only, including run notes and commands.
+Explain current code/evidence; do not decide or edit for MAIN.
 ```
 
-Use this terminal for learning/clarifying only. Keep implementation in the MAIN workflow.
+During solving, forward an actual material personal question/choice/check to MAIN or Recorder
+with evidence if it should be recorded. Tutor explanations alone are not personal verification.
+No AI/copy-paste is used during the official follow-up itself.
 
-## 2. CP1 — Spec Freeze
+## CP1 — Spec Freeze
 
 ```text
-Create a fresh independent Constraint Red review using
-.hackathon-kit/prompts/CONSTRAINT_RED.md.
-Give it original task/grading/test paths, GRADER.md, IMMUTABLES.md,
-data profile if any, and SPEC_DRAFT.md.
-Do not give DECISIONS.md as facts.
+Create a new Constraint Red using prompts/CONSTRAINT_RED.md with no inherited conversation:
+fork_turns="none" where supported, otherwise a clean separate session.
+Send EXAM_POLICY and original task/grading/test paths before MAIN's draft artifacts.
+Treat GRADER, IMMUTABLES and SPEC as claims to verify against originals.
+Persist the actual report as CP1_RED.md and structured receipt as CP1_REVIEW.json.
+Fix/disprove blocking findings with evidence and reviewer rechecks.
+ORCHESTRATOR writes candidate CLOSED, runs the evidence gate, and restores OPEN on failure.
+Only a passing check against current evidence authorizes implementation.
 ```
-
-## 3. CP2 — First end-to-end
-
-```text
-Create a fresh Code Red using .hackathon-kit/prompts/CODE_RED.md.
-Then run Recorder using .hackathon-kit/prompts/RECORDER.md.
-Run another Constraint Red only if CP1 left material assumptions,
-the task is optimization/operations-like, or result metrics show a constraint/realism risk.
-```
-
-## 4. Repeated failure
-
-```text
-Use .hackathon-kit/prompts/ESCALATE_SOL.md for a fresh analysis.
-MAIN remains the only product-source writer.
-```
-
-## 5. CP3 — Pre-submit
-
-```text
-Stop adding features.
-Run final fresh Code Red and fresh Constraint Red.
-Finalize Recorder notes.
-Use verification and final-explain.
-Prepare me for the official no-AI follow-up using only actual evidence.
-```
-
-## 6. Doctor
 
 ```bash
-bash .hackathon-kit/scripts/doctor.sh
+python .hackathon-kit/scripts/gate_check.py --artifact-hashes
+python .hackathon-kit/scripts/gate_check.py
 ```
 
-## 7. Optional cleanup
+Hash output is a utility, not approval. Freeze the five reviewed documents after CP1;
+reopen on material changes and obtain a targeted independent recheck.
 
-Only if submission rules require helper files to be absent:
+## CP2 — First end-to-end
+
+```text
+Run clean Code Red using prompts/CODE_RED.md, then Recorder.
+Update verification evidence and start six-axis FOLLOWUP_CHEATSHEET coverage.
+Run Constraint Red again only for a material task/assumption/objective risk.
+```
+
+## Repeated failure
+
+```text
+Use prompts/ESCALATE_SOL.md for fresh analysis. MAIN remains the sole product writer.
+Preserve useful failed-command evidence before a retry overwrites it.
+```
+
+## CP3 — Pre-submit
+
+```text
+Budget time for review, repair, checks, submission and preparation before the real deadline.
+Stop features; run final clean Code Red and Constraint Red and resolve/recheck blockers.
+Run verification; Recorder finalizes actual evidence.
+Use final-explain for factual explanation, then followup-prep once for the six-question
+FOLLOWUP_CHEATSHEET and a short rehearsal within the reserved time.
+Record review/verification/followup completion in STATE via ORCHESTRATOR only.
+Run doctor; cleanup is last, after prep, only if the submission format requires removal.
+```
 
 ```bash
+bash .hackathon-kit/scripts/doctor.sh --pre-submit
 bash .hackathon-kit/scripts/clean.sh --apply
 ```
 
-## One-line memory
-
-**grader → baseline → spec attack → MAIN builds → code attack → final attack → explain**
+PowerShell: doctor.ps1 -PreSubmit / clean.ps1 -Apply. Cleanup's default is dry-run.
+Git ignore is local status filtering, not directory-snapshot exclusion. Keep the printed local backup path.

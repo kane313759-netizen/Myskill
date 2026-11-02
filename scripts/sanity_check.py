@@ -1,78 +1,71 @@
 #!/usr/bin/env python3
-"""Bounded numeric sanity summary for explicit result files. It reports scale; it does not invent thresholds."""
+"""Bounded numeric sanity summary. Reports scale without inventing thresholds."""
 from __future__ import annotations
-import argparse, csv, json, math, re
+
+import argparse
+import sys
+
+# Installed helper use must not create files outside the runtime-note area.
+sys.dont_write_bytecode = True
 from pathlib import Path
 
-ENCODINGS=("utf-8-sig","utf-8","cp949")
-THOUSANDS=re.compile(r"^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$")
-ID_HINT=re.compile(r"(^id$|(^|[_\- ])id($|[_\- ])|code|zip|postal|phone|account|customer|employee|invoice|order|번호|코드)",re.I)
+from data_io import (add_read_options, as_num, choose_encoding, id_like, is_blank,
+                     leading_zero_id, list_sheets, mean, read_options, tables)
 
-def choose_encoding(path):
-    sample=path.read_bytes()[:131072]
-    for enc in ENCODINGS:
-        try: sample.decode(enc); return enc
-        except UnicodeDecodeError: pass
-    raise UnicodeError(f"Could not decode with {ENCODINGS}")
+# Preserve the small helper interface used by existing local callers.
+num = as_num
 
-def num(v):
-    if v is None or isinstance(v,bool): return None
-    s=str(v).strip()
-    if not s: return None
-    if "," in s:
-        if THOUSANDS.fullmatch(s): s=s.replace(",","")
-        else: return None
-    try:
-        x=float(s); return x if math.isfinite(x) else None
-    except Exception: return None
 
-def load(path,max_rows,max_json_bytes):
-    if path.is_dir(): raise IsADirectoryError("Pass one explicit CSV/JSON result file, not a directory")
-    ext=path.suffix.lower()
-    if ext==".csv":
-        enc=choose_encoding(path); out=[]
-        with path.open("r",encoding=enc,newline="") as f:
-            for i,row in enumerate(csv.DictReader(f)):
-                if i>=max_rows: break
-                out.append(row)
-        return out
-    if ext==".json":
-        if path.stat().st_size>max_json_bytes: raise ValueError("JSON exceeds safe size limit")
-        data=json.loads(path.read_text(encoding=choose_encoding(path)))
-        if isinstance(data,list): seq=[x for x in data if isinstance(x,dict)]
-        elif isinstance(data,dict):
-            seq=next((v for v in data.values() if isinstance(v,list) and all(isinstance(x,dict) for x in v)),[data])
-        else: seq=[]
-        return seq[:max_rows]
-    raise ValueError("sanity_check supports CSV/JSON result files")
+def load(path, max_rows, max_json_bytes, **options):
+    selected = list(tables(path, max_rows, max_json_bytes, **options))
+    if len(selected) != 1:
+        raise ValueError("load() requires one table; choose --sheet NAME")
+    return selected[0][1]
 
-def pct(xs,p):
-    ys=sorted(xs); idx=min(len(ys)-1,max(0,round((len(ys)-1)*p))); return ys[idx]
+
+def pct(sorted_values, fraction):
+    index = min(len(sorted_values) - 1, max(0, round((len(sorted_values) - 1) * fraction)))
+    return sorted_values[index]
+
+
+def summarize(rows, args, sheet=None):
+    if sheet is not None:
+        print(f"SHEET\t{sheet}")
+    print(f"SAMPLED_ROWS\t{len(rows)}\tMAX_ROWS={args.max_rows}")
+    for column in sorted({key for row in rows for key in row}):
+        values = [row.get(column) for row in rows if not is_blank(row.get(column), args.null_token)]
+        if not args.include_id_like and (id_like(column) or any(leading_zero_id(value) for value in values)):
+            print(f"SKIP_ID_LIKE\t{column}")
+            continue
+        numbers = sorted(number for value in values if (number := num(value)) is not None)
+        if not numbers or len(numbers) / max(1, len(values)) < 0.8:
+            continue
+        print(f"NUM\t{column}\tcount={len(numbers)}\tmin={numbers[0]:g}\tp50={pct(numbers,.5):g}"
+              f"\tp95={pct(numbers,.95):g}\tmax={numbers[-1]:g}\tavg={mean(numbers):g}")
+    if len(rows) >= args.max_rows:
+        print("NOTE\trow cap reached; this is a bounded sample")
+
 
 def main():
-    ap=argparse.ArgumentParser()
-    ap.add_argument("file")
-    ap.add_argument("--max-rows",type=int,default=50000)
-    ap.add_argument("--max-json-bytes",type=int,default=50*1024*1024)
-    ap.add_argument("--include-id-like",action="store_true")
-    args=ap.parse_args()
-    path=Path(args.file)
-    try: rows=load(path,args.max_rows,args.max_json_bytes)
-    except Exception as e: raise SystemExit(f"{type(e).__name__}: {e}")
-    cols=sorted({k for r in rows for k in r})
-    print(f"SAMPLED_ROWS\t{len(rows)}\tMAX_ROWS={args.max_rows}")
-    for c in cols:
-        if ID_HINT.search(c) and not args.include_id_like:
-            print(f"SKIP_ID_LIKE\t{c}")
-            continue
-        nonblank=[r.get(c) for r in rows if r.get(c) not in (None,"")]
-        xs=[n for v in nonblank if (n:=num(v)) is not None]
-        if not xs or len(xs)/max(1,len(nonblank))<0.8: continue
-        print(f"NUM\t{c}\tcount={len(xs)}\tmin={min(xs):g}\tp50={pct(xs,.5):g}\tp95={pct(xs,.95):g}\tmax={max(xs):g}\tavg={sum(xs)/len(xs):g}")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("file")
+    add_read_options(parser)
+    args = parser.parse_args()
+    try:
+        if args.list_sheets:
+            for sheet in list_sheets(Path(args.file)):
+                print(f"SHEET\t{sheet}")
+            return 0
+        for sheet, rows in tables(Path(args.file), args.max_rows, args.max_json_bytes, **read_options(args)):
+            summarize(rows, args, sheet)
+    except Exception as error:
+        parser.exit(1, f"{type(error).__name__}: {error}\n")
     print("\nINTERPRETATION RULES")
     print("- These are scale summaries, not automatic anomaly verdicts.")
     print("- Apply only task-relevant metrics from the selected playbook.")
     print("- Check worst-case values when the grading/contract makes them relevant.")
-    if len(rows)>=args.max_rows: print("- Row cap reached; this is a bounded sample.")
+    return 0
 
-if __name__=="__main__": main()
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -2,100 +2,69 @@ name: validate-starter-kit
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'codex/**']
+  pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.8', '3.12']
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Optional XLSX test dependency
+        run: python -m pip install openpyxl==3.1.5
+      - name: Compile helpers without writing caches
+        run: python -c "from pathlib import Path; [compile(p.read_bytes(), str(p), 'exec') for p in Path('scripts').glob('*.py')]"
+      - name: Evidence, data, lifecycle and package regressions
+        run: python -B -m unittest discover -s tests -v
+      - name: PowerShell entry points
+        shell: pwsh
+        run: |
+          $TaskRoot = Join-Path $env:RUNNER_TEMP ("myskill-pwsh-" + [guid]::NewGuid())
+          New-Item -ItemType Directory -Path $TaskRoot | Out-Null
+          git -C $TaskRoot init -q
+          & ./install.ps1 -Target $TaskRoot
+          if ($LASTEXITCODE -ne 0) { throw "install failed" }
+          & (Join-Path $TaskRoot '.hackathon-kit/scripts/doctor.ps1')
+          if ($LASTEXITCODE -ne 0) { throw "doctor failed" }
+          Add-Content -Path (Join-Path $TaskRoot '.hackathon-kit/run/DECISIONS.md') -Value 'KEEP_PWSH'
+          & ./install.ps1 -Target $TaskRoot
+          if ($LASTEXITCODE -ne 0) { throw "reinstall failed" }
+          if (-not (Select-String -Quiet -Path (Join-Path $TaskRoot '.hackathon-kit/run/DECISIONS.md') -Pattern KEEP_PWSH)) { throw "notes overwritten" }
+          & (Join-Path $TaskRoot '.hackathon-kit/scripts/clean.ps1') -Apply
+          if ($LASTEXITCODE -ne 0) { throw "cleanup failed" }
+          if (Test-Path (Join-Path $TaskRoot '.hackathon-kit')) { throw "helpers remain" }
+
+  package:
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Python syntax
-        run: python -m py_compile scripts/*.py
-
-      - name: Build disposable task repo
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build flat distribution
         run: |
-          mkdir -p /tmp/task/.agents/skills/existing-skill
-          echo original > /tmp/task/.agents/skills/existing-skill/KEEP.txt
-          cd /tmp/task
-          git init -q
-          git config user.email test@example.com
-          git config user.name test
-          echo task > README.md
-          git add README.md
-          git commit -qm baseline
-
-      - name: Install
-        run: |
-          bash install.sh /tmp/task
-          test -f /tmp/task/.hackathon-kit/EXAM_POLICY.md
-          test -f /tmp/task/.hackathon-kit/run/STATE.md
-          test -f /tmp/task/.hackathon-kit/run/BASELINE.md
-          test -f /tmp/task/.hackathon-kit/run/SPEC_DRAFT.md
-          test -f /tmp/task/.hackathon-kit/run/HUMAN_JUDGMENT.md
-          test -f /tmp/task/.hackathon-kit/run/EDGE_CASES.md
-          test -f /tmp/task/.hackathon-kit/run/AI_FAILURES.md
-          test -f /tmp/task/.hackathon-kit/run/LIMITATIONS.md
-          test -f /tmp/task/.hackathon-kit/run/FOLLOWUP_CHEATSHEET.md
-          test -f /tmp/task/.hackathon-kit/prompts/TUTOR.md
-          test -f /tmp/task/.agents/skills/followup-prep/SKILL.md
-          test -f /tmp/task/.agents/skills/existing-skill/KEEP.txt
-          grep -qxF ".hackathon-kit/" /tmp/task/.git/info/exclude
-
-      - name: Reinstall preserves run notes
-        run: |
-          echo KEEP_ME >> /tmp/task/.hackathon-kit/run/DECISIONS.md
-          bash install.sh /tmp/task
-          grep -q KEEP_ME /tmp/task/.hackathon-kit/run/DECISIONS.md
-
-      - name: Gate fails open and passes closed
-        run: |
-          set +e
-          python /tmp/task/.hackathon-kit/scripts/gate_check.py
-          rc=$?
-          set -e
-          test "$rc" -ne 0
-          sed -i 's/grader_contract: NOT_INSPECTED/grader_contract: RECORDED/' /tmp/task/.hackathon-kit/run/STATE.md
-          sed -i 's/baseline: NOT_RUN/baseline: RECORDED/' /tmp/task/.hackathon-kit/run/STATE.md
-          sed -i 's/immutable_inventory: NOT_RUN/immutable_inventory: RECORDED/' /tmp/task/.hackathon-kit/run/STATE.md
-          sed -i 's/cp1_constraint_red: NOT_RUN/cp1_constraint_red: DONE/' /tmp/task/.hackathon-kit/run/STATE.md
-          sed -i 's/constraint_gate: OPEN/constraint_gate: CLOSED/' /tmp/task/.hackathon-kit/run/STATE.md
-          python /tmp/task/.hackathon-kit/scripts/gate_check.py
-
-      - name: CP949 profile and bounded sanity
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          text='id,대기시간\n001,10\n002,180\n'
-          Path('/tmp/task/sample.csv').write_bytes(text.encode('cp949'))
-          PY
-          python /tmp/task/.hackathon-kit/scripts/profile_data.py /tmp/task/sample.csv --max-rows 10
-          python /tmp/task/.hackathon-kit/scripts/sanity_check.py /tmp/task/sample.csv --max-rows 10
-
-      - name: Test-summary does not flag zero failures
-        run: |
-          printf '23 passed, 0 failed, 0 errors\n' > /tmp/task/test.log
-          out="$(python /tmp/task/.hackathon-kit/scripts/test_summary.py /tmp/task/test.log)"
-          echo "$out"
-          echo "$out" | grep -q 'FAILURE_LIKE_LINES.*0'
-
-      - name: Doctor
-        run: bash /tmp/task/.hackathon-kit/scripts/doctor.sh
-
-      - name: Cleanup only removes kit-owned helpers
-        run: |
-          bash /tmp/task/.hackathon-kit/scripts/clean.sh --apply
-          test ! -e /tmp/task/.hackathon-kit
-          test -f /tmp/task/.agents/skills/existing-skill/KEEP.txt
-
-      - name: Package review ZIP
-        run: |
-          zip -qr /tmp/Myskill-review.zip . -x '.git/*' -x '__pycache__/*' -x '*.pyc'
-
-      - name: Upload review ZIP
+          python -B scripts/package_release.py --source . --output /tmp/Myskill-exam-safe.zip
+          python -c "from pathlib import Path; import zipfile; p=Path('/tmp/myskill-artifact'); p.mkdir(); zipfile.ZipFile('/tmp/Myskill-exam-safe.zip').extractall(p)"
+      - name: Upload directly extractable package
         uses: actions/upload-artifact@v4
         with:
-          name: Myskill-review
-          path: /tmp/Myskill-review.zip
+          name: Myskill-exam-safe
+          path: /tmp/myskill-artifact/
+          include-hidden-files: true
           if-no-files-found: error

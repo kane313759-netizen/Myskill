@@ -25,4 +25,6 @@ For unclear rules:
 - ask only if the answer materially changes scoring, feasibility, or a required business rule
 
 Do not stop implementation for user teach-back here.
-Recorder should accumulate explanation notes; interactive explanation practice happens in final-explain before submission.
+Send concise source-linked problem facts and material participant answers to Recorder for the evidence notes. MAIN owns phase-0 task contracts; Recorder alone updates the explanation notes. Do not infer a participant decision or manual check merely because the participant asked a question.
+
+Recorder starts the six-axis FOLLOWUP_CHEATSHEET at CP2 and updates changed evidence at CP3. `final-explain` supplies the factual explanation; `followup-prep` alone owns submission-time rehearsal. Do not postpone all evidence collection until the final 15–20 minutes.

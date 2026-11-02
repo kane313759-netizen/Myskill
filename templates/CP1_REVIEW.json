@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "status": "NOT_RUN",
+  "reviewer": {
+    "role": "CONSTRAINT_RED",
+    "actual_model": "",
+    "context_mode": ""
+  },
+  "source_paths": [],
+  "artifacts": {
+    "GRADER.md": "",
+    "BASELINE.md": "",
+    "IMMUTABLES.md": "",
+    "SPEC_DRAFT.md": "",
+    "CONSTRAINTS.md": ""
+  },
+  "findings": [],
+  "attempted_attacks": []
+}
