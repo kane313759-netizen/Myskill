@@ -4,40 +4,47 @@ Codex 첫 메시지로 사용:
 
 ```text
 Use the hackathon-orchestrator skill.
-Read .hackathon-kit/EXAM_POLICY.md first.
+Read .hackathon-kit/EXAM_POLICY.md first. Newer official exam/task instructions win.
+Follow the orchestrator skill as the canonical checkpoint and ownership protocol.
 
-Keep the current Terra session as ORCHESTRATOR only; it must not edit product source.
-Create one Sol 6.1 MAIN BUILDER if that model is actually available, and let MAIN own problem understanding, specification, design, implementation, integration, difficult fixes, and final explanation.
-Only MAIN edits product source.
+Keep Terra as ORCHESTRATOR only. It owns STATE, gate, checkpoint reports and review receipts.
+Create one persistent Sol 6.1 MAIN when actually available; only MAIN edits product source.
+Use clean Code Red / Constraint Red contexts with no inherited history:
+fork_turns="none" where supported, otherwise a clean separate session.
+Give reviewers EXAM_POLICY and original evidence first; MAIN notes are claims to verify.
+Recorder is the sole ongoing evidence-note writer. Tutor, if used, is strictly read-only.
+Verify actual available models; preserve roles with allowed substitutes, never claim a switch without evidence.
 
-Before implementation, MAIN must:
-1. inspect grading/submission rules and existing tests/samples,
-2. record a pre-edit build/test baseline,
-3. identify high-risk/immutable contracts,
-4. classify the task,
-5. extract explicit constraints and separate assumptions,
-6. prepare a short spec draft.
+Phase 0 is one evidence pass: grader-intake → immutable-inventory → task-router →
+problem-intake → constraint-discovery. Batch GRADER, BASELINE, IMMUTABLES,
+CONSTRAINTS and SPEC_DRAFT. Inspect command side effects/network/time before baseline.
+Record original source paths or provenance-marked TASK_EVIDENCE for UI/chat-only originals.
 
-Do not implement product logic until CP1:
-a fresh independent Constraint Red reviews the spec against original task evidence,
-and .hackathon-kit/run/STATE.md records constraint_gate: CLOSED.
+Before implementation, independent CP1 Constraint Red must review the actual specification.
+ORCHESTRATOR records CP1_RED.md and CP1_REVIEW.json with original sources,
+actual reviewer/context, exact reviewed artifact hashes, findings and attempted attacks.
+Resolve/disprove P0/P1 with evidence and recheck, then set the canonical STATE flags.
+Run gate_check.py. Product implementation begins only after this check passes.
+Freeze the five reviewed documents. Routine results go in VERIFY.
+Material contract changes reopen the gate and need targeted clean review before continuing.
 
-Use exactly these planned checkpoints:
-CP1 SPEC FREEZE: independent Constraint Red.
-CP2 FIRST END-TO-END: fresh Code Red + Recorder; Constraint Red only if the task/risk warrants it.
-CP3 PRE-SUBMIT: fresh Code Red + fresh Constraint Red + Recorder + verification + final-explain.
+CP2: first scoring-relevant end-to-end path → clean Code Red → Recorder.
+Add Constraint Red only when material task/constraint/objective risk warrants it.
+Start factual six-axis follow-up coverage and FOLLOWUP_CHEATSHEET.md here.
+Capture actual material human questions/choices/checks and failed-attempt evidence as they occur;
+never manufacture human contributions or AI failures. Ask only material questions.
 
-During implementation, do not stop after every change to quiz me.
-Record explanation notes automatically. Ask me only questions that materially affect score, feasibility, or an explicit business rule.
-If no answer is available and it is safe to continue, record ASSUMPTION and choose a conservative reversible path.
+CP3: budget backwards from the real submission deadline; start earlier when needed.
+Stop feature expansion → final clean Code Red and Constraint Red → fix/recheck blockers →
+verification → Recorder → factual final-explain → followup-prep once → doctor.
+Prepare six evidence-backed question/answer outlines; short rehearsal must preserve submission time.
+ORCHESTRATOR records CP3 review/verification/followup completion in STATE.
+Cleanup is last, after explanation/practice, only if submission collection requires helper removal.
 
-For this exam:
-- Computer Use / automated UI control is prohibited at every stage.
-- external AI/model connections are prohibited.
-- problem/files/results must not be transmitted externally.
-- Git Push is prohibited.
-- public GitHub tools and public Skills/MCPs/Plugins may be downloaded subject to those restrictions.
-- follow-up written answers must be completed by me without AI/copy-paste.
-
-15–20 minutes before submission, stop feature expansion and prepare me for the no-AI follow-up using only actual code, tests, task evidence, business-contact answers, and things I directly verified.
+Computer Use / automated UI control, external AI connections,
+external transmission of problem/files/results, and Git Push are prohibited in the exam.
+Public tools/Skills/MCP/Plugins may be downloaded only within those restrictions;
+external code may be partially reused but must not replace the submission wholesale.
+Use Cofa Helper for exam UI/submission questions; participant handles UI actions.
+The official follow-up is 6 questions × 5 minutes without AI or copy/paste.
 ```

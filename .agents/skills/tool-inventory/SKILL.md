@@ -3,10 +3,10 @@ name: tool-inventory
 description: Explain unfamiliar mandatory technologies and locate their real role in the current project without changing implementation.
 ---
 
-Read README, Dockerfiles, manifests, env examples, configs, and code references.
+Read the task README and the manifests/config/code references that actually exist. Inspect Dockerfiles only when the task uses containers. Do not dump environment values, credential files, or secrets.
 
 For each unfamiliar technology/tool explain:
-- why this task uses it
+- why this task uses it, or UNKNOWN when the reason is not evidenced
 - where it sits in the system
 - input
 - output
@@ -15,6 +15,6 @@ For each unfamiliar technology/tool explain:
 - actual files/config that use it
 
 Then map it onto:
-input → processing → storage → output → external connections
+input → processing → storage(if any) → output → external connections(if any)
 
-Do not modify code while performing discovery.
+Do not modify files or change implementation decisions while performing discovery. Return source-linked facts to MAIN/Recorder; a technology appearing in a dependency list does not prove it is used on the scoring path. Verify model/runtime selection from actual available evidence rather than the preferred role label.

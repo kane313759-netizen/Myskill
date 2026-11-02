@@ -3,7 +3,7 @@ name: final-explain
 description: Prepare the participant for the official no-AI written follow-up using only actual task evidence, code, tests, decisions, and directly verified behavior.
 ---
 
-This skill is for the pre-submission phase, not routine implementation.
+This skill produces the factual system explanation at CP3. It does not run a quiz or invoke `followup-prep`; the orchestrator invokes that skill once.
 
 Use:
 - actual task/spec
@@ -11,6 +11,8 @@ Use:
 - current code/config
 - business-contact answers
 - things the user actually verified
+
+Follow citations back to original evidence. A note or MAIN's summary alone does not establish a fact. Distinguish CONFIRMED / ASSUMPTION / UNVERIFIED; missing evidence is not a passing check.
 
 Explain only components that exist:
 1. problem solved
@@ -29,8 +31,6 @@ Explain only components that exist:
 Compress to:
 input → processing → storage(if any) → output → external(if any)
 
-Then quiz the user one question at a time because the official follow-up cannot use AI/copy-paste.
-Correct only the missing/incorrect part and keep answers short enough for a 5-minute written question.
+Return a concise explanation with source locations, verified results, and limitations to the orchestrator and Recorder. Recorder is the sole writer of explanation notes under `.hackathon-kit/run/`; do not race it with your own note edits.
 
-
-After producing the factual system explanation, hand the evidence to `followup-prep` for question-family mapping and 6-question practice.
+The official follow-up is 6 questions × 5 minutes without AI/copy-paste. This explanation is preparation during task solving only. `followup-prep` owns any rehearsal within the remaining submission time.

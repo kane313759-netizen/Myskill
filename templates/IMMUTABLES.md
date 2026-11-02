@@ -1,4 +1,7 @@
 # IMMUTABLE / HIGH-RISK CHANGE INVENTORY
 
-| Item / interface | Why risky to change | Evidence | Explicit / inferred | Status |
+## Inventory
+| Item / interface | Why risky | Original evidence | Explicit / inferred | Status |
 |---|---|---|---|---|
+
+<!-- If no immutable items exist, state that explicitly and cite inspected sources. Do not declare immutability from appearance alone. -->

@@ -6,6 +6,7 @@ description: Prepare the participant for the official 6-question no-AI written f
 Read first:
 - .hackathon-kit/EXAM_POLICY.md
 - .hackathon-kit/run/GRADER.md
+- .hackathon-kit/run/BASELINE.md
 - .hackathon-kit/run/CONSTRAINTS.md
 - .hackathon-kit/run/DECISIONS.md
 - .hackathon-kit/run/VERIFY.md
@@ -15,8 +16,10 @@ Read first:
 - .hackathon-kit/run/AI_FAILURES.md
 - .hackathon-kit/run/LIMITATIONS.md
 
-The official follow-up is 6 questions × 5 minutes and must be answered without AI/copy-paste. Exact questions are unknown.
+The official follow-up is 6 questions × 5 minutes and must be answered without AI/copy-paste. Exact questions are unknown. All work in this skill happens during task solving, before the no-AI phase.
 Read `.hackathon-kit/references/followup-question-bank.md` when present.
+
+Follow note citations to the original task, code/config, captured commands/results, and actual participant answers. MAIN/Recorder/Tutor summaries are claims until their evidence is checked. Do not require a storage, web, container, or external-service answer for a task without that component.
 
 # Question families
 
@@ -46,10 +49,13 @@ Map the actual work to these families:
 # Truth rules
 
 - Do not invent a failure just to answer an AI-failure question.
-- If AI solved everything, answer honestly and use a real human-judgment case instead.
+- If no AI failure or material human-judgment event is recorded, say so honestly. Use another example only when that event actually happened and answers the question; do not manufacture a challenge to fill a template.
 - A prevented edge case is valid even if it never became a bug.
 - Only call something "my decision" when the participant actually decided/challenged/verified it.
 - Separate automated verification from user-performed manual verification.
+- A question, acknowledgement, or restatement in the Tutor session is not by itself a manual check or a material human decision.
+- Distinguish "no failure recorded", "a failure was resolved", and "an unresolved failure remains". Do not infer the first from the second.
+- Model/role explanations must describe the actual verified runtime and workflow, not merely preferred model labels.
 - If evidence is missing, say UNANSWERABLE FROM CURRENT RECORDS and identify what evidence would be needed.
 
 # Six-axis compression
@@ -62,12 +68,17 @@ D. What did the participant personally judge/do?
 E. How did we know it was correct?
 F. What are the boundaries/limitations?
 
-# Practice
+# CP2 — build coverage without interrupting implementation
 
-Before submission:
-1. Generate a compact FOLLOWUP_CHEATSHEET.md from evidence only.
-2. Select the 6 hardest/highest-risk question families for this exact task.
-3. Ask one practice question at a time.
-4. Evaluate using:
-   problem → AI action → human judgment → verification → result/limitation
-5. Keep the corrected answer short enough to type within 5 minutes.
+Provide the six-axis evidence outline to Recorder at the first working end-to-end checkpoint. Recorder alone writes FOLLOWUP_CHEATSHEET.md and other explanation notes. Each axis needs a short claim plus a source/result or an explicit UNKNOWN / UNVERIFIED / UNANSWERABLE FROM CURRENT RECORDS. Empty human-judgment and AI-failure records are valid. Do not quiz the participant during routine implementation.
+
+MAIN sends material changed decisions, actual participant actions, and transient failed-command evidence to Recorder as they occur; preserve useful command output before a retry overwrites it. Record meaningful events, not every routine edit or command.
+
+# CP3 — one final coverage pass and bounded rehearsal
+
+1. Use the orchestrator's submission deadline and reserved verification/submission time. Never extend the task's maximum 180 minutes to finish practice. If the remaining time is unknown, return the compact coverage first and avoid a waiting rehearsal until a budget is established.
+2. Refresh only changed facts against current code/results. Return updates to Recorder rather than writing notes concurrently.
+3. Select 6 actual hard/high-risk question families once for this task, spanning the six axes where useful. These are preparation choices, not predictions of the official questions. Give each a concise evidence-backed answer outline or mark the missing evidence explicitly.
+4. `followup-prep` is the sole quiz owner. If time remains after required checks/submission work, ask short questions one at a time, prioritizing the participant's largest understanding gaps. Reuse the six selected families; do not launch a second quiz through `final-explain` or repeat completed rounds.
+5. Correct only missing/incorrect facts. Use problem → AI action → human judgment → verification → result/limitation when relevant; omit parts unsupported by the evidence or unnecessary for the question.
+6. Keep an answer short enough to type within the official 5-minute limit. Preparing six outlines does not require a full 6 × 5-minute simulation before submission. Stop rehearsal at the reserved submission boundary, even if not all six have been spoken through.

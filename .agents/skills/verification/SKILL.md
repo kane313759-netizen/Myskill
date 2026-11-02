@@ -1,33 +1,16 @@
 ---
 name: verification
-description: Verify scoring contracts, confirmed constraints, regressions, persistence, and task-relevant edge cases against the recorded baseline.
+description: Verify the current scoring contract, constraints, regressions, and relevant boundaries against the recorded pre-edit baseline.
 ---
 
-Read:
-- EXAM_POLICY.md
-- GRADER.md
-- BASELINE.md
-- IMMUTABLES.md
-- CONSTRAINTS.md
+Read `.hackathon-kit/EXAM_POLICY.md` and run/GRADER.md, BASELINE.md, IMMUTABLES.md, CONSTRAINTS.md. Use the checkpoint/ownership protocol in `hackathon-orchestrator`; MAIN verifies and reports evidence, Recorder writes VERIFY/LIMITATIONS, and ORCHESTRATOR alone writes STATE/gate/checkpoint records.
 
-Start from the task's existing test/build commands and compare against BASELINE.
+Start from safe relevant existing test/build commands and compare against BASELINE. Inspect changed command behavior for side effects/network use before running it. Bound checks to the remaining deadline and isolate temporary data/services; avoid duplicate full runs unless changes or failures justify them.
 
-Minimum categories when applicable:
-- visible grading/sample contract
-- confirmed hard constraints
-- normal case
-- boundary case
-- invalid/missing/conflicting input
-- duplicate/retry/idempotency
-- persistence/restart
-- integration path
-- task-specific performance/precision/reproducibility
-- domain sanity only when the selected playbook calls for it
+Check applicable scoring/sample contracts, confirmed hard constraints, normal/boundary/invalid inputs, duplicate/retry behavior, persistence/restart, integration boundaries, performance/precision/reproducibility, and domain sanity only for selected playbooks. Do not add domain requirements unsupported by the task.
 
-Rule: every important confirmed hard constraint should have evidence of verification or be marked UNVERIFIED.
+Send factual results and evidence/log paths to Recorder for VERIFY.md; every important hard constraint has verification evidence or UNVERIFIED status. Distinguish automated checks from participant-performed manual checks. Preserve exact failures and unavailable-check reasons in LIMITATIONS rather than claiming coverage. Do not edit frozen intake artifacts for routine test updates.
 
-Never:
-- weaken/delete a test to get green
-- hard-code visible samples as the solution
-- claim browser/UI behavior was verified by Computer Use; Computer Use is prohibited in this exam
-- claim a manual check occurred unless the user actually performed it
+At CP3, verify fixes/disproofs for all blocking Code Red/Constraint Red findings against the current files. P0/P1 OPEN or ACCEPTED_RISK findings cannot authorize submission. If the deadline limits repair, choose a valid smaller/partial solution and verify it; do not waive an official prohibition or submission-blocking conflict. Report dispositions to ORCHESTRATOR. A material spec/requirement change also requires renewed CP1 evidence/gate approval.
+
+Never weaken/delete/skip tests merely to obtain green, hard-code samples, replace the submission wholesale with external code, claim manual checks the participant did not perform, or use Computer Use/automated UI control. No external task-data transmission, external AI connection, or Git Push. For UI/submission uncertainty use Cofa Helper through the participant; mark unverified UI behavior honestly.

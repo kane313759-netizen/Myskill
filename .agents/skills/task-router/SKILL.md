@@ -19,7 +19,7 @@ Classify one or more:
 11. debugging / repair of existing repository
 12. mixed
 
-Return to `.hackathon-kit/run/STATE.md` or SPEC_DRAFT:
+Return classification to ORCHESTRATOR for STATE.md and to MAIN for SPEC_DRAFT:
 - task type(s)
 - classification evidence
 - scoring-relevant path
