@@ -31,3 +31,6 @@ input → processing → storage(if any) → output → external(if any)
 
 Then quiz the user one question at a time because the official follow-up cannot use AI/copy-paste.
 Correct only the missing/incorrect part and keep answers short enough for a 5-minute written question.
+
+
+After producing the factual system explanation, hand the evidence to `followup-prep` for question-family mapping and 6-question practice.
