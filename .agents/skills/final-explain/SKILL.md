@@ -28,8 +28,21 @@ Explain only components that exist:
 11. what was verified
 12. what remains unverified / limited
 
+For a nondeveloper participant, explain the distinctions needed to operate or hand off
+the actual result: an authoritative update's changed and preserved behavior; the
+confirmed objective/tie order and consequential preferences the contract expressly
+excludes; and unfamiliar runtime terms. When a container exists, distinguish its
+build step, image artifact, running container, and persistent data. Keep these
+task-conditional, use plain language and existing input/expected/observed examples,
+and cite the original evidence or mark the boundary unverified. This adds no quiz,
+checkpoint, or technical design decision for the participant.
+
 Compress to:
 input → processing → storage(if any) → output → external(if any)
+
+Trace one actual record/request through the relevant stages with consistent recorded
+values. Mark any unobserved stage honestly; do not splice unrelated examples into a
+claimed single verified run.
 
 Return a concise explanation with source locations, verified results, and limitations to the orchestrator and Recorder. Recorder is the sole writer of explanation notes under `.hackathon-kit/run/`; do not race it with your own note edits.
 
