@@ -67,6 +67,24 @@ class GateTests(unittest.TestCase):
     def test_official_policy_is_unchanged(self):
         self.assertEqual(hashlib.sha256((ROOT / 'EXAM_POLICY.md').read_bytes()).hexdigest(), 'b4deca2c78495bee0d19d0fbbfea797e65d49075aae461c80d21651f9b6ed558')
 
+    def test_preflight_checks_format_before_review_but_cannot_approve_implementation(self):
+        cli = [sys.executable, '-B', str(ROOT / 'scripts/gate_check.py'), '--kit', str(self.kit), '--preflight']
+        initial = subprocess.run(cli, capture_output=True, text=True)
+        self.assertEqual(initial.returncode, 2)
+        self.assertIn('PREFLIGHT FAIL', initial.stdout)
+        self.complete()
+        (self.kit / 'run/STATE.md').write_text((ROOT / 'templates/STATE.md').read_text())
+        (self.kit / 'run/CP1_REVIEW.json').unlink()
+        (self.kit / 'run/CP1_RED.md').unlink()
+        before = {p.name: p.read_bytes() for p in (self.kit / 'run').iterdir() if p.is_file()}
+        ready = subprocess.run(cli, capture_output=True, text=True)
+        self.assertEqual(ready.returncode, 0, ready.stdout + ready.stderr)
+        self.assertIn('document format only', ready.stdout)
+        self.assertNotIn('GATE OK', ready.stdout)
+        self.assertTrue(gate.check_gate(self.kit))
+        after = {p.name: p.read_bytes() for p in (self.kit / 'run').iterdir() if p.is_file()}
+        self.assertEqual(before, after)
+
     def test_initial_state_and_marker_only_completion_fail(self):
         self.assertTrue(gate.check_gate(self.kit))
         self.complete_state()

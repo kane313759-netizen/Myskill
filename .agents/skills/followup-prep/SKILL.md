@@ -77,7 +77,7 @@ MAIN sends material changed decisions, actual participant actions, and transient
 # CP3 — one final coverage pass and bounded rehearsal
 
 1. Use the orchestrator's submission deadline and reserved verification/submission time. Never extend the task's maximum 180 minutes to finish practice. If the remaining time is unknown, return the compact coverage first and avoid a waiting rehearsal until a budget is established.
-2. Refresh only changed facts against current code/results. Return updates to Recorder rather than writing notes concurrently.
+2. Refresh only changed facts against current code/results and the latest actual review dispositions. If a late clarification/fix/review occurs after preparation, update affected outlines through Recorder before submission; do not restart the full quiz. Keep historical observations separate from their current resolution status. Return updates to Recorder rather than writing notes concurrently.
 3. Select 6 actual hard/high-risk question families once for this task, spanning the six axes where useful. These are preparation choices, not predictions of the official questions. Give each a concise evidence-backed answer outline or mark the missing evidence explicitly.
 4. `followup-prep` is the sole quiz owner. If time remains after required checks/submission work, ask short questions one at a time, prioritizing the participant's largest understanding gaps. Reuse the six selected families; do not launch a second quiz through `final-explain` or repeat completed rounds.
 5. Correct only missing/incorrect facts. Use problem → AI action → human judgment → verification → result/limitation when relevant; omit parts unsupported by the evidence or unnecessary for the question.

@@ -17,7 +17,9 @@ Verify actual available models; preserve roles with allowed substitutes, never c
 
 Phase 0 is one evidence pass: grader-intake → immutable-inventory → task-router →
 problem-intake → constraint-discovery. Batch GRADER, BASELINE, IMMUTABLES,
-CONSTRAINTS and SPEC_DRAFT. Inspect command side effects/network/time before baseline.
+CONSTRAINTS and SPEC_DRAFT using their installed template headings. Run gate_check.py --preflight
+before Red review; it checks format only and never authorizes implementation.
+Inspect command side effects/network/time before baseline.
 Record original source paths or provenance-marked TASK_EVIDENCE for UI/chat-only originals.
 
 Before implementation, independent CP1 Constraint Red must review the actual specification.

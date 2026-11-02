@@ -1,5 +1,19 @@
 # Changes
 
+## 2026-11-02-operational-r4
+
+- Ran three actual-agent synthetic operational trials with independent examiner checks,
+  MAIN handoff, a mid-task constraint notice, read-only Tutor probes, six outlines,
+  exact submission collection, doctor and cleanup. Scope/evidence limits are recorded in
+  [operational-rehearsal.md](references/operational-rehearsal.md).
+- Fixed an observed heading-only CP1 stall: preserve installed template headings and run
+  read-only document preflight before independent review; full gate remains mandatory.
+- Fixed the finalization protocol after a late review outcome: refresh affected evidence
+  notes/cheatsheet and compare with the latest actual disposition before completion.
+- Fresh MAIN/Recorder replays verified both corrections without product/state/receipt edits.
+- Added the original brief's whole-exam cutoff/transition and submission-time planning details.
+  EXAM_POLICY.md remains byte-for-byte unchanged.
+
 ## 2026-11-02-exam-safe-r3
 
 Rebuilt from GitHub main 13cc6ab142b570a9bbd4506c4123d93801ff3e4f.
