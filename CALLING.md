@@ -17,6 +17,20 @@ Start with grader-intake and baseline.
 Do not implement product logic until CP1 Spec Freeze closes the constraint gate.
 ```
 
+## Optional second terminal — Tutor
+
+Open another Codex terminal only if the exam environment supports it.
+
+Recommended model: Sol 6.1.
+
+```text
+Read .hackathon-kit/prompts/TUTOR.md and follow it.
+You are read-only. Explain the current task and implementation to me.
+Do not edit product source, run mutating commands, or make decisions for MAIN.
+```
+
+Use this terminal for learning/clarifying only. Keep implementation in the MAIN workflow.
+
 ## 2. CP1 — Spec Freeze
 
 ```text
