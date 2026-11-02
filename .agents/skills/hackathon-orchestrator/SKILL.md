@@ -19,7 +19,7 @@ Verify actual available models and record actual selections. Keep these preferre
 
 # Phase 0 — one evidence pass
 
-Have MAIN inspect original task/grading/submission sources, tests, schemas, samples, and runtime configuration once, then batch the findings into GRADER.md, BASELINE.md, IMMUTABLES.md, CONSTRAINTS.md, and SPEC_DRAFT.md. Apply `grader-intake → immutable-inventory → task-router → problem-intake → constraint-discovery` as reasoning steps over shared evidence, not repeated full repository scans.
+Have MAIN inspect original task/grading/submission sources, tests, schemas, samples, and runtime configuration once, then batch the findings into GRADER.md, BASELINE.md, IMMUTABLES.md, CONSTRAINTS.md, and SPEC_DRAFT.md. Use the installed run/templates in place and preserve their level-2 section headings; the gate checks these sections. MAIN runs `python .hackathon-kit/scripts/gate_check.py --preflight` before Red dispatch so document-format corrections happen before an independent review. A preflight pass never authorizes implementation or substitutes for the full gate. Apply `grader-intake → immutable-inventory → task-router → problem-intake → constraint-discovery` as reasoning steps over shared evidence, not repeated full repository scans.
 
 For UI/chat-only instructions or unavailable original files, capture provenance-marked verbatim original/participant/Cofa excerpts in TASK_EVIDENCE.md. Distinguish excerpts from AI interpretation. Use this local record as a source path; do not invent an original source.
 
@@ -62,12 +62,15 @@ At the first working scoring-relevant path, run clean CODE_RED and then Recorder
 
 # CP3 — PRE-SUBMIT
 
+Record the official exam clock/timezone and the earlier of the stage cutoff and whole-exam cutoff. The supplied brief gives 10:00–14:00, about 5 minutes of transition (excluded from solving but included in the total window), and 30 minutes for six follow-up answers; late starts do not extend 14:00. Reserve the full follow-up and transition when planning the latest solving submission, and start submission at least 10 minutes before that deadline as the detailed guide recommends. Use newer official UI instructions if they change the schedule; never infer exam time from the host UTC clock alone.
+
 Budget CP3 from estimated review/check/repair/submission/preparation time and the actual deadline; start earlier if needed. A 15–20-minute reminder does not guarantee that all remaining work fits. Stop feature expansion, then:
 
 1. Clean final CODE_RED and CONSTRAINT_RED review the current result and original evidence; ORCHESTRATOR records findings and verified dispositions.
 2. MAIN fixes submission-blocking defects and runs `verification`. P0/P1 cannot be waived at deadline; choose a valid smaller/partial solution if needed. Mark other unrun checks UNVERIFIED and state limitations honestly.
 3. Recorder finalizes factual evidence notes. MAIN uses `final-explain` for factual explanation and `followup-prep` as the sole practice owner, covering all six official question slots. Do not quiz the participant twice or defer evidence collection to this checkpoint.
-4. ORCHESTRATOR records cp3_code_red/cp3_constraint_red as DONE, verification as RECORDED, and followup_prep as DONE only after the corresponding work and six answer outlines are complete. Run doctor. Cleanup is last, after preparation and preservation of notes, and only if the submission format requires helper removal.
+4. Before declaring preparation complete, ORCHESTRATOR reads the final VERIFY/LIMITATIONS/FOLLOWUP_CHEATSHEET against the latest checkpoint dispositions and current code version. If a late clarification, review decision, or fix occurred after Recorder prepared the notes, send the actual new evidence back to Recorder and refresh only affected claims/outlines; do not repeat a whole quiz. A resolved finding must not remain pending in the final answer sheet, and earlier reproduced failures must not be erased.
+5. ORCHESTRATOR records cp3_code_red/cp3_constraint_red as DONE, verification as RECORDED, and followup_prep as DONE only after the corresponding work and six answer outlines are complete. Run doctor. Cleanup is last, after preparation and preservation of notes, and only if the submission format requires helper removal.
 
 Use Cofa Helper for exam UI/submission questions and official incident reporting for repeated technical failures. The participant handles UI actions; no Computer Use/automated UI control, external task-data transmission, external AI connection, or Git Push.
 

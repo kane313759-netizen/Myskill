@@ -34,6 +34,8 @@ Create a new Constraint Red using prompts/CONSTRAINT_RED.md with no inherited co
 fork_turns="none" where supported, otherwise a clean separate session.
 Send EXAM_POLICY and original task/grading/test paths before MAIN's draft artifacts.
 Treat GRADER, IMMUTABLES and SPEC as claims to verify against originals.
+Have MAIN preserve installed template headings and pass gate_check.py --preflight first.
+The preflight checks document format only; it is not review approval.
 Persist the actual report as CP1_RED.md and structured receipt as CP1_REVIEW.json.
 Fix/disprove blocking findings with evidence and reviewer rechecks.
 ORCHESTRATOR writes candidate CLOSED, runs the evidence gate, and restores OPEN on failure.

@@ -9,7 +9,9 @@ Read STATE, GRADER, BASELINE, and IMMUTABLES when present. ORCHESTRATOR alone wr
 Use one shared evidence pass for:
 `grader-intake → immutable-inventory → task-router → problem-intake → constraint-discovery`.
 
-Author GRADER.md, BASELINE.md, IMMUTABLES.md, CONSTRAINTS.md, and a short SPEC_DRAFT.md covering scoring target/output, non-goals, exact I/O, necessary architecture, confirmed constraints with evidence, assumptions, and a verification plan. Preserve provenance-marked original/participant/Cofa excerpts in TASK_EVIDENCE.md when original instructions exist only in UI/chat. Inspect baseline commands for side effects/network use, and bound checks to the remaining exam budget before running them.
+Fill the installed run/templates in place: preserve their level-2 section headings (the gate uses them), and replace comments/blank table rows with actual evidence or an explicit N/A/reason. Do not invent a different heading scheme. Author GRADER.md, BASELINE.md, IMMUTABLES.md, CONSTRAINTS.md, and a short SPEC_DRAFT.md covering scoring target/output, non-goals, exact I/O, necessary architecture, confirmed constraints with evidence, assumptions, and a verification plan. Preserve provenance-marked original/participant/Cofa excerpts in TASK_EVIDENCE.md when original instructions exist only in UI/chat. Inspect baseline commands for side effects/network use, and bound checks to the remaining exam budget before running them.
+
+Before dispatching CP1 Red, run `python .hackathon-kit/scripts/gate_check.py --preflight` and fix any document-format gaps. This is a read-only format check, not CP1 approval; do not set STATE or edit the receipt. Review once the artifacts are ready, avoiding a new reviewer merely to discover a heading mismatch.
 
 Do not implement product logic until clean CP1 Constraint Red has reviewed the current artifacts, blocking findings have verified dispositions, STATE is CLOSED, and `python .hackathon-kit/scripts/gate_check.py` succeeds. A CLOSED label by itself is insufficient. CP1_REVIEW.json is the review receipt; never edit or refresh it yourself.
 

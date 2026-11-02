@@ -68,6 +68,8 @@ Explain actual code and evidence; do not make MAIN's implementation decisions.
 
 **Phase 0:** MAIN이 grader-intake → immutable-inventory → task-router → problem-intake → constraint-discovery를 한 번의 근거 수집으로 수행하고 문서를 묶어서 작성합니다. baseline 명령의 변경·네트워크·실행 시간을 먼저 확인하며 필요한 경우 임시 데이터로 격리합니다. 실행 불가는 이유와 확인한 자료를 남깁니다.
 
+**CP1 전 형식 확인:** MAIN은 설치된 템플릿의 `##` 제목을 유지하고 내용을 채운 뒤 `python .hackathon-kit/scripts/gate_check.py --preflight`로 형식을 확인합니다. 형식 때문에 리뷰를 반복하지 않도록 Red를 부르기 전에 수행합니다. 이 통과만으로 구현할 수는 없습니다.
+
 **CP1 SPEC FREEZE:** Red는 원문을 먼저 읽고 MAIN 문서를 검증할 주장으로 취급합니다. 새 에이전트의 기본 이력 상속에 의존하지 말고 지원 시 `fork_turns="none"`, 아니면 깨끗한 별도 세션을 사용합니다. 실제 리뷰는 CP1_RED.md에, 소스 경로·모델/컨텍스트·5개 문서 해시·finding 처리 결과는 CP1_REVIEW.json에 남깁니다. P0/P1은 근거에 따라 수정/기각하고 재검증해야 합니다.
 
 ```bash
@@ -82,9 +84,11 @@ checker는 기록의 구조·존재·변경·차단 finding 처리를 확인합�
 
 **CP2 FIRST END-TO-END:** Code Red와 Recorder를 실행합니다. 제약/목적 위험이 생겼을 때만 추가 Constraint Red를 실행합니다. 여섯 축의 후속 근거와 cheatsheet를 이때부터 누적합니다.
 
+**전체 종료 시각:** 원본 브리프의 시험 창은 10:00–14:00이며 전환 대기 약 5분도 전체 시간에 포함됩니다. 지각·대기로 14:00이 연장되지 않습니다. 최신 공식 화면의 시간대·단계 종료와 전체 종료를 확인하고 후속 30분과 전환 시간을 확보하십시오. 상세 가이드는 제출 마감 10분 전 제출 시작을 권고합니다.
+
 **CP3 PRE-SUBMIT:** 남은 검토·수정·검증·제출·준비 시간을 기준으로 시작합니다. 15–20분은 알림이지 모든 일이 끝난다는 보장이 아닙니다. 최종 Code/Constraint Red → 차단 finding 처리·verification → Recorder → final-explain의 사실 설명 → followup-prep의 단일 연습 흐름 → doctor → 필요한 경우 마지막 cleanup 순서입니다.
 
-공식 후속 6문항 전체를 대비하는 질문·답안 개요를 작성합니다. 제출 전에 30분짜리 모의시험을 강제하지 않으며, 짧은 연습은 예약한 제출 시간을 침범하지 않습니다. 미검증은 UNVERIFIED, 근거 없는 답은 UNANSWERABLE로 남깁니다. 마감이 차단 결함을 무효로 만들지는 않습니다.
+공식 후속 6문항 전체를 대비하는 질문·답안 개요를 작성합니다. 제출 전에 30분짜리 모의시험을 강제하지 않으며, 짧은 연습은 예약한 제출 시간을 침범하지 않습니다. 마지막 리뷰·정정·수정이 요약 작성 뒤에 생기면 바뀐 판정만 Recorder에 전달해 VERIFY·LIMITATIONS·cheatsheet를 최신화하고, ORCHESTRATOR가 최종 상태와 대조합니다. 이미 기각된 finding을 미해결로 남기거나 과거 실패 자체를 지우지 않습니다. 퀴즈 전체를 반복할 필요는 없습니다. 미검증은 UNVERIFIED, 근거 없는 답은 UNANSWERABLE로 남깁니다. 마감이 차단 결함을 무효로 만들지는 않습니다.
 
 ## Doctor와 마지막 cleanup
 
@@ -126,3 +130,5 @@ python scripts/package_release.py --source . --output /tmp/Myskill-exam-safe.zip
 ```
 
 새로 작성해 아직 Git에 추가하지 않은 배포 파일까지 검증할 때만 `--include-untracked`를 사용하십시오. 패키지는 허용된 소스만 포함하고 run 기록·.git·캐시·중첩 ZIP을 제외합니다. Actions도 압축된 ZIP을 다시 감싸지 않고 배포 디렉터리 내용을 직접 업로드합니다.
+
+실제 에이전트 3개 모의 과제와 두 수정 경로의 재검증 범위는 [운영 리허설 기록](references/operational-rehearsal.md)에 있습니다. 실제 시험장 모델·180분 전체 운영·사람의 서술형 답변까지 검증했다는 의미는 아닙니다.

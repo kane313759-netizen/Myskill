@@ -3,7 +3,7 @@ name: grader-intake
 description: Discover the exam task's grading/submission contract and record a safe pre-edit baseline during the shared intake pass.
 ---
 
-Read `.hackathon-kit/EXAM_POLICY.md` first. Follow the ownership/checkpoint protocol in `hackathon-orchestrator`; MAIN reports intake outcomes and never writes STATE/gate records.
+Read `.hackathon-kit/EXAM_POLICY.md` first. Fill the installed templates without renaming the required section headings; MAIN runs the read-only gate `--preflight` before independent review. Follow the ownership/checkpoint protocol in `hackathon-orchestrator`; MAIN reports intake outcomes and never writes STATE/gate records.
 
 # One evidence pass
 

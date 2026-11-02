@@ -184,8 +184,19 @@ def check_gate(kit):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--kit', type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument('--artifact-hashes', action='store_true', help='Print current hashes; does not pass or close the gate')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--artifact-hashes', action='store_true', help='Print current hashes; does not pass or close the gate')
+    mode.add_argument('--preflight', action='store_true', help='Check the five intake templates before Red review; never authorizes implementation')
     args = parser.parse_args()
+    if args.preflight:
+        errors = [error for name in ARTIFACTS for error in document_errors(args.kit, name)]
+        if errors:
+            print('PREFLIGHT FAIL: preserve the installed template headings and fill their evidence sections')
+            for error in errors:
+                print('-', error)
+            return 2
+        print('PREFLIGHT OK: document format only; independent CP1 review and full gate still required')
+        return 0
     if args.artifact_hashes:
         try:
             print(json.dumps(artifact_hashes(args.kit), indent=2, sort_keys=True))
