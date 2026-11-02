@@ -110,6 +110,20 @@ Doctor는 소유/필수 스킬·지원 파일·버전·모든 설치 제외 경�
 
 과제·채점 근거가 있을 때만 도메인 playbook을 켭니다. 배차·웹·Docker·ML을 기본 구조로 가정하지 않으며 공식 채점에 없는 penalty를 추가하지 않습니다.
 
+기본 시작 절차에서 MAIN이 필요한 보조 도구도 함께 고릅니다. 기존 환경과 키트
+도구를 우선하고, 필요가 없으면 추가하지 않습니다. JSON·Python·표·PDF 등 실제
+입력과 채점 근거에 따라 jq·Gitleaks·Ruff·DuckDB·pdfplumber의 좁은 로컬 기능만
+검토합니다. Cloudflare/impeccable은 기존 검토·화면 작업에 필요한 지침만 참고하고
+다른 AI 프레임워크·브라우저·외부 모델·전송 기능을 통째로 붙이지 않습니다.
+
+선택 이유·대안·원본/정밀도/비밀값 보호·시간 예산은 기존 SPEC의 검증 계획에
+넣어 CP1에서 함께 검토합니다. [선택 기준](references/optional-tools.md)을 따르며
+추가 승인 단계나 새 역할은 없습니다. `tool_inventory.py`는 설치 여부의 단서만
+읽고 실행·설치·패키지 import·안전 승인을 하지 않습니다. 필요한 설치도 과제
+폴더 밖에서 격리하고, 마감이나 원본 보존을 해치면 생략·보고합니다.
+선택 판단 10상황·보조 기능·기존 회귀 검사의 실제 범위와 한계는
+[검증 기록](references/tool-selection-validation.md)에 있습니다.
+
 ```bash
 python .hackathon-kit/scripts/env_scan.py --root .
 python .hackathon-kit/scripts/profile_data.py supplied.csv --max-rows 50000
