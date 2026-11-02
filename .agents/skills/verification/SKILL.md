@@ -1,24 +1,33 @@
 ---
 name: verification
-description: Build evidence-based verification for requirements, constraints, regressions, persistence, and real-world sanity.
+description: Verify scoring contracts, confirmed constraints, regressions, persistence, and task-relevant edge cases against the recorded baseline.
 ---
 
-Create tests from the actual requirements.
+Read:
+- EXAM_POLICY.md
+- GRADER.md
+- BASELINE.md
+- IMMUTABLES.md
+- CONSTRAINTS.md
 
-Minimum categories:
+Start from the task's existing test/build commands and compare against BASELINE.
+
+Minimum categories when applicable:
+- visible grading/sample contract
+- confirmed hard constraints
 - normal case
 - boundary case
-- invalid/missing data
-- duplicate/conflict
-- persistence/restart where relevant
+- invalid/missing/conflicting input
+- duplicate/retry/idempotency
+- persistence/restart
 - integration path
-- reality/sanity metrics
+- task-specific performance/precision/reproducibility
+- domain sanity only when the selected playbook calls for it
 
-Rule: each important hard constraint gets at least one test.
+Rule: every important confirmed hard constraint should have evidence of verification or be marked UNVERIFIED.
 
-Distinguish:
-- automated PASS/FAIL
-- manual check required
-- not tested
-
-Never claim UI or browser behavior was verified unless it was actually observed by an allowed method or manually confirmed by the user.
+Never:
+- weaken/delete a test to get green
+- hard-code visible samples as the solution
+- claim browser/UI behavior was verified by Computer Use; Computer Use is prohibited in this exam
+- claim a manual check occurred unless the user actually performed it
