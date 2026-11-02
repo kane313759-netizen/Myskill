@@ -16,6 +16,7 @@ Read first:
 - .hackathon-kit/run/LIMITATIONS.md
 
 The official follow-up is 6 questions × 5 minutes and must be answered without AI/copy-paste. Exact questions are unknown.
+Read `.hackathon-kit/references/followup-question-bank.md` when present.
 
 # Question families
 
