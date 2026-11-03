@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import runpy
 import shutil
@@ -51,6 +51,12 @@ def rel_ok(rel):
         return False
     p = PurePosixPath(rel)
     return bool(rel) and not p.is_absolute() and all(x not in ('', '.', '..') for x in rel.split('/'))
+
+
+def internal_source_ok(rel):
+    return (rel_ok(rel) and not PureWindowsPath(rel).drive
+            and not any(ord(ch) < 32 or ord(ch) == 127 for ch in rel)
+            and rel.split('/')[0].casefold() not in ('.git', '.agents', '.hackathon-kit'))
 
 
 def digest(path):
@@ -116,6 +122,11 @@ def load_manifest(kit, optional=False):
         raise LifecycleError('Invalid created-directory manifest')
     if not isinstance(data.get('version'), str) or not isinstance(data.get('source_digest'), str) or not re.fullmatch('[0-9a-f]{64}', data['source_digest']):
         raise LifecycleError('Missing source version/hash')
+    internal = data.get('internal_sources', [])
+    if not isinstance(internal, list) or any(not internal_source_ok(x) for x in internal):
+        raise LifecycleError('Unsafe internal source path')
+    if len(internal) != len(set(internal)):
+        raise LifecycleError('Duplicate internal source path')
     return data
 
 
@@ -168,7 +179,7 @@ def git_context(root):
     return top, exclude
 
 
-def ignore_patterns(root, owned, context):
+def ignore_patterns(root, owned, context, internal_sources=()):
     top, _ = context
     prefix = root.relative_to(top).as_posix()
     prefix = '' if prefix == '.' else prefix + '/'
@@ -176,10 +187,11 @@ def ignore_patterns(root, owned, context):
     def esc(s):
         return re.sub(r'([\\*?\[\]])', r'\\\1', s)
     return ['/' + esc(prefix + '.hackathon-kit') + '/'] + [
-        '/' + esc(prefix + '.agents/skills/' + name) + '/' for name in sorted(owned)]
+        '/' + esc(prefix + '.agents/skills/' + name) + '/' for name in sorted(owned)] + [
+        '/' + esc(prefix + rel) + '/' for rel in internal_sources]
 
 
-def add_excludes(root, owned):
+def add_excludes(root, owned, internal_sources=()):
     context = git_context(root)
     if context is None:
         print('[WARN] No Git worktree; helper files must be excluded by the submission procedure.')
@@ -187,25 +199,49 @@ def add_excludes(root, owned):
     _, exclude = context
     old = exclude.read_bytes() if exclude.exists() else b''
     lines = old.splitlines()
-    additions = [x.encode('utf-8') for x in ignore_patterns(root, owned, context) if x.encode('utf-8') not in lines]
+    additions = [x.encode('utf-8') for x in ignore_patterns(root, owned, context, internal_sources) if x.encode('utf-8') not in lines]
     if additions:
         # Preserve the existing final line, including when it has no newline.
         separator = b'' if not old or old.endswith((b'\n', b'\r')) else b'\n'
         write_bytes(exclude, old + separator + b'\n'.join(additions) + b'\n')
 
 
-def install(source, root):
+def remaining_internal_sources(root, manifest):
+    remaining = []
+    for rel in manifest.get('internal_sources', []):
+        path = root / rel
+        safe_path(path)
+        if path.exists():
+            remaining.append(rel)
+    return remaining
+
+
+def install(source, root, allow_internal_source=False):
     source, root = source.absolute(), root.absolute()
     safe_path(source)
     safe_path(root)
     source, root = source.resolve(), root.resolve()
-    if inside(source, root) or inside(root, source):
-        raise LifecycleError('Keep the kit source outside the task tree; source and target must not overlap.')
+    if inside(root, source):
+        raise LifecycleError('Source and target must not be identical; target must not be inside the kit source.')
+    internal_source = inside(source, root)
+    if internal_source:
+        if not allow_internal_source:
+            raise LifecycleError('Keep the kit source outside the task tree, or explicitly use --allow-internal-source for a separate temporary source directory.')
+        if not internal_source_ok(source.relative_to(root).as_posix()) or any(ord(ch) < 32 or ord(ch) == 127 for ch in str(root)):
+            raise LifecycleError('Unsafe internal source path; use a separate temporary directory without control characters, drive prefixes, or reserved helper names.')
+        for name in ('.git', '.agents', '.hackathon-kit'):
+            protected = root / name
+            if inside(source, protected) or inside(protected, source):
+                raise LifecycleError('Internal source overlaps a protected task/helper path: ' + name)
     kit = root / '.hackathon-kit'
     skills = root / '.agents/skills'
     safe_path(kit)
     safe_path(skills)
     old = load_manifest(kit, optional=True)
+    internal_sources = set((old or {}).get('internal_sources', []))
+    if internal_source:
+        internal_sources.add(source.relative_to(root).as_posix())
+    internal_sources = sorted(internal_sources)
     legacy_names = validate_legacy(kit)
     if kit.exists() and old is None and not (kit / 'run/INSTALLED_SKILLS.txt').is_file():
         raise LifecycleError('Existing .hackathon-kit has no recognized ownership; preserved without changes.')
@@ -305,14 +341,17 @@ def install(source, root):
     source_digest = hashlib.sha256(json.dumps({'skills': source_hashes, 'files': source_files}, sort_keys=True).encode()).hexdigest()
     manifest = dict(schema=1, kit_id=KIT_ID, installation_id=(old or {}).get('installation_id', str(uuid.uuid4())),
                     version=version, source_digest=source_digest, owned_skills=owned,
-                    borrowed_skills=borrowed, managed_files=managed, created_dirs=sorted(created))
+                    borrowed_skills=borrowed, managed_files=managed, created_dirs=sorted(created),
+                    internal_sources=internal_sources)
     write_bytes(kit / MANIFEST, (json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + '\n').encode('utf-8'))
-    add_excludes(root, owned)
+    add_excludes(root, owned, internal_sources)
     for message in warnings:
         print('[WARN] ' + message)
     print('Installed kit version ' + version + ' into: ' + str(root))
     print('Run notes preserved under .hackathon-kit/run/. Python 3 is required for lifecycle and gate checks.')
     print('Local Git exclusions do not exclude files from directory/ZIP submission snapshots.')
+    for rel in remaining_internal_sources(root, manifest):
+        print('[WARN] Internal kit source remains: ' + rel + '. After verifying installation, remove only the temporary source you created; never delete preexisting/task content.')
 
 
 def inspect_install(root, manifest):
@@ -344,6 +383,12 @@ def doctor(root, pre_submit):
     manifest = load_manifest(kit)
     validate_legacy(kit)
     errors = inspect_install(root, manifest)
+    for rel in remaining_internal_sources(root, manifest):
+        message = 'Internal kit source remains in the task tree: ' + rel
+        if pre_submit:
+            errors.append(message + '; verify and remove your temporary source before submission.')
+        else:
+            print('[WARN] ' + message)
     for name in ('STATE.md', 'GRADER.md', 'BASELINE.md'):
         p = kit / 'run' / name
         safe_path(p)
@@ -356,7 +401,7 @@ def doctor(root, pre_submit):
             errors.append('Python helper syntax error: ' + str(e))
     context = git_context(root)
     if context is not None:
-        for pattern in ignore_patterns(root, manifest['owned_skills'], context):
+        for pattern in ignore_patterns(root, manifest['owned_skills'], context, manifest.get('internal_sources', [])):
             # check-ignore receives real paths, not escaped patterns.
             path = pattern[1:-1]
             path = re.sub(r'\\([\\*?\[\]])', r'\1', path)
@@ -419,6 +464,9 @@ def cleanup(root, apply):
         return 0
     validate_legacy(kit)
     manifest = load_manifest(kit)
+    remaining = remaining_internal_sources(root, manifest)
+    if remaining:
+        raise LifecycleError('Internal kit source remains; verify and remove only your temporary source before helper cleanup: ' + ', '.join(remaining))
     protected = []
     # Inspect all deletion candidates before deleting anything. Run notes are dynamic
     # content intentionally removed only after their complete external local backup.
@@ -470,6 +518,8 @@ def main(argv=None):
     p = sub.add_parser('install')
     p.add_argument('--source', type=Path, required=True)
     p.add_argument('--target', type=Path, default=Path('.'))
+    p.add_argument('--allow-internal-source', action='store_true',
+                   help='Allow a separate temporary source below the target, excluding .git/.agents/.hackathon-kit. Never removes the source automatically.')
     for name in ('doctor', 'clean'):
         p = sub.add_parser(name)
         p.add_argument('--kit', type=Path, default=Path(__file__).resolve().parents[1])
@@ -480,7 +530,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == 'install':
-            install(args.source, args.target)
+            install(args.source, args.target, args.allow_internal_source)
             return 0
         kit = args.kit.absolute()
         safe_path(kit)

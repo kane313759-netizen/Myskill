@@ -7,6 +7,11 @@ Use the hackathon-orchestrator skill.
 Read .hackathon-kit/EXAM_POLICY.md first. Newer official exam/task instructions win.
 Follow the orchestrator skill as the canonical checkpoint and ownership protocol.
 
+If installation used an internal temporary kit source, verify the installation and
+remove only the unique source directory we created, after checking for unexpected
+content or local changes. Never delete preexisting/task files. The manifest tracks
+these sources; resolve doctor warnings before intake and never hide a leftover source.
+
 Keep Terra as ORCHESTRATOR only. It owns STATE, gate, checkpoint reports and review receipts.
 Create one persistent Sol 6.1 MAIN when actually available; only MAIN edits product source.
 Use clean Code Red / Constraint Red contexts with no inherited history:

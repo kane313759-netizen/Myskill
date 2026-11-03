@@ -4,7 +4,7 @@ SK하이닉스 AI 해커톤 **2차 예선 시험 형식은 고정하고 과제 �
 
 공식 불변조건은 최대 180분 풀이, 후속 서술형 6문항 × 5분, 후속 중 AI·복사/붙여넣기 금지입니다. Computer Use/자동 UI 제어, 외부 AI 연결, 문제·파일·결과의 외부 전송, Git Push를 금지합니다. 권장 제공 모델·Astra 제한과 공개 도구/부분 코드 재사용 조건은 EXAM_POLICY를 따릅니다. 이 키트의 공개 소스를 시험 전에 유지보수하는 것과 실제 시험 과제를 외부에 올리는 것은 구분하십시오.
 
-## 설치 — 과제 레포 밖에서 내려받기
+## 설치 — 외부 임시 폴더 우선, 불가능하면 분리된 내부 임시 폴더
 
 필수: **Python 3.8 이상**. Bash와 PowerShell은 같은 Python 표준 라이브러리 backend를 호출합니다. Git은 선택 사항이고, XLSX 분석만 선택 의존성 openpyxl을 사용합니다. 시험 전에 사용할 개정 SHA를 정하고 클론 또는 압축 해제본을 보관하십시오.
 
@@ -22,7 +22,25 @@ git clone https://github.com/kane313759-netizen/Myskill.git $KitDir
 powershell -ExecutionPolicy Bypass -File (Join-Path $KitDir "install.ps1") -Target .
 ```
 
-오프라인 ZIP은 **한 번 해제하면 install.sh/install.ps1이 최상위에 보이는 구조**입니다. 키트 폴더와 과제 폴더는 겹치면 안 됩니다.
+오프라인 ZIP은 **한 번 해제하면 install.sh/install.ps1이 최상위에 보이는 구조**입니다. 개인 파일의 시험장 반입 허용을 뜻하지는 않습니다.
+
+### 과제 폴더 밖에 원본을 받을 수 없을 때
+
+제공 환경에서 허용된 외부 임시 위치를 사용할 수 없다면, Codex가 **직접 새로 만든 고유한 과제 하위 임시 폴더**(예: `.myskill-source-<임의값>`)에 원본을 받습니다. 기존 과제 폴더를 원본 보관 장소로 재사용하지 않습니다. 이때만 다음 명시 옵션을 사용합니다.
+
+```bash
+bash "$KIT_DIR/install.sh" . --allow-internal-source
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File (Join-Path $KitDir "install.ps1") -Target . -AllowInternalSource
+```
+
+이 옵션은 원본과 과제가 동일한 경우, 과제가 원본 안에 있는 경우, 원본이 과제의 `.git`·`.agents`·`.hackathon-kit`과 겹치는 경우를 계속 거절합니다. 기존 파일·스킬 보호와 재설치 기록 보존도 유지합니다.
+
+설치 확인 후 Codex는 자신이 새로 만든 임시 원본에 과제 파일·추가 내용·로컬 변경이 없는지 확인하고 **그 임시 원본만 정리한 뒤** 과제를 진행합니다. 기존 폴더나 소유권이 불명확한 파일을 강제로 지우지 않습니다. 설치기는 원본을 무조건 자동 삭제하지 않으며, 위치를 manifest에 기록합니다. 일반 doctor는 잔존 원본을 경고하고 제출 전 doctor와 helper cleanup은 잔존 시 실패하므로, 숨겨진 원본이 제출물에 섞인 채 완료로 처리하지 않습니다. 임시 원본의 Git 제외는 폴더 전체 제출에서 제거한다는 뜻이 아닙니다.
+
+사용자는 외부/내부 경로를 직접 결정할 필요 없이 "검증된 개정의 README에 따라 설치 위치를 정하고 안전하게 설치·임시 원본 정리 후 시작 지침을 읽어 진행해 줘"라고 요청하면 됩니다. 기존 r7 `b4f4fee`에는 내부 설치 옵션이 없으므로 이 기능은 **r7.1 이후 검증 개정**을 사용해야 합니다.
 
 설치 시 `.agents/skills/`와 `.hackathon-kit/`만 사용하고 기존 AGENTS.md·.gitignore·과제 소스는 수정하지 않습니다. 필수 스킬의 동명 충돌은 쓰기 전에 차단합니다. 바이트가 동일한 기존 스킬은 빌려 사용하며 cleanup에서 삭제하지 않습니다. 선택 스킬 충돌은 보존·보고합니다.
 
@@ -105,6 +123,8 @@ powershell -ExecutionPolicy Bypass -File .hackathon-kit/scripts/clean.ps1 -Apply
 ```
 
 Doctor는 소유/필수 스킬·지원 파일·버전·모든 설치 제외 경로를 확인하고, 제출 전에는 동일한 CP1 gate 검사 결과를 사용합니다. 제품의 실제 채점·수동 UI 검증을 대신하지 않습니다. cleanup 기본값은 dry-run이며, 적용하면 run 기록을 과제 밖의 고유한 로컬 임시 디렉터리에 백업합니다. 로컬 변경·알 수 없는 파일·symlink 때문에 소유권이 불확실하면 삭제 전에 중단합니다. 이때 helper가 남았는지 보고 제출 파일 목록을 확인하십시오. TMPDIR/TEMP가 과제 안을 가리키면 외부 로컬 임시 위치로 바꿔야 합니다.
+
+내부 원본 설치 지원이 cleanup의 백업 보호를 해제하지는 않습니다. 과제 밖 쓰기가 모두 불가능하고 제출 형식상 helper 제거까지 필요하다면, 기록의 안전한 보존·제출 수집 방식을 공식 안내/Cofa Helper로 확인해야 합니다. 백업 없이 기록을 지우거나 외부 서비스에 전송하지 않습니다. 설치 원본 정리에는 run 기록이 없으므로 이 helper cleanup과 구분합니다.
 
 ## 조건부 도구
 
