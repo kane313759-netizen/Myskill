@@ -129,6 +129,18 @@ the missing official time through the participant/Cofa channel.
 
 Budget CP3 from estimated review/check/repair/submission/preparation time and the actual deadline; start earlier if needed. A 15–20-minute reminder does not guarantee that all remaining work fits. Stop feature expansion, then:
 
+At the reserved submission-start boundary (at least 10 minutes before the planned
+solving cutoff), notify the participant to manually open "제출하고 문제풀기".
+Do not delay this notification behind Recorder updates, doctor or optional rehearsal.
+Preview is not confirmation: close it to make still-permitted fixes, check required
+files/collection scope, saved state and the 10GB total, and resolve submission blockers
+or use a verified valid partial result. Finish the essential factual explanation and
+six outlines within the remaining time; report omissions rather than invent completion.
+The participant manually chooses "제출물 확정하고 문제풀기"; this freezes files.
+After question preparation, the participant starts the questions, answers without AI
+or paste, and checks final completion plus submission ID/time/file count/size.
+No automated UI action or post-confirmation file/record update is permitted.
+
 1. Clean final CODE_RED and CONSTRAINT_RED review the current result and original evidence; ORCHESTRATOR records findings and verified dispositions.
 2. MAIN fixes submission-blocking defects and runs `verification`. P0/P1 cannot be waived at deadline; choose a valid smaller/partial solution if needed. Mark other unrun checks UNVERIFIED and state limitations honestly.
    Before collection/freeze, any later behavior-changing edit needs affected Code
