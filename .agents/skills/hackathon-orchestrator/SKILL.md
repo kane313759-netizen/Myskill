@@ -180,8 +180,9 @@ resumption may finish it. A frozen submission is never rewritten for a later gra
 When a material official change arrives before freeze, after CP3 or near the
 deadline, observe the clock and record the latest READY time (the planned solving
 cutoff minus the reserved submission time). Keep the gate order: a targeted Constraint Red
-recheck of the changed scope only. Data checks, test preparation and review of
-unchanged parts may run in parallel; related product edits start only after the gate
+recheck of the changed scope only. Data checks, preparation of isolated check inputs
+(no edits to collected product or test files) and review of unchanged parts may run in
+parallel; related product edits start only after the gate
 re-closes, then affected verification and Code Red. Product edits change collected
 files, so tell the participant whether the workspace is the last reviewed version or
 an unreviewed partial change. Update only changed facts in notes and outlines; the

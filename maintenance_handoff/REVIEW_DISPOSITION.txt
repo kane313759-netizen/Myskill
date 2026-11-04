@@ -17,3 +17,13 @@
 보완 범위: Markdown 7파일. EXAM_POLICY 바이트·런타임 코드·역할 수·checkpoint 수·퀴즈 수 불변.
 검증: 156 cases(155 pass, 로컬 PowerShell 1skip), CI Linux/Windows×Python3.8/3.12 및 package 모두 pass. 새 clean 독립 문서 검토 생존 finding0.
 실시간 모의는 처음 고정한4d846ed를 유지한다. 추가 문서보완8e9c301의 full 해커톤 수행을 했다고 주장하지 않는다.
+
+
+=== Claude 유지보수 (claude-handoff, 기준 9ac5479 + exam-r7.2.1 df82543 병합) ===
+검증 대상 커밋: 이 파일을 포함한 최종 커밋(git log 참조). 아래 결과는 7126ef6 깨끗한 worktree에서 측정하고, 마지막 소규모 P3 수정 뒤 전체 테스트를 다시 통과시켰다.
+- 테스트 158개 실행, 157 통과, 1 skip(PowerShell). Python 3.13.18 Linux. 독립 검토자가 새 테스트를 Python 3.8.20에서도 실행.
+- 설치 → doctor OK → 재설치(run 기록 보존) → clean --apply(.git만 남음). 배포 ZIP 93파일 단층 구조.
+- 고친 결함: (1) 설치 문서의 키트 경로 15곳이 과제 루트에서 존재하지 않는 경로였음(CP1/CP2/escalation 호출 예시, local-evaluation 참조, run/CP1_*) → 전부 .hackathon-kit/… 로 수정, 회귀 tests/test_doc_paths.py(9ac5479에서 실패, 수정판 통과). (2) 늦은 공식 공지 운영: 9ac5479로 깨끗한 드릴 2회 모두 gate 순서대로는 READY가 마감 뒤(06:43~06:49 vs 06:41)였고 두 에이전트가 즉석 예외(재검토와 구현 병행)를 만들어 냄 → 사용자 결정으로 gate 순서 유지, 바뀐 범위만 표적 재검토, 자료 확인·격리된 검사 입력 준비·바뀌지 않은 부분 검토만 병렬, 제품 수정은 gate 재닫힘 뒤, 기록·개요는 바뀐 사실만, 제출 미리보기 알림(df82543)은 예약 시각 유지, 못 끝내면 즉시 참가자 알림. 수정판 드릴 2회: 즉석 예외 0, gate 순서 유지, 기록 갱신 READY 뒤로. (3) 기록·답안 개요가 READY를 막지 않도록 하되, READY 뒤 기록 작성은 GRADER가 수집 제외를 보여 줄 때·필수 cleanup 전·확정 전으로 한정.
+- 독립 검토(깨끗한 하위 에이전트, OS 격리·블라인드 아님): 병합 전 diff 0 차단/2 P2/2 P3 → 모두 반영. 57ae7e2 Fable xhigh: 0 P0/P1, 2 P2(표적 재검토에서 FIXED 확인), P3 4건. 57ae7e2→7126ef6 재검토: 새 P3 3건. 최종 커밋에서 추가로 고친 P3: 병렬 준비가 수집 대상 제품·테스트 파일을 건드리지 않는다고 명시, 테스트의 run/ 참조 존재 확인을 templates/로 대체, CHANGELOG 문구 갱신.
+- 남은 P3(열림): 미리보기 문단이 "Stop feature expansion, then:"과 1단계 사이에 위치; README의 미리보기 부분성 주의가 설치 문서에 없음; "Read EXAM_POLICY.md" 6곳이 접두 없는 표기; CALLING/BOOTSTRAP/README CP3 순서에 새 알림 미기재; "기록은 READY를 늦추지 않는다"가 수집되는 기록에는 '보류 보고'만 남김. 모두 운영상 비차단으로 판단, 시험 전 변경 최소화를 위해 보류.
+- 미검증: Windows/PowerShell 실제 실행, 실제 Probe/Proctor UI·제공 모델, 후보 전체 180분 end-to-end. 과거 실패 기록(정시 수집 FAILED 등)은 그대로 보존.

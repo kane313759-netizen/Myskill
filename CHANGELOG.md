@@ -6,9 +6,9 @@
   (`.hackathon-kit/prompts/…`, `.hackathon-kit/references/…`, `.hackathon-kit/run/…`):
   the CP1/CP2/escalation launch examples and local-evaluation references previously
   named paths that do not exist from the task root. Regression: tests/test_doc_paths.py.
-- Uncollected notes and answer outlines no longer sit on the READY/collection path;
-  Recorder may finish them after READY but only before confirmation/freeze, and reports
-  anything pending.
+- Notes and answer outlines no longer sit on the READY/collection path; Recorder may
+  finish them after READY only when GRADER shows they are not collected and before any
+  required cleanup and confirmation/freeze, and reports anything pending or undelivered.
 - On a material official change after CP3 or near the deadline, record the latest READY
   time and keep the gate order: targeted Constraint Red recheck of the changed scope;
   data checks, test preparation and unchanged-part review in parallel; related product

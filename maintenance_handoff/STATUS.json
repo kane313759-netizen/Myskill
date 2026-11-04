@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-04T07:40:51.244174+00:00",
+  "updated_at": "2026-11-04T08:30:17.509504+00:00",
   "user_latest_instruction": "서술형 연습 빼고 일단 완벽한 스킬이 되어야 한다",
   "goal": "SKILL_HARDENING_AND_VERIFICATION",
   "actual_user_written_practice": "EXCLUDED_NOT_PENDING",
@@ -12,5 +12,16 @@
     "readonly_execution_and_lifecycle_boundaries"
   ],
   "historical_failures": "PRESERVE_NOT_RETROACTIVELY_PASS",
-  "limits": "ActualProbeUI/models/Proctor unavailablehere mustnotbeclaimedverified"
+  "limits": "ActualProbeUI/models/Proctor unavailablehere mustnotbeclaimedverified",
+  "integrated_exam_commit": "df825438c37e966fe6d835cc93e69f656b05449d",
+  "claude_candidate_commit": "c65969fa32739f6a57661088045bb283a8ddd524",
+  "claude_candidate_verification": {
+    "unittest": "158 run, 157 pass, 1 skip (PowerShell) on clean worktree of 7126ef6, Python 3.13.18 Linux, PYTHONDONTWRITEBYTECODE=1",
+    "lifecycle": "install -> doctor OK -> reinstall preserves run notes -> clean --apply leaves only .git",
+    "package": "package_release.py 93 files, flat layout, sha256 da32b80ecba20b8a53d37b77ff9c95adc775e87c7fbe6b0b8907c2179a03f1b2",
+    "regression_added": "tests/test_doc_paths.py fails on 9ac5479 (15 bare kit paths), passes on candidate; also run under Python 3.8.20 by the independent reviewer",
+    "late_notice_drills": "2 clean read-only drills on 9ac5479: gate-ordered READY 06:43-06:49 vs deadline 06:41, both improvised a parallel-implementation exception; 2 drills on the fixed kit: gate order kept, participant told at once, notes deferred, no invented exception",
+    "independent_review": "pre-merge clean review: 0 blocking, 2 P2 + 2 P3, addressed in 7126ef6; final Fable xhigh review of 57ae7e2: 0 P0/P1, 2 P2 (FIXED in 7126ef6 per targeted recheck), 4 P3; recheck of 57ae7e2..7126ef6 added 3 P3; 3 of the P3 fixed in the final commit, the rest listed as open in REVIEW_DISPOSITION.txt",
+    "not_verified": "Windows/PowerShell run, actual Probe/Proctor UI, provided exam models, full 180-minute end-to-end on the candidate"
+  }
 }
