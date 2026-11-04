@@ -1,6 +1,10 @@
+# 먼저 확인: 동시 작업 조정
+
+시험용 브랜치에 제출시작 알림 보완 df82543이 추가됐습니다. 먼저 [COORDINATION.md](maintenance_handoff/COORDINATION.md)를 읽고 보존/통합하세요. Codex의 추가 코드 수정은 중지했습니다. 사용자 서술형 연습은 제외합니다.
+
 # Claude: 스킬 자체 보완·검증 인계
 
-이 브랜치는 `claude-handoff`이며 유지보수용입니다. 시험 설치용 검증 브랜치 `exam-r7.2.1`은9ac5479에 유지됩니다. 사용자의 최신 요청으로 **실제 사용자 서술형 연습은 제외**합니다. 기다리거나 퀴즈를 시작하지 마세요. 공식 후속6문항 대비 기능을 삭제하라는 뜻은 아닙니다.
+이 브랜치는 `claude-handoff`이며 유지보수용입니다. 시험 설치용 `exam-r7.2.1`의 최신 상태는 COORDINATION.md와 원격 ref를 확인하세요. 사용자의 최신 요청으로 **실제 사용자 서술형 연습은 제외**합니다. 기다리거나 퀴즈를 시작하지 마세요. 공식 후속6문항 대비 기능을 삭제하라는 뜻은 아닙니다.
 
 1. maintenance_handoff/SKILL_HARDENING_PLAN.txt를 읽고 남은 기술 검증·수정을 진행합니다.
 2. maintenance_handoff/VERIFICATION_SCOPE.md와STATUS.json에서 과거 성공·실패·미검증을 구분합니다.
