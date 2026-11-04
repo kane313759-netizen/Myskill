@@ -23,7 +23,7 @@ Do not implement until independent CP1 review and gate_check pass.
 Only when supported by the provided environment; Sol 6.1 preferred when available.
 
 ```text
-Read .hackathon-kit/prompts/TUTOR.md and EXAM_POLICY.md.
+Read .hackathon-kit/prompts/TUTOR.md and .hackathon-kit/EXAM_POLICY.md.
 You are strictly read-only, including run notes and commands.
 Explain current code/evidence; do not decide or edit for MAIN.
 ```

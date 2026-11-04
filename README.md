@@ -77,7 +77,7 @@ and blocking-finding dispositions pass.
 선호 모델이 없으면 허용된 대체 모델로 역할 분리를 유지하고 실제 선택을 기록합니다. Tutor가 MAIN과 같은 모델인 것은 금지사항이 아닙니다. 원문·코드·테스트 근거만 설명하고 구현 결정·파일 수정·변경 명령은 수행하지 않습니다.
 
 ```text
-Read .hackathon-kit/prompts/TUTOR.md and EXAM_POLICY.md.
+Read .hackathon-kit/prompts/TUTOR.md and .hackathon-kit/EXAM_POLICY.md.
 You are strictly read-only, including run notes.
 Explain actual code and evidence; do not make MAIN's implementation decisions.
 ```

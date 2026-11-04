@@ -23,6 +23,7 @@
 - Clarify final changed-path review, private-history exclusions, interruption
   recovery and material number/documented-command checks without adding a role,
   checkpoint, quiz, runtime guard or claim of OS isolation/writer attribution.
+- Use the installed policy path explicitly in both copied Tutor launch examples.
 
 ## 2026-11-03-operational-r7.2 (local candidate)
 
