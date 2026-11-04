@@ -26,4 +26,14 @@ Select the strongest relevant safe existing checks that fit the remaining task t
 
 Record exact commands, working directory, chosen bounds, relevant outcomes/exit status, existing failures, and local evidence/log paths in BASELINE.md before product edits. If a check is unsafe, missing, unavailable, or exceeds the available budget, record inspected sources and the concrete reason it was not run. Do not call an unrun check passing, weaken/delete tests, or repeatedly rerun a known baseline without a relevant change.
 
+Use `.hackathon-kit/references/local-evaluation.md` within this same pass to make
+baseline-to-final progress measurable. Prefer the existing visible grader; otherwise
+build only small useful requirement-backed checks within the budget. Record the
+visible native metric separately from local declared-check coverage, without invented
+official weights. Bind actual rubric/checker/fixture hashes in GRADER or SPEC and
+baseline report/version/input-policy-options scope in BASELINE for normal CP1 review.
+`local_score.py` only summarizes evidence records; it does not run or approve tests.
+Unknown or skipped checks never earn passing points, and unavailable scoring does
+not justify a fabricated baseline or an additional implementation gate.
+
 Completion means the contract is recorded or UNKNOWN_AFTER_INSPECTION with inspected sources, and the baseline is RECORDED or UNAVAILABLE_WITH_REASON with an actual explanation. ORCHESTRATOR records these outcomes in STATE; these labels alone are not gate approval. Freeze intake artifacts after CP1; send routine later results to Recorder for VERIFY.md.

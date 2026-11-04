@@ -18,6 +18,14 @@ Prioritize omitted scoring/contract requirements, assumptions promoted to rules,
 
 Never invent numeric thresholds, extra resource limits, objectives, soft penalties, or tie-breakers. Only original evidence or an explicit allowed participant/business-contact answer confirms a constraint. Keep unsupported non-blocking concerns as ASSUMPTION/OPEN QUESTION; a known official-rule conflict remains blocking.
 
+If a local rubric/evaluator is used, inspect its actual files and requirement-backed
+oracles, not only its score. Verify hashes bound in GRADER/SPEC and baseline scope.
+Attack candidate-derived expected answers, omitted hard criteria, invented weights,
+skipped-check inflation and sample/full or policy changes disguised as improvement.
+Use the existing CP1 review, not a new approval stage; unavailable local scoring does
+not itself block a correctly evidenced baseline. Local coverage never proves hidden
+score or overrides official constraints.
+
 Return up to three highest-impact non-blocking findings plus every blocking finding. If fewer survive, list attempted attacks and why they failed. Use:
 `ID | severity P0/P1/P2/P3 | claim | original evidence | counterexample/concrete path | recommendation | verification`.
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Local-only installer/doctor/cleanup. Python 3.8+; no network or third-party packages."""
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -8,6 +9,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import runpy
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -21,6 +23,9 @@ SUPPORT_FILES = ('EXAM_POLICY.md', 'BOOTSTRAP_PROMPT.md', 'CALLING.md',
                  'AGENTS.snippet.md', 'VERSION')
 MANIFEST = 'manifest.json'
 KIT_ID = 'sk-hynix-exam-kit'
+METADATA_LIMIT = 8 * 1024 * 1024
+VERSION_LIMIT = 64 * 1024
+SCRIPT_LIMIT = 16 * 1024 * 1024
 
 
 class LifecycleError(Exception):
@@ -59,9 +64,43 @@ def internal_source_ok(rel):
             and rel.split('/')[0].casefold() not in ('.git', '.agents', '.hackathon-kit'))
 
 
+@contextmanager
+def open_regular(path):
+    """Reject special files before opening and check the opened descriptor too."""
+    path = Path(path)
+    safe_path(path)
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode):
+        raise LifecycleError('Non-regular file is protected: ' + str(path))
+    flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NONBLOCK', 0)
+    flags |= getattr(os, 'O_NOFOLLOW', 0)
+    descriptor = os.open(str(path), flags)
+    try:
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode):
+            raise LifecycleError('Opened file is not regular: ' + str(path))
+        handle = os.fdopen(descriptor, 'rb')
+        descriptor = None
+        with handle:
+            yield handle
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def read_regular(path, limit):
+    with open_regular(path) as handle:
+        if os.fstat(handle.fileno()).st_size > limit:
+            raise LifecycleError('File exceeds byte limit: ' + str(path))
+        content = handle.read(limit + 1)
+    if len(content) > limit:
+        raise LifecycleError('File exceeds byte limit: ' + str(path))
+    return content
+
+
 def digest(path):
     h = hashlib.sha256()
-    with path.open('rb') as f:
+    with open_regular(path) as f:
         for block in iter(lambda: f.read(1024 * 1024), b''):
             h.update(block)
     return h.hexdigest()
@@ -100,8 +139,8 @@ def load_manifest(kit, optional=False):
             return None
         raise LifecycleError('No verified ownership manifest. Legacy cleanup is refused; reinstall from a trusted kit to migrate identical skills first.')
     try:
-        data = json.loads(p.read_text(encoding='utf-8-sig'))
-    except (ValueError, OSError) as e:
+        data = json.loads(read_regular(p, METADATA_LIMIT).decode('utf-8-sig'))
+    except (ValueError, OSError, RecursionError) as e:
         raise LifecycleError('Invalid ownership manifest: ' + str(e))
     if not isinstance(data, dict) or data.get('schema') != 1 or data.get('kit_id') != KIT_ID:
         raise LifecycleError('Unrecognized ownership manifest')
@@ -136,7 +175,7 @@ def validate_legacy(kit):
     if not p.exists():
         return []
     try:
-        names = [x for x in p.read_text(encoding='utf-8-sig').splitlines() if x]
+        names = [x for x in read_regular(p, METADATA_LIMIT).decode('utf-8-sig').splitlines() if x]
     except UnicodeError as e:
         raise LifecycleError('Invalid legacy ownership encoding: ' + str(e))
     if any(not name_ok(x) for x in names):
@@ -155,6 +194,21 @@ def write_bytes(path, value):
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
+
+
+def copy_regular(source, path):
+    """Stream support files without imposing a new limit on their content sizes."""
+    safe_path(path)
+    with open_regular(source) as original:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(prefix='.kit-write-', dir=str(path.parent))
+        try:
+            with os.fdopen(fd, 'wb') as destination:
+                shutil.copyfileobj(original, destination, length=1024 * 1024)
+            os.replace(tmp, path)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
 
 
 def run_git(root, *args):
@@ -182,6 +236,8 @@ def git_context(root):
 def ignore_patterns(root, owned, context, internal_sources=()):
     top, _ = context
     prefix = root.relative_to(top).as_posix()
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in prefix):
+        raise LifecycleError('Unsafe target path: control characters cannot be represented in Git exclusions.')
     prefix = '' if prefix == '.' else prefix + '/'
     # Escape Git wildmatch metacharacters in legitimate directory names.
     def esc(s):
@@ -191,15 +247,28 @@ def ignore_patterns(root, owned, context, internal_sources=()):
         '/' + esc(prefix + rel) + '/' for rel in internal_sources]
 
 
-def add_excludes(root, owned, internal_sources=()):
-    context = git_context(root)
+def prepare_excludes(root, owned, internal_sources=()):
+    lookup_root = root
+    while not lookup_root.exists():
+        lookup_root = lookup_root.parent
+    context = git_context(lookup_root)
     if context is None:
-        print('[WARN] No Git worktree; helper files must be excluded by the submission procedure.')
-        return
+        return None
     _, exclude = context
-    old = exclude.read_bytes() if exclude.exists() else b''
+    for parent in exclude.parents:
+        if parent.exists() and not parent.is_dir():
+            raise LifecycleError('Expected Git metadata directory: ' + str(parent))
+    old = read_regular(exclude, METADATA_LIMIT) if exclude.exists() else b''
     lines = old.splitlines()
     additions = [x.encode('utf-8') for x in ignore_patterns(root, owned, context, internal_sources) if x.encode('utf-8') not in lines]
+    return exclude, old, additions
+
+
+def add_excludes(prepared):
+    if prepared is None:
+        print('[WARN] No Git worktree; helper files must be excluded by the submission procedure.')
+        return
+    exclude, old, additions = prepared
     if additions:
         # Preserve the existing final line, including when it has no newline.
         separator = b'' if not old or old.endswith((b'\n', b'\r')) else b'\n'
@@ -218,6 +287,8 @@ def remaining_internal_sources(root, manifest):
 
 def install(source, root, allow_internal_source=False):
     source, root = source.absolute(), root.absolute()
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in str(root)):
+        raise LifecycleError('Unsafe target path: control characters are not allowed; nothing installed.')
     safe_path(source)
     safe_path(root)
     source, root = source.resolve(), root.resolve()
@@ -227,7 +298,7 @@ def install(source, root, allow_internal_source=False):
     if internal_source:
         if not allow_internal_source:
             raise LifecycleError('Keep the kit source outside the task tree, or explicitly use --allow-internal-source for a separate temporary source directory.')
-        if not internal_source_ok(source.relative_to(root).as_posix()) or any(ord(ch) < 32 or ord(ch) == 127 for ch in str(root)):
+        if not internal_source_ok(source.relative_to(root).as_posix()):
             raise LifecycleError('Unsafe internal source path; use a separate temporary directory without control characters, drive prefixes, or reserved helper names.')
         for name in ('.git', '.agents', '.hackathon-kit'):
             protected = root / name
@@ -254,15 +325,15 @@ def install(source, root, allow_internal_source=False):
     if not set(REQUIRED).issubset(source_hashes):
         raise LifecycleError('Source kit is missing required core skills')
     source_files = {}
+    version = read_regular(source / 'VERSION', VERSION_LIMIT).decode('utf-8-sig').strip()
+    if not version:
+        raise LifecycleError('Source VERSION is empty')
     for directory in SUPPORT_DIRS:
         for rel, value in files_under(source / directory, exclude_cache=True).items():
             source_files[directory + '/' + rel] = value
     for name in SUPPORT_FILES:
         safe_path(source / name)
         source_files[name] = digest(source / name)
-    version = (source / 'VERSION').read_text(encoding='utf-8-sig').strip()
-    if not version:
-        raise LifecycleError('Source VERSION is empty')
     owned, borrowed, updates, warnings = {}, {}, [], []
     old_owned = old['owned_skills'] if old else {}
     # Complete conflict preflight before creating any task paths.
@@ -316,8 +387,8 @@ def install(source, root, allow_internal_source=False):
     for rel in ('.agents', '.agents/skills', '.hackathon-kit'):
         if not (root / rel).exists():
             created.add(rel)
-    # Validate the Git metadata path before copying helpers.
-    git_context(root) if root.exists() else None
+    # Read and validate existing Git metadata before copying any helpers.
+    prepared_excludes = prepare_excludes(root, owned, internal_sources)
     skills.mkdir(parents=True, exist_ok=True)
     (kit / 'run').mkdir(parents=True, exist_ok=True)
     for name in updates:
@@ -328,13 +399,13 @@ def install(source, root, allow_internal_source=False):
     for rel, expected in source_files.items():
         dst = kit / rel
         if rel not in preserve_support:
-            write_bytes(dst, (source / rel).read_bytes())
+            copy_regular(source / rel, dst)
     for template in sorted((kit / 'templates').iterdir()):
         if template.is_file() and template.suffix.lower() in ('.md', '.json'):
             dst = kit / 'run' / template.name
             safe_path(dst)
             if not dst.exists():
-                write_bytes(dst, template.read_bytes())
+                copy_regular(template, dst)
     last = kit / 'run/LAST_10_MINUTES.md'
     if not last.exists():
         write_bytes(last, b'# LAST 10 MINUTES\n\n## Solved\n\n## Changed\n\n## Remaining risks\n\n## Follow-up explanation points\n')
@@ -344,7 +415,7 @@ def install(source, root, allow_internal_source=False):
                     borrowed_skills=borrowed, managed_files=managed, created_dirs=sorted(created),
                     internal_sources=internal_sources)
     write_bytes(kit / MANIFEST, (json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + '\n').encode('utf-8'))
-    add_excludes(root, owned, internal_sources)
+    add_excludes(prepared_excludes)
     for message in warnings:
         print('[WARN] ' + message)
     print('Installed kit version ' + version + ' into: ' + str(root))
@@ -357,6 +428,9 @@ def install(source, root, allow_internal_source=False):
 def inspect_install(root, manifest):
     kit = root / '.hackathon-kit'
     errors = []
+    version = kit / 'VERSION'
+    version_matches = (version.is_file() and
+                       read_regular(version, VERSION_LIMIT).decode('utf-8-sig').strip() == manifest['version'])
     for name in REQUIRED:
         expected = manifest['owned_skills'].get(name, manifest['borrowed_skills'].get(name))
         if expected is None:
@@ -370,8 +444,7 @@ def inspect_install(root, manifest):
         safe_path(p)
         if not p.is_file() or digest(p) != expected:
             errors.append('Support file missing or locally changed: ' + rel)
-    version = kit / 'VERSION'
-    if not version.is_file() or version.read_text(encoding='utf-8-sig').strip() != manifest['version']:
+    if not version_matches:
         errors.append('Installed VERSION does not match ownership metadata')
     return errors
 
@@ -396,7 +469,7 @@ def doctor(root, pre_submit):
             errors.append('Missing runtime record: ' + name)
     for p in (kit / 'scripts').glob('*.py'):
         try:
-            compile(p.read_bytes(), str(p), 'exec')
+            compile(read_regular(p, SCRIPT_LIMIT), str(p), 'exec')
         except (SyntaxError, ValueError) as e:
             errors.append('Python helper syntax error: ' + str(e))
     context = git_context(root)

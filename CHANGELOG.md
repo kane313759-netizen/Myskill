@@ -1,5 +1,23 @@
 # Changes
 
+## 2026-11-03-operational-r7.2 (local candidate)
+
+- Added bounded read-only local coverage summaries from the pre-edit baseline through
+  meaningful edits, CP2 and final verification. Prefer supplied visible graders; a
+  missing evaluator may be replaced only by small requirement-backed local checks.
+- Freeze rubric/checker/oracle hashes in existing CP1 documents, record actual source
+  versions and input/policy/options scope, preserve baseline reports and suppress
+  incomparable deltas. Skipped/missing checks never earn points; empty coverage is unavailable.
+- Keep official-visible native metrics separate from local declared-check counts;
+  unknown weights/hidden tests remain unknown. Local maximum never waives a blocker.
+- Reuse existing roles/checkpoints and deadline budgets, with no automatic optional
+  tools, heavy per-edit reruns or extra participant prompts. EXAM_POLICY.md unchanged.
+- Full-source review adds regular-file/bounded metadata guards, preflight Git exclude
+  validation and control-character target rejection, complete package requirements,
+  exact typed JSON profiling and robust inventory/log boundaries. Independent
+  counterexample rechecks and cross-platform CI are recorded separately from the
+  earlier r7.1 composite mock and initial r7.2 local validation.
+
 ## 2026-11-02-operational-r7
 
 - Replaced r6 automatic optional-tool selection with task tools only: supplied,

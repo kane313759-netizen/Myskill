@@ -53,6 +53,7 @@ Map the actual work to these families:
 - A prevented edge case is valid even if it never became a bug.
 - Only call something "my decision" when the participant actually decided/challenged/verified it.
 - Separate automated verification from user-performed manual verification.
+- Distinguish observed official-visible metrics from local declared-check coverage. Explain baseline-to-final progress only for the same rubric/checker and known input/policy/options scope; a local maximum does not predict hidden grades or prove that unrun checks passed.
 - A question, acknowledgement, or restatement in the Tutor session is not by itself a manual check or a material human decision.
 - Distinguish "no failure recorded", "a failure was resolved", and "an unresolved failure remains". Do not infer the first from the second.
 - Model/role explanations must describe the actual verified runtime and workflow, not merely preferred model labels.

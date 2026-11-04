@@ -12,6 +12,9 @@
 <!-- Workspace snapshot / file upload / local commit / UNKNOWN_AFTER_INSPECTION. Record helper cleanup required YES/NO/UNKNOWN and source. Ask Cofa Helper about exam UI/submission when repository evidence is insufficient; never automate the UI. -->
 
 ## Visible tests / sample input-output
+<!-- Prefer the supplied native grader. If local checks add value, cite rubric/checker/oracle
+paths and actual hashes here (or in SPEC), expected controls and remaining unknowns.
+Keep official-visible metrics separate from local declared-check coverage; no invented weights. -->
 
 ## Likely hidden contracts
 <!-- Label every inference INFERENCE. -->

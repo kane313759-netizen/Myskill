@@ -18,7 +18,35 @@ ROOT_FILES = {
     "VERSION", "LICENSE", "LICENSE.md", "CHANGELOG.md", "RELEASE_NOTES.md", ".gitignore",
     "requirements-dev.txt", ".gitattributes",
 }
-REQUIRED = {"install.sh", "install.ps1", "README.md", "EXAM_POLICY.md", "VERSION", ".agents/skills/hackathon-orchestrator/SKILL.md", "scripts/gate_check.py"}
+# Keep the distribution contract explicit; importing source helpers would execute
+# the checkout being packaged. Tests keep this aligned with the installer contract.
+CORE_SKILLS = (
+    "hackathon-orchestrator", "grader-intake", "immutable-inventory", "task-router",
+    "problem-intake", "constraint-discovery", "verification", "final-explain", "followup-prep",
+)
+REQUIRED = {
+    "install.sh", "install.ps1", "README.md", "EXAM_POLICY.md", "VERSION",
+    "BOOTSTRAP_PROMPT.md", "CALLING.md", "AGENTS.snippet.md",
+}
+REQUIRED.update(".agents/skills/" + name + "/SKILL.md" for name in CORE_SKILLS)
+REQUIRED.update("scripts/" + name for name in (
+    "kit_lifecycle.py", "gate_check.py", "doctor.sh", "doctor.ps1", "clean.sh", "clean.ps1",
+    "local_score.py", "data_io.py", "profile_data.py", "sanity_check.py", "env_scan.py",
+    "test_summary.py", "tool_inventory.py", "package_release.py",
+))
+REQUIRED.update("templates/" + name for name in (
+    "AI_FAILURES.md", "BASELINE.md", "CONSTRAINTS.md", "CP1_RED.md", "CP1_REVIEW.json",
+    "DECISIONS.md", "EDGE_CASES.md", "FOLLOWUP_CHEATSHEET.md", "GRADER.md", "HANDOFF.md",
+    "HUMAN_JUDGMENT.md", "IMMUTABLES.md", "LIMITATIONS.md", "LOCAL_RUBRIC.json",
+    "SPEC_DRAFT.md", "STATE.md", "SYSTEM_MAP.md", "TASK_EVIDENCE.md", "VERIFY.md",
+))
+REQUIRED.update("prompts/" + name + ".md" for name in (
+    "CODE_RED", "CONSTRAINT_RED", "ESCALATE_SOL", "MAIN_SOL", "RECORDER", "TUTOR",
+))
+REQUIRED.update("references/" + name + ".md" for name in (
+    "constraint-matrix", "followup-question-bank", "local-evaluation", "model-policy",
+    "optional-tools", "task-types",
+))
 
 
 def permitted(name):

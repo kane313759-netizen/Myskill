@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -44,7 +45,7 @@ class InternalSourceTests(unittest.TestCase):
         shutil.copytree(self.external, path)
         return path
 
-    def call(self, command, *args, source=None, target=None):
+    def call(self, command, *args, source=None, target=None, timeout=None):
         target = target or self.target
         backend = self.external / 'scripts/kit_lifecycle.py'
         cmd = [sys.executable, '-B', str(backend), command]
@@ -53,7 +54,7 @@ class InternalSourceTests(unittest.TestCase):
         else:
             cmd += ['--kit', str(target / '.hackathon-kit')]
         return subprocess.run(cmd + list(args), capture_output=True, text=True,
-                              env=self.env)
+                              env=self.env, timeout=timeout)
 
     def assert_rc(self, result, expected):
         self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
@@ -93,6 +94,24 @@ class InternalSourceTests(unittest.TestCase):
         self.assertTrue((self.stage / 'install.sh').is_file())
         self.assertTrue((self.target / '.hackathon-kit/run/STATE.md').is_file())
         self.assertEqual(unrelated.read_text(), 'USER SKILL')
+        self.assert_task_preserved()
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'named pipes unavailable')
+    def test_fifo_internal_source_is_rejected_before_any_task_writes(self):
+        self.stage_source()
+        fifo = self.stage / 'EXAM_POLICY.md'
+        fifo.unlink()
+        os.mkfifo(str(fifo))
+        before = {p.relative_to(self.target).as_posix(): p.read_bytes()
+                  for p in self.target.rglob('*') if p.is_file()}
+        result = self.call('install', '--allow-internal-source', timeout=3)
+        self.assert_rc(result, 2)
+        self.assertIn('Non-regular file', result.stderr)
+        self.assertTrue(stat.S_ISFIFO(fifo.lstat().st_mode))
+        self.assertEqual({p.relative_to(self.target).as_posix(): p.read_bytes()
+                          for p in self.target.rglob('*') if p.is_file()}, before)
+        self.assertFalse((self.target / '.hackathon-kit').exists())
+        self.assertFalse((self.target / '.agents').exists())
         self.assert_task_preserved()
 
     def test_doctor_warns_and_pre_submit_names_remaining_source(self):

@@ -37,6 +37,7 @@ MAIN should send HANDOFF content for you to persist before context replacement. 
 - assumptions stay labeled ASSUMPTION
 - never claim a manual/UI check occurred unless the user actually performed it
 - distinguish current verified results from a test against an earlier code version
+- retain versioned baseline/CP2/final coverage in VERIFY using `references/local-evaluation.md`; keep visible native metrics separate from local proxy counts, require comparable rubric/checker hashes and known input/policy/options scope for delta, and never overwrite the frozen baseline or turn skipped/unrun checks into passes
 - record the actual model/role and verification source when available; a preferred model label does not prove runtime selection
 
 ## Human-judgment rules

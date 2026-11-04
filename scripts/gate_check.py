@@ -4,7 +4,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import stat
 from pathlib import Path
 
 ARTIFACTS = ('GRADER.md', 'BASELINE.md', 'IMMUTABLES.md', 'SPEC_DRAFT.md', 'CONSTRAINTS.md')
@@ -26,10 +28,28 @@ STATE_LINE = re.compile(r'^\s*(?:[-*]\s+)?(?:\*\*(?P<bold>[a-z][a-z0-9_]*)\*\*|_
 STATE_VALUE = re.compile(r'([A-Z_]+)(?:\s+\([^\n]*\))?(?:\s*#[^\n]*)?')
 
 
-def read_text(path):
-    if path.stat().st_size > MAX_RECORD_BYTES:
+def read_record(path):
+    """Read one bounded regular record, rejecting final symlinks and special files."""
+    path = Path(path)
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode):
+        raise ValueError('record is not a regular non-symlink file: %s' % path)
+    if info.st_size > MAX_RECORD_BYTES:
         raise ValueError('record exceeds 2 MiB limit')
-    return path.read_text(encoding='utf-8-sig')
+    flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NONBLOCK', 0)
+    flags |= getattr(os, 'O_NOFOLLOW', 0)
+    descriptor = os.open(str(path), flags)
+    with os.fdopen(descriptor, 'rb') as handle:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            raise ValueError('opened record is not a regular file')
+        data = handle.read(MAX_RECORD_BYTES + 1)
+    if len(data) > MAX_RECORD_BYTES:
+        raise ValueError('record exceeds 2 MiB limit')
+    return data
+
+
+def read_text(path):
+    return read_record(path).decode('utf-8-sig')
 
 
 def parse_state(text):
@@ -69,7 +89,12 @@ def document_errors(kit, name):
     try:
         text = read_text(kit / 'run' / name)
         template = kit / 'templates' / name
-        original = read_text(template) if template.is_file() else ''
+        try:
+            template.lstat()
+        except FileNotFoundError:
+            original = ''
+        else:
+            original = read_text(template)
     except (OSError, UnicodeError, ValueError) as error:
         return ['%s: %s' % (name, error)]
     if not normalized(text) or normalized(text) == normalized(original):
@@ -84,10 +109,7 @@ def document_errors(kit, name):
 def artifact_hashes(kit):
     result = {}
     for name in ARTIFACTS:
-        path = kit / 'run' / name
-        if path.stat().st_size > MAX_RECORD_BYTES:
-            raise ValueError('%s exceeds 2 MiB limit' % name)
-        result[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+        result[name] = hashlib.sha256(read_record(kit / 'run' / name)).hexdigest()
     return result
 
 
@@ -98,7 +120,7 @@ def nonempty(value):
 def review_errors(kit):
     try:
         report = json.loads(read_text(kit / 'run' / 'CP1_REVIEW.json'))
-    except (OSError, UnicodeError, ValueError) as error:
+    except (OSError, UnicodeError, ValueError, RecursionError) as error:
         return ['CP1_REVIEW.json: %s' % error]
     if not isinstance(report, dict):
         return ['CP1_REVIEW.json must be an object']

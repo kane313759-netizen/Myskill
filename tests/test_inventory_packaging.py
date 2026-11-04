@@ -176,6 +176,36 @@ class PackagingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "required kit files"):
             package_release.build(self.root, self.output)
 
+    def test_package_contract_includes_all_installer_core_and_support_files(self):
+        lifecycle = module('kit_lifecycle')
+        expected = {'.agents/skills/' + name + '/SKILL.md' for name in lifecycle.REQUIRED}
+        expected.update(lifecycle.SUPPORT_FILES)
+        self.assertTrue(expected <= package_release.REQUIRED)
+        for directory in lifecycle.SUPPORT_DIRS:
+            self.assertTrue(any(name.startswith(directory + '/') for name in package_release.REQUIRED))
+
+    def test_missing_core_or_runtime_support_preserves_source_and_existing_archive(self):
+        package_release.build(self.root, self.output)
+        existing_archive = self.output.read_bytes()
+        for name in ('.agents/skills/grader-intake/SKILL.md', 'BOOTSTRAP_PROMPT.md',
+                     'scripts/kit_lifecycle.py', 'scripts/doctor.ps1', 'scripts/local_score.py',
+                     'templates/STATE.md', 'templates/LOCAL_RUBRIC.json', 'prompts/MAIN_SOL.md',
+                     'references/local-evaluation.md'):
+            with self.subTest(path=name):
+                path = self.root / name
+                original = path.read_bytes()
+                path.unlink()
+                before = {p.relative_to(self.root).as_posix(): p.read_bytes()
+                          for p in self.root.rglob('*') if p.is_file()}
+                try:
+                    with self.assertRaisesRegex(ValueError, 'required kit files'):
+                        package_release.build(self.root, self.output)
+                    self.assertEqual(self.output.read_bytes(), existing_archive)
+                    self.assertEqual({p.relative_to(self.root).as_posix(): p.read_bytes()
+                                      for p in self.root.rglob('*') if p.is_file()}, before)
+                finally:
+                    path.write_bytes(original)
+
     def test_archive_source_can_be_repacked_without_git(self):
         self.write("data/private.py", "SECRET")
         self.write("scripts/tool.py")

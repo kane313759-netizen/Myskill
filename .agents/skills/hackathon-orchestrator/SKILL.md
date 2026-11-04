@@ -25,6 +25,14 @@ For UI/chat-only instructions or unavailable original files, capture provenance-
 
 Inspect baseline command side effects and network use before execution. Bound checks using remaining exam time, expected runtime, and time needed for implementation, review, submission, and follow-up preparation. Record unavailable checks with reasons; never fabricate a passing baseline. Activate data/tool/domain playbooks only with task/grader evidence.
 
+Make progress measurable using `references/local-evaluation.md` in this same intake
+pass. Prefer supplied visible grading; otherwise use only small useful local checks
+from original requirements. Bind local rubric/checker/oracle hashes in the existing
+GRADER or SPEC and preserve the pre-edit report/version/scope in BASELINE. CP1 Red
+reviews these as claims, including relevant positive/negative controls. No new role,
+checkpoint, gate bit or required numerical target is added. Official native metrics
+and local declared-check coverage remain separate; unknown weights stay unknown.
+
 Keep normal routing on original task tools, kit helpers and the standard library;
 optional additions are NONE. Do not automatically inventory, adopt or install catalog
 helpers, even if already present. Preserve permitted original project setup and
@@ -68,6 +76,12 @@ Freeze GRADER, BASELINE, IMMUTABLES, SPEC_DRAFT, and CONSTRAINTS after approval.
 MAIN builds the smallest scoring-relevant end-to-end path. Preserve contracts/tests; never hard-code samples or replace the submission wholesale with external code. Partial reuse must respect the official brief and task rules.
 
 At the first working scoring-relevant path, run clean CODE_RED and then Recorder. Repeat Constraint Red only for a material assumption/constraint/objective risk. Inspect dynamic-test side effects; isolate temporary data, processes, and ports, and avoid MAIN's live DB/process. Report necessary checks that cannot safely run as UNVERIFIED. MAIN sends factual evidence to Recorder, which maintains ongoing notes and prepares six-axis follow-up coverage early.
+
+Recorder retains baseline/CP2/final local coverage under unchanged rubric, evaluator
+hashes and known input/policy/options scope. Cheap affected checks may track material
+progress between checkpoints; heavy reruns need a relevant change/failure/contract.
+Changed checks/scope are non-comparable, never silent score improvement. A local
+maximum does not replace the original tests, independent reviews or official rules.
 
 Reuse the reviewed task toolchain after routine edits; do not add optional helper
 experiments. MAIN sends actual errors/results to Recorder. Material dependency,

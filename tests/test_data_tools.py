@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+from decimal import Decimal
 import subprocess
 import sys
 import tempfile
@@ -103,6 +104,64 @@ class DataToolsTests(unittest.TestCase):
             result = self.run_tool(script, path, "--max-json-bytes", 5)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("size limit", result.stdout + result.stderr)
+
+    def test_json_adjacent_large_decimal_values_remain_distinct(self):
+        path = self.fixture('precise.json',
+                            '[{"value":9007199254740992.0},{"value":9007199254740993.0},'
+                            '{"value":9007199254740992.0}]')
+        rows = self.rows(path)
+        self.assertEqual([row['value'] for row in rows],
+                         [Decimal('9007199254740992.0'), Decimal('9007199254740993.0'),
+                          Decimal('9007199254740992.0')])
+        self.assertIsInstance(rows[0]['value'], Decimal)
+        result = self.run_tool('profile_data.py', path)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('distinct_sample=2', result.stdout)
+        self.assertIn("('9007199254740992.0', 2)", result.stdout)
+        self.assertIn("('9007199254740993.0', 1)", result.stdout)
+        self.assertIn('EXACT_DUPLICATE_ROWS_IN_SAMPLE\t1', result.stdout)
+        self.assertIn('approximate finite floats', result.stdout)
+
+    def test_json_finite_overflow_exponents_remain_exact_values(self):
+        path = self.fixture('large-exponents.json', '[{"value":1e999},{"value":2e999}]')
+        self.assertEqual([row['value'] for row in self.rows(path)],
+                         [Decimal('1e999'), Decimal('2e999')])
+        result = self.run_tool('profile_data.py', path)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('distinct_sample=2', result.stdout)
+        self.assertIn('1E+999', result.stdout)
+        self.assertIn('2E+999', result.stdout)
+        self.assertNotIn("('inf'", result.stdout)
+        self.assertIn('EXACT_DUPLICATE_ROWS_IN_SAMPLE\t0', result.stdout)
+
+    def test_json_numeric_strings_and_nested_types_do_not_collide(self):
+        cases = [
+            ('[{"value":1.0},{"value":"1.0"},{"value":1.0}]', 2, 1),
+            ('[{"value":{"a":[1.0,true,null],"b":2}},'
+             '{"value":{"b":2,"a":[1.0,true,null]}},'
+             '{"value":{"a":["1.0",true,null],"b":2}},'
+             '{"value":{"a":[1.0,"True",null],"b":2}},'
+             '{"value":{"a":[1.0,true,"None"],"b":2}}]', 4, 1),
+            ('[{"value":{"a":[9007199254740992.0]}},'
+             '{"value":{"a":[9007199254740993.0]}}]', 2, 0),
+        ]
+        for payload, distinct, duplicate in cases:
+            with self.subTest(payload=payload):
+                path = self.fixture('types.json', payload)
+                result = self.run_tool('profile_data.py', path)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn(f'distinct_sample={distinct}', result.stdout)
+                self.assertIn(f'EXACT_DUPLICATE_ROWS_IN_SAMPLE\t{duplicate}', result.stdout)
+
+    def test_json_nonfinite_constants_fail_cleanly(self):
+        for token in ('NaN', 'Infinity', '-Infinity'):
+            path = self.fixture('nonfinite.json', '[{"value":{"nested":[' + token + ']}}]')
+            for script in ('profile_data.py', 'sanity_check.py'):
+                with self.subTest(token=token, script=script):
+                    result = self.run_tool(script, path)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('Nonfinite JSON number', result.stdout + result.stderr)
+                    self.assertNotIn('Traceback', result.stdout + result.stderr)
 
     def test_json_empty_metadata_does_not_shadow_records(self):
         path = self.fixture("wrapped.json", '{"metadata":[],"records":[{"score":7}]}')

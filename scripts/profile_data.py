@@ -8,11 +8,10 @@ import sys
 # Installed helper use must not create files outside the runtime-note area.
 sys.dont_write_bytecode = True
 import hashlib
-import json
 from collections import Counter
 from pathlib import Path
 
-from data_io import (add_read_options, as_num, choose_encoding, id_like, is_blank,
+from data_io import (add_read_options, as_num, canonical_value, choose_encoding, id_like, is_blank,
                      leading_zero_id, list_sheets, mean, positive_int, read_options, tables)
 
 
@@ -25,7 +24,7 @@ def _profile_rows(path, rows, max_rows, *, sheet=None, null_tokens=(), include_i
     count = 0
     cols = []
     blank, nonblank = Counter(), Counter()
-    nums, values, zero_ids = {}, {}, set()
+    nums, values, labels, zero_ids = {}, {}, {}, set()
     row_hashes = set()
     dup = 0
     distinct_capped = set()
@@ -34,9 +33,9 @@ def _profile_rows(path, rows, max_rows, *, sheet=None, null_tokens=(), include_i
         for key in row:
             if key not in nums:
                 cols.append(key)
-                nums[key], values[key] = [], Counter()
+                nums[key], values[key], labels[key] = [], Counter(), {}
                 blank[key] = count - 1
-        canonical = json.dumps(row, sort_keys=True, ensure_ascii=False, default=str)
+        canonical = canonical_value(row)
         digest = hashlib.sha256(canonical.encode("utf-8")).digest()
         if digest in row_hashes:
             dup += 1
@@ -49,8 +48,10 @@ def _profile_rows(path, rows, max_rows, *, sheet=None, null_tokens=(), include_i
                 continue
             nonblank[column] += 1
             text = str(value)
-            if len(values[column]) < 20000 or text in values[column]:
-                values[column][text] += 1
+            identity = canonical_value(value)
+            if len(values[column]) < 20000 or identity in values[column]:
+                values[column][identity] += 1
+                labels[column].setdefault(identity, text)
             else:
                 distinct_capped.add(column)
             if leading_zero_id(value):
@@ -62,6 +63,7 @@ def _profile_rows(path, rows, max_rows, *, sheet=None, null_tokens=(), include_i
     if sheet is not None:
         print(f"SHEET\t{sheet}")
     print(f"SAMPLED_ROWS\t{count}\tMAX_ROWS={max_rows}")
+    print("NOTE\tnumeric scale summaries use approximate finite floats; distinct values and duplicate rows preserve values and types")
     print(f"COLUMNS\t{len(cols)}\t" + " | ".join(cols))
     for column in cols:
         parts = [f"blank={blank[column]}", f"nonblank={nonblank[column]}", f"distinct_sample={len(values[column])}"]
@@ -72,7 +74,10 @@ def _profile_rows(path, rows, max_rows, *, sheet=None, null_tokens=(), include_i
             parts += [f"numeric_ratio={len(numbers)/max(1,nonblank[column]):.3f}",
                       f"min={min(numbers):g}", f"max={max(numbers):g}", f"avg={mean(numbers):g}"]
         if values[column]:
-            top = [(text if len(text) <= 160 else text[:157] + "...", n) for text, n in values[column].most_common(3)]
+            top = []
+            for identity, n in values[column].most_common(3):
+                text = labels[column][identity]
+                top.append((text if len(text) <= 160 else text[:157] + "...", n))
             parts.append("top=" + repr(top))
         if column in distinct_capped:
             parts.append("distinct_cap_reached=true; top counts cover retained values only")

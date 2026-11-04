@@ -88,6 +88,17 @@ def task_local_candidate(candidate_path, task_root):
         return None
 
 
+def absolute_candidate(path):
+    """Anchor the observed spelling without collapsing symlink/.. components."""
+    if os.path.isabs(path):
+        return path
+    drive, tail = os.path.splitdrive(path)
+    if drive:
+        # A Windows drive-relative PATH entry uses that drive's current directory.
+        return os.path.join(os.path.abspath(drive + os.curdir), tail)
+    return os.path.join(os.getcwd(), path)
+
+
 def inventory(task_root=None):
     """Return bounded availability observations; never run a candidate or import it."""
     root = os.path.abspath(task_root if task_root is not None else os.getcwd())
@@ -118,7 +129,7 @@ def inventory(task_root=None):
                     item["status"] = "NOT_FOUND"
                     item["reason"] = "No executable candidate found on the current PATH."
             else:
-                path = os.path.abspath(candidate)
+                path = absolute_candidate(candidate)
                 item.update(
                     status="PATH_CANDIDATE",
                     candidate_path=path,

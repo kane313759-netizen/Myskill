@@ -361,6 +361,47 @@ shutil._access_check = bounded_probe
         self.assertTrue(duckdb["task_local_candidate"])
         self.assertTrue(duckdb["provenance_review_required"])
 
+    def test_symlink_parent_dotdot_preserves_the_observed_candidate(self):
+        inner = self.bin / "inner"
+        inner.mkdir()
+        alias = self.task / "alias"
+        try:
+            alias.symlink_to(inner, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("directory symlinks unavailable")
+        target = self.command(self.bin, "jq")
+        decoy = self.command(self.task, "jq")
+        before = self.snapshot()
+        for entry in (str(alias / ".."), os.path.join("alias", "..")):
+            with self.subTest(path_entry=entry):
+                output = self.run_inventory(path=entry)
+                jq = self.by_name(output)["jq"]
+                expected = os.path.join(str(self.task), entry, target.name)
+                self.assertEqual(jq["candidate_path"], expected)
+                self.assertTrue(Path(jq["candidate_path"]).samefile(target))
+                self.assertFalse(Path(jq["candidate_path"]).samefile(decoy))
+                self.assertTrue(jq["provenance_review_required"])
+        self.assertEqual(self.snapshot(), before)
+
+    def test_symlink_parent_dotdot_uses_the_actual_target_for_locality(self):
+        inner = self.task / "inner"
+        inner.mkdir()
+        alias = self.bin / "alias"
+        try:
+            alias.symlink_to(inner, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("directory symlinks unavailable")
+        target = self.command(self.task, "duckdb")
+        decoy = self.command(self.bin, "duckdb")
+        before = self.snapshot()
+        output = self.run_inventory(path=str(alias / ".."))
+        duckdb = self.by_name(output)["duckdb"]
+        self.assertTrue(Path(duckdb["candidate_path"]).samefile(target))
+        self.assertFalse(Path(duckdb["candidate_path"]).samefile(decoy))
+        self.assertTrue(duckdb["task_local_candidate"])
+        self.assertTrue(duckdb["provenance_review_required"])
+        self.assertEqual(self.snapshot(), before)
+
 
 if __name__ == "__main__":
     unittest.main()

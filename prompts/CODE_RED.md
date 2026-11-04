@@ -24,3 +24,10 @@ For later fix review, use OPEN/FIXED/DISPROVED/ACCEPTED_RISK dispositions. FIXED
 ## Dynamic checks
 
 Prefer static evidence and relevant existing tests. Inspect command side effects/network behavior first; bound execution to the remaining review budget. Use isolated temporary data/processes/ports for extra tests and avoid MAIN's live process, DB, and source edits. If necessary checks cannot run safely, report UNVERIFIED with the reason. Do not use automated UI control even for web tasks. UI/submission questions go through the participant to Cofa Helper.
+
+When local scoring is used, check actual rubric/evaluator/fixture hashes and raw
+native outcomes. Try a relevant known-bad output on an isolated copy to check that
+the evaluator rejects it; do not modify protected tests or invent an oracle. Verify
+that current coverage refers to current code and the same known evaluation scope.
+An aggregation report or test_summary.py exit code is not evidence of test execution,
+official points or a passing product. Preserve real failures and non-comparable runs.
