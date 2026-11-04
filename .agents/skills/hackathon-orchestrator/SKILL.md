@@ -25,7 +25,7 @@ For UI/chat-only instructions or unavailable original files, capture provenance-
 
 Inspect baseline command side effects and network use before execution. Bound checks using remaining exam time, expected runtime, and time needed for implementation, review, submission, and follow-up preparation. Record unavailable checks with reasons; never fabricate a passing baseline. Activate data/tool/domain playbooks only with task/grader evidence.
 
-Make progress measurable using `references/local-evaluation.md` in this same intake
+Make progress measurable using `.hackathon-kit/references/local-evaluation.md` in this same intake
 pass. Prefer supplied visible grading; otherwise use only small useful local checks
 from original requirements. Bind local rubric/checker/oracle hashes in the existing
 GRADER or SPEC and preserve the pre-edit report/version/scope in BASELINE. CP1 Red
@@ -79,7 +79,7 @@ the relevant gate open; an unavailable tool is not a passing check.
 
 # CP1 — SPEC FREEZE
 
-Before product implementation, clean CONSTRAINT_RED attacks SPEC_DRAFT against original evidence. Return the highest-impact findings and attempted attacks; never hide an additional blocking defect to meet a reporting cap. ORCHESTRATOR persists the actual factual review as `run/CP1_RED.md` and the machine review receipt as `run/CP1_REVIEW.json`:
+Before product implementation, clean CONSTRAINT_RED attacks SPEC_DRAFT against original evidence. Return the highest-impact findings and attempted attacks; never hide an additional blocking defect to meet a reporting cap. ORCHESTRATOR persists the actual factual review as `.hackathon-kit/run/CP1_RED.md` and the machine review receipt as `.hackathon-kit/run/CP1_REVIEW.json`:
 
 - `version: 1`; `status: COMPLETE`; `reviewer: {role: CONSTRAINT_RED, actual_model: <verified model>, context_mode: NO_HISTORY | CLEAN_SESSION}`
 - `source_paths`: nonempty original task/grading/test evidence paths, or provenance-marked TASK_EVIDENCE.md when originals are unavailable
@@ -156,10 +156,25 @@ Budget CP3 from estimated review/check/repair/submission/preparation time and th
    notes, and only if the submission format requires helper removal.
 
 Before declaring writer stop/READY, finish factual completion updates using already
-observed results. Distinguish ready for collection from actual collection/freeze.
+observed results. Uncollected notes and answer outlines never delay READY or
+collection: after READY, Recorder may finish affected uncollected notes (never
+collected files) only until confirmation/freeze or a stop instruction, and anything
+unfinished is reported as pending. Distinguish ready for collection from actual
+collection/freeze.
 After a stop/freeze instruction, report any pending record rather than silently
 marking it complete or resuming writes; only an explicit authorized pre-freeze
 resumption may finish it. A frozen submission is never rewritten for a later grade.
+
+When a material official change arrives after CP3 or near the deadline, observe the
+clock at once and record the latest READY time: the confirmed official deadline minus
+the actual collection/submission operation time (the guide recommends starting
+submission 10 minutes before the deadline). Keep the gate order: targeted Constraint
+Red recheck and re-closed gate, then MAIN's change, affected verification and Code
+Red, then the changed collected files. If that path cannot finish by the latest READY,
+tell the participant immediately with the observed times and remaining steps, and
+route deadline questions through the participant/Cofa channel. Do not invent an
+exception, reorder the gate, relabel or reuse reviews, or mark unfinished work DONE;
+report the actual gate/review status.
 
 Use Cofa Helper for exam UI/submission questions and official incident reporting for repeated technical failures. The participant handles UI actions; no Computer Use/automated UI control, external task-data transmission, external AI connection, or Git Push.
 

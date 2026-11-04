@@ -25,7 +25,7 @@ problem-intake → constraint-discovery. Batch GRADER, BASELINE, IMMUTABLES,
 CONSTRAINTS and SPEC_DRAFT using their installed template headings. Run gate_check.py --preflight
 before Red review; it checks format only and never authorizes implementation.
 Inspect command side effects/network/time before baseline.
-Use references/local-evaluation.md for small useful pre-edit-to-final local checks;
+Use .hackathon-kit/references/local-evaluation.md for small useful pre-edit-to-final local checks;
 freeze rubric/checker hashes and scope, keep proxy counts separate from visible scores.
 Record original source paths or provenance-marked TASK_EVIDENCE for UI/chat-only originals.
 Use original task tools, kit helpers and standard library; optional additions are NONE.

@@ -38,7 +38,7 @@ only the requested rows; do not load every upstream skill or rescan the project.
 1. Identify a scoring-relevant need and its original task/data/config evidence.
    Reuse the provided toolchain, kit helpers, standard library or approved existing
    dependency when sufficient. Popularity is not evidence of need.
-2. Observe availability once if useful. `scripts/tool_inventory.py` only locates
+2. Observe availability once if useful. `.hackathon-kit/scripts/tool_inventory.py` only locates
    a bounded set of PATH candidates (use `python -I -S -B` with the helper to
    exclude task/user startup imports). It never runs them, probes versions, imports optional
    packages, installs, or grants approval. PATH_CANDIDATE is not verified identity,

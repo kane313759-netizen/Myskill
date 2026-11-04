@@ -25,7 +25,7 @@ MAIN should send HANDOFF content for you to persist before context replacement. 
 ## Cadence and input
 - At CP2, start the six-axis FOLLOWUP_CHEATSHEET from actual end-to-end evidence, including honest gaps. Do not defer all explanation preparation to the final 15–20 minutes.
 - Between checkpoints, consume material event handoffs: a consequential participant answer/choice/check, changed design, meaningful failed attempt, or new verification result. MAIN should preserve transient command output before retrying; you need not record every routine edit.
-- At CP3, update changed facts against current code/results and consume `final-explain`/`followup-prep` outputs. Reuse one quiz flow, but refresh affected notes again if later review dispositions, task clarifications, or fixes arrive before submission. Read the latest actual checkpoint/receipt evidence and align VERIFY/LIMITATIONS/FOLLOWUP_CHEATSHEET: distinguish a formerly observed failure from its current FIXED/DISPROVED/OPEN status; do not leave a completed disposition pending or erase the earlier observation. The latter is the sole quiz owner. Record the six selected question families even when the deadline leaves time to rehearse only some of them.
+- At CP3, update changed facts against current code/results and consume `final-explain`/`followup-prep` outputs. Reuse one quiz flow, but refresh affected notes again if later review dispositions, task clarifications, or fixes arrive before submission; these uncollected updates never delay READY or collection, and unfinished ones are reported as pending. Read the latest actual checkpoint/receipt evidence and align VERIFY/LIMITATIONS/FOLLOWUP_CHEATSHEET: distinguish a formerly observed failure from its current FIXED/DISPROVED/OPEN status; do not leave a completed disposition pending or erase the earlier observation. The latter is the sole quiz owner. Record the six selected question families even when the deadline leaves time to rehearse only some of them.
 - For each consequential event retain its time or event/conversation reference, actor, original source, result, and verification scope/code version where available. Mark a missing reference UNKNOWN rather than inventing one.
 - Ask for an original source when a handoff lacks one; do not turn a confident summary into evidence.
 
@@ -37,7 +37,7 @@ MAIN should send HANDOFF content for you to persist before context replacement. 
 - assumptions stay labeled ASSUMPTION
 - never claim a manual/UI check occurred unless the user actually performed it
 - distinguish current verified results from a test against an earlier code version
-- retain versioned baseline/CP2/final coverage in VERIFY using `references/local-evaluation.md`; keep visible native metrics separate from local proxy counts, require comparable rubric/checker hashes and known input/policy/options scope for delta, and never overwrite the frozen baseline or turn skipped/unrun checks into passes
+- retain versioned baseline/CP2/final coverage in VERIFY using `.hackathon-kit/references/local-evaluation.md`; keep visible native metrics separate from local proxy counts, require comparable rubric/checker hashes and known input/policy/options scope for delta, and never overwrite the frozen baseline or turn skipped/unrun checks into passes
 - record the actual model/role and verification source when available; a preferred model label does not prove runtime selection
 
 ## Human-judgment rules

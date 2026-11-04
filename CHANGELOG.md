@@ -1,5 +1,19 @@
 # Changes
 
+## Unreleased — claude-handoff maintenance (base 9ac5479)
+
+- Write every kit file mention in installed instructions from the task root
+  (`.hackathon-kit/prompts/…`, `.hackathon-kit/references/…`, `.hackathon-kit/run/…`):
+  the CP1/CP2/escalation launch examples and local-evaluation references previously
+  named paths that do not exist from the task root. Regression: tests/test_doc_paths.py.
+- Uncollected notes and answer outlines no longer sit on the READY/collection path;
+  Recorder may finish them after READY but only before confirmation/freeze, and reports
+  anything pending.
+- On a material official change after CP3 or near the deadline, record the latest READY
+  time, keep the gate order, and tell the participant at once when it cannot finish in
+  time instead of inventing an exception. No role, checkpoint, quiz, gate flag or
+  runtime code change; EXAM_POLICY.md unchanged. VERSION label not bumped.
+
 ## 2026-11-04-operational-r7.2.1
 
 - Require the existing delivered explanation/outlines to include actual baseline

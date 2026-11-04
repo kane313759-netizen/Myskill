@@ -3,7 +3,7 @@ name: verification
 description: Verify the current scoring contract, constraints, regressions, and relevant boundaries against the recorded pre-edit baseline.
 ---
 
-Read `.hackathon-kit/EXAM_POLICY.md` and run/GRADER.md, BASELINE.md, IMMUTABLES.md, CONSTRAINTS.md. Use the checkpoint/ownership protocol in `hackathon-orchestrator`; MAIN verifies and reports evidence, Recorder writes VERIFY/LIMITATIONS, and ORCHESTRATOR alone writes STATE/gate/checkpoint records.
+Read `.hackathon-kit/EXAM_POLICY.md` and .hackathon-kit/run/GRADER.md, BASELINE.md, IMMUTABLES.md, CONSTRAINTS.md. Use the checkpoint/ownership protocol in `hackathon-orchestrator`; MAIN verifies and reports evidence, Recorder writes VERIFY/LIMITATIONS, and ORCHESTRATOR alone writes STATE/gate/checkpoint records.
 
 Start from safe relevant existing test/build commands and compare against BASELINE. Inspect changed command behavior for side effects/network use before running it. Bound checks to the remaining deadline and isolate temporary data/services; avoid duplicate full runs unless changes or failures justify them.
 
@@ -11,7 +11,7 @@ Check applicable scoring/sample contracts, confirmed hard constraints, normal/bo
 
 Send factual results and evidence/log paths to Recorder for VERIFY.md; every important hard constraint has verification evidence or UNVERIFIED status. Distinguish automated checks from participant-performed manual checks. Preserve exact failures and unavailable-check reasons in LIMITATIONS rather than claiming coverage. Do not edit frozen intake artifacts for routine test updates.
 
-Follow `references/local-evaluation.md` for comparable baseline, CP2 and final local
+Follow `.hackathon-kit/references/local-evaluation.md` for comparable baseline, CP2 and final local
 coverage. Reuse frozen rubric/checker/oracle semantics and the same known dataset,
 effective policy and execution bounds; record actual evaluated source hashes. Use
 `local_score.py --compare` on retained evidence when helpful, without treating its

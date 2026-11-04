@@ -44,7 +44,7 @@ Return the task tools with original source evidence, required setup/availability
 fallback, important data/side-effect guards and budget. MAIN records the compact plan
 in SPEC_DRAFT's existing verification plan, preserving headings. Later material
 changes use existing ownership/reopen rules. No new checkpoint or routine technical
-approval is needed. `references/optional-tools.md` is retained for separate preparation
+approval is needed. `.hackathon-kit/references/optional-tools.md` is retained for separate preparation
 or a new explicit request for a particular optional mode, not automatic adoption.
 
 Activation rule:

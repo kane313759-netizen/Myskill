@@ -9,7 +9,7 @@ Use the README installation steps with a pre-exam verified SHA or frozen flat ZI
 Use the hackathon-orchestrator skill.
 Read .hackathon-kit/EXAM_POLICY.md first.
 One evidence pass for grader intake, safe baseline, immutables, routing and constraints.
-Track useful local baseline-to-final checks per references/local-evaluation.md;
+Track useful local baseline-to-final checks per .hackathon-kit/references/local-evaluation.md;
 freeze rubric/checker hashes/scope, never invent official weights or hidden scores.
 Use original task tools, kit helpers and standard library; optional additions are NONE.
 Do not automatically search/adopt/install catalog helpers, even if present. Preserve
@@ -35,7 +35,7 @@ No AI/copy-paste is used during the official follow-up itself.
 ## CP1 — Spec Freeze
 
 ```text
-Create a new Constraint Red using prompts/CONSTRAINT_RED.md with no inherited conversation:
+Create a new Constraint Red using .hackathon-kit/prompts/CONSTRAINT_RED.md with no inherited conversation:
 fork_turns="none" where supported, otherwise a clean separate session.
 Send EXAM_POLICY and original task/grading/test paths before MAIN's draft artifacts.
 Treat GRADER, IMMUTABLES and SPEC as claims to verify against originals.
@@ -58,7 +58,7 @@ reopen on material changes and obtain a targeted independent recheck.
 ## CP2 — First end-to-end
 
 ```text
-Run clean Code Red using prompts/CODE_RED.md, then Recorder.
+Run clean Code Red using .hackathon-kit/prompts/CODE_RED.md, then Recorder.
 Update verification evidence and start six-axis FOLLOWUP_CHEATSHEET coverage.
 Run Constraint Red again only for a material task/assumption/objective risk.
 ```
@@ -66,7 +66,7 @@ Run Constraint Red again only for a material task/assumption/objective risk.
 ## Repeated failure
 
 ```text
-Use prompts/ESCALATE_SOL.md for fresh analysis. MAIN remains the sole product writer.
+Use .hackathon-kit/prompts/ESCALATE_SOL.md for fresh analysis. MAIN remains the sole product writer.
 Preserve useful failed-command evidence before a retry overwrites it.
 ```
 

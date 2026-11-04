@@ -13,7 +13,7 @@ Fill the installed run/templates in place: preserve their level-2 section headin
 
 Before dispatching CP1 Red, run `python .hackathon-kit/scripts/gate_check.py --preflight` and fix any document-format gaps. This is a read-only format check, not CP1 approval; do not set STATE or edit the receipt. Review once the artifacts are ready, avoiding a new reviewer merely to discover a heading mismatch.
 
-Use `references/local-evaluation.md` within intake for a useful pre-edit local score
+Use `.hackathon-kit/references/local-evaluation.md` within intake for a useful pre-edit local score
 and later comparable coverage. Prefer supplied grading, avoid invented official
 weights, and bind actual rubric/checker/oracle hashes in GRADER or SPEC. Capture the
 baseline report, actual source version, original input/policy/options scope and raw

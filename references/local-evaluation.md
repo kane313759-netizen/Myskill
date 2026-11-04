@@ -62,7 +62,7 @@ hidden-test score. Unknown official weights remain unknown; keep visible officia
 metrics separately in BASELINE/VERIFY. A local 10/10 does not authorize submission,
 waive P0/P1, or establish coverage of requirements missing from the rubric.
 
-Fill the installed `run/LOCAL_RUBRIC.json` for the actual task. Minimal schema:
+Fill the installed `.hackathon-kit/run/LOCAL_RUBRIC.json` for the actual task. Minimal schema:
 
 ```json
 {
