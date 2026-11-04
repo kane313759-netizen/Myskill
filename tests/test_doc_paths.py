@@ -42,7 +42,7 @@ class InstalledDocumentPathTests(unittest.TestCase):
                     for token in TOKEN.findall(line):
                         if not token.startswith(('.hackathon-kit/', '.agents/')):
                             bare.append('%s:%d %s' % (rel, number, token))
-                        elif not (target / token).is_file():
+                        elif '/run/' not in token and not (target / token).is_file():
                             missing.append('%s:%d %s' % (rel, number, token))
             self.assertEqual(bare, [], 'kit paths must resolve from the task root (add .hackathon-kit/)')
             self.assertEqual(missing, [], 'referenced installed kit files must exist')

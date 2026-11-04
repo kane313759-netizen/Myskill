@@ -168,18 +168,18 @@ No automated UI action or post-confirmation file/record update is permitted.
    notes, and only if the submission format requires helper removal.
 
 Before declaring writer stop/READY, finish factual completion updates using already
-observed results. Uncollected notes and answer outlines never delay READY or
-collection: after READY, Recorder may finish affected uncollected notes (never
-collected files) only until confirmation/freeze or a stop instruction, and anything
-unfinished is reported as pending. Distinguish ready for collection from actual
-collection/freeze.
+observed results. Notes and answer outlines never delay READY or collection. After
+READY, Recorder may finish affected notes only when GRADER shows they are not
+collected, and only before any required cleanup and confirmation/freeze; anything
+unfinished or undelivered (step 4) is reported as pending. Distinguish ready for
+collection from actual collection/freeze.
 After a stop/freeze instruction, report any pending record rather than silently
 marking it complete or resuming writes; only an explicit authorized pre-freeze
 resumption may finish it. A frozen submission is never rewritten for a later grade.
 
-When a material official change arrives after CP3 or near the deadline, observe the
-clock and record the latest READY time (confirmed official deadline minus the actual
-collection/submission operation time). Keep the gate order: a targeted Constraint Red
+When a material official change arrives before freeze, after CP3 or near the
+deadline, observe the clock and record the latest READY time (the planned solving
+cutoff minus the reserved submission time). Keep the gate order: a targeted Constraint Red
 recheck of the changed scope only. Data checks, test preparation and review of
 unchanged parts may run in parallel; related product edits start only after the gate
 re-closes, then affected verification and Code Red. Product edits change collected
