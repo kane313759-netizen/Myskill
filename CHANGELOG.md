@@ -1,5 +1,20 @@
 # Changes
 
+## 2026-11-04-operational-r7.2.1
+
+- Require the existing delivered explanation/outlines to include actual baseline
+  and current observations with scope limits, plus a real rule-applied selection,
+  exclusion or relevant boundary case. Missing evidence remains explicit; no new
+  quiz, invented score, forced failure, role, checkpoint or gate flag is added.
+- Scope independent reviewer discovery to explicit original/product/shared-evidence
+  paths. Record accidental exposure; preserve clean-history requirements when
+  capacity is exhausted and schedule required reviews sequentially.
+- Use observed clock values with official deadlines, prepare owned scratch paths
+  before use, and finish factual status updates before writer stop. Preserve the
+  distinction between ready and actually frozen; never rewrite a frozen submission.
+- Add a separate kit-maintenance review handoff. EXAM_POLICY.md, task runtime
+  scripts and historical simulation grades are unchanged.
+
 ## 2026-11-03-operational-r7.2 (local candidate)
 
 - Added bounded read-only local coverage summaries from the pre-edit baseline through

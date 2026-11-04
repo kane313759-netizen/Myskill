@@ -59,4 +59,10 @@ If context degrades, send factual HANDOFF content to Recorder, then stop writing
 
 Follow CP3 in the canonical protocol. Verify the current implementation and blocking-finding fixes; P0/P1 cannot be waived at deadline. Choose a valid smaller/partial solution if needed and label unrun checks UNVERIFIED. `final-explain` provides factual explanation; `followup-prep` owns the single six-question preparation flow. Preserve notes through preparation; cleanup comes last only if the submission format requires it.
 
+Deliver the actual before/current check observations and one real rule-applied
+retained/excluded or relevant boundary case, including scope limits or missing
+evidence, in the existing concise explanation. Follow the canonical protocol for
+observed clock reports, scoped searches, capacity failures and final writer stop.
+Internal notes alone do not establish that the participant received these facts.
+
 No Computer Use/automated UI control, external AI connection, external task-data transmission, or Git Push. Use Cofa Helper through the participant for UI/submission questions and official incident reporting for repeated technical failures.

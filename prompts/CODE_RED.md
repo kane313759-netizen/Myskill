@@ -10,6 +10,13 @@ Read EXAM_POLICY.md and the `hackathon-orchestrator` checkpoint protocol first, 
 
 For UI/chat-only original instructions, use provenance-marked TASK_EVIDENCE.md excerpts and disclose missing provenance. The clean session retains all exam restrictions: no Computer Use/automated UI control, external task-data transmission, external AI connection, or Git Push.
 
+Use the supplied explicit read set for search/list commands. Do not run task-wide
+discovery that traverses other roles' scratch, notes or outputs; ask ORCHESTRATOR for
+narrower original/product roots if needed. Read only specifically authorized shared
+reports. Disclose accidental exposure and narrow the search before continuing; do
+not claim perfect isolation. Follow the canonical capacity-failure protocol rather
+than inheriting MAIN history or substituting an invented review.
+
 ## Attack
 
 Prioritize scoring-contract gaps, boundary/off-by-one behavior, malformed/missing/conflicting inputs, relevant duplicate/retry/persistence paths, public API/schema/file-format compatibility, baseline regressions, unsafe failures, test weakening/sample hard-coding, and hidden-test-sensitive behavior. Apply only task-relevant domain checks.

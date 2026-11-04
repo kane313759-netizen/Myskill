@@ -12,6 +12,13 @@ Only then inspect needed MAIN-authored GRADER, BASELINE, IMMUTABLES, CONSTRAINTS
 
 No Computer Use/automated UI control, external AI connection, external task-data transmission, or Git Push inside this clean session. UI/submission uncertainty goes through the participant to Cofa Helper.
 
+Use the supplied explicit read set for search/list commands. Do not run task-wide
+discovery that traverses other roles' scratch, notes or outputs; ask ORCHESTRATOR for
+narrower original/product roots if needed. Read only specifically authorized shared
+reports. Disclose accidental exposure and narrow the search before continuing; do
+not claim perfect isolation. Follow the canonical capacity-failure protocol rather
+than inheriting MAIN history or substituting an invented review.
+
 ## Attack
 
 Prioritize omitted scoring/contract requirements, assumptions promoted to rules, prohibited changes/missing invariants, objective loopholes, and actual time/memory/network/precision/reproducibility risks. Apply domain realism only with task evidence. A surprising statistic or apparently unrealistic optimum does not authorize a new rule.

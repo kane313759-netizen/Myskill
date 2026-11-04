@@ -50,6 +50,24 @@ Create a new reviewer with no inherited conversation. Where supported, explicitl
 
 Pass the role prompt, EXAM_POLICY.md, original task/grading/test/schema/sample paths, and only artifacts needed for that review. Read original sources first. All MAIN-authored documents, including GRADER/IMMUTABLES/SPEC and data profiles, are claims to verify, not independent authority. Do not include prior MAIN dialogue or DECISIONS as background facts. Record actual model and `NO_HISTORY` or `CLEAN_SESSION`; follow the same exam restrictions inside the isolated session.
 
+Supply an explicit read set: original source paths, current product roots and
+specifically shared evidence files. Reviewers must scope search/list commands to
+these paths; do not discover the whole task tree or enumerate other roles' scratch,
+notes or outputs. Narrow any mixed directory before searching it. Report accidental
+exposure, what was seen and its possible effect; do not claim perfect isolation.
+Assess whether a fresh clean review is needed for a material exposure.
+
+Before using a role's scratch path as cwd/TMPDIR, create its own directory from a
+known existing authorized parent. Use the installed prompt paths and current
+documented command syntax; inspect help on an argument error instead of guessing.
+If agent capacity is exhausted, retain the original request, finish/release owned
+auxiliary work and schedule required reviews sequentially. Reuse an existing role
+only for work consistent with its ownership and history; a reused/inherited MAIN
+context cannot replace a clean Red. Relay a question only through an already
+authorized participant/support channel, without changing its content. Do not invent
+an answer or introduce external AI/UI automation. Missing independent review keeps
+the relevant gate open; an unavailable tool is not a passing check.
+
 # CP1 — SPEC FREEZE
 
 Before product implementation, clean CONSTRAINT_RED attacks SPEC_DRAFT against original evidence. Return the highest-impact findings and attempted attacks; never hide an additional blocking defect to meet a reporting cap. ORCHESTRATOR persists the actual factual review as `run/CP1_RED.md` and the machine review receipt as `run/CP1_REVIEW.json`:
@@ -94,6 +112,12 @@ lint success or empty extraction is not product verification.
 
 Record the official exam clock/timezone and the earlier of the stage cutoff and whole-exam cutoff. The supplied brief gives 10:00–14:00, about 5 minutes of transition (excluded from solving but included in the total window), and 30 minutes for six follow-up answers; late starts do not extend 14:00. Reserve the full follow-up and transition when planning the latest solving submission, and start submission at least 10 minutes before that deadline as the detailed guide recommends. Use newer official UI instructions if they change the schedule; never infer exam time from the host UTC clock alone.
 
+Current-time/remaining-time reports need an actual clock-tool or system-clock
+observation and the officially confirmed deadline/timezone. Never guess the current
+time or hard-code a retest date. A host clock observation does not establish the
+official exam schedule. If either source is unavailable, state UNKNOWN and obtain
+the missing official time through the participant/Cofa channel.
+
 Budget CP3 from estimated review/check/repair/submission/preparation time and the actual deadline; start earlier if needed. A 15–20-minute reminder does not guarantee that all remaining work fits. Stop feature expansion, then:
 
 1. Clean final CODE_RED and CONSTRAINT_RED review the current result and original evidence; ORCHESTRATOR records findings and verified dispositions.
@@ -101,7 +125,16 @@ Budget CP3 from estimated review/check/repair/submission/preparation time and th
 3. Recorder finalizes factual evidence notes. MAIN uses `final-explain` for factual explanation and `followup-prep` as the sole practice owner, covering all six official question slots. Do not quiz the participant twice or defer evidence collection to this checkpoint.
 4. Before declaring preparation complete, ORCHESTRATOR reads the final VERIFY/LIMITATIONS/FOLLOWUP_CHEATSHEET against the latest checkpoint dispositions and current code version. If a late clarification, review decision, or fix occurred after Recorder prepared the notes, send the actual new evidence back to Recorder and refresh only affected claims/outlines; do not repeat a whole quiz. A resolved finding must not remain pending in the final answer sheet, and earlier reproduced failures must not be erased.
    During the permitted preparation phase, deliver the concise final explanation and six prepared outlines to the participant. Check the actual delivered coverage against current evidence; internal notes or an agent return alone do not establish delivery. Record any time-limited omission honestly, preserve the submission deadline, and do not restart completed practice. This adds no per-step teach-back or second quiz.
+   Confirm that the delivered text contains the actual before/current observations
+   and one real rule-applied case required by `final-explain`, or their explicit
+   evidence gap/reason. Do not ask the participant to discover these missing facts.
 5. ORCHESTRATOR records cp3_code_red/cp3_constraint_red as DONE, verification as RECORDED, and followup_prep as DONE only after the corresponding work and six answer outlines are complete. Run doctor. Cleanup is last, after preparation and preservation of notes, and only if the submission format requires helper removal.
+
+Before declaring writer stop/READY, finish factual completion updates using already
+observed results. Distinguish ready for collection from actual collection/freeze.
+After a stop/freeze instruction, report any pending record rather than silently
+marking it complete or resuming writes; only an explicit authorized pre-freeze
+resumption may finish it. A frozen submission is never rewritten for a later grade.
 
 Use Cofa Helper for exam UI/submission questions and official incident reporting for repeated technical failures. The participant handles UI actions; no Computer Use/automated UI control, external task-data transmission, external AI connection, or Git Push.
 

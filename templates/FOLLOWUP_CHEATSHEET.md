@@ -25,6 +25,8 @@ Recorder starts this sheet at CP2 and refreshes changed evidence at CP3. Each cl
 ## E. How did we verify it?
 - Check / result / code version:
 - Automated or participant-performed / original evidence:
+- Actual pre-edit baseline observation -> current observation / source/version:
+- Same input/policy/checker scope, or separate non-comparable observations / reason:
 
 ## F. Boundaries / limitations
 - Actual boundary / remaining assumption or unverified item:
@@ -32,6 +34,9 @@ Recorder starts this sheet at CP2 and refreshes changed evidence at CP3. Each cl
 
 ## Hardest edge case
 - Boundary / failure risk / prevented or observed / check / result / evidence:
+- One actual input / decisive rule / retained, excluded or validation outcome:
+- Before submission, include this case and the before/current observations in the
+  explanation actually delivered; record any NOT OBSERVED / UNVERIFIED gap honestly.
 
 ## Strongest human-judgment example
 - Actual event and source, or no material participant event recorded:

@@ -68,5 +68,11 @@ Distinguish a resolved failed attempt from no failure recorded and from an unres
 ## Limitations
 Anything important not verified, unresolved, or intentionally out of scope goes in LIMITATIONS.md.
 
+For the existing explanation/cheatsheet, retain the actual baseline and current
+observations with their comparability limits, and one real rule-applied case with
+input, decisive rule and observed outcome (or its explicit evidence gap). Internal
+notes do not establish participant delivery. MAIN delivers the concise explanation;
+ORCHESTRATOR checks coverage. Do not create another quiz or infer human actions.
+
 Do not rewrite templates under `.hackathon-kit/templates/`.
 Do not turn an assumption into a confirmed constraint.
