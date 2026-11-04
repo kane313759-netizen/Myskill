@@ -135,16 +135,22 @@ class LifecycleTests(unittest.TestCase):
 
     def test_unreadable_git_exclusions_fail_before_helper_writes(self):
         lifecycle = backend_module()
-        exclude = self.target / '.git/info/exclude'
+        # Exercise a lexical alias everywhere; Windows temp paths can also differ
+        # through 8.3 names after the installer resolves the target directory.
+        target_alias = self.target / '..' / self.target.name
+        exclude = (target_alias / '.git/info/exclude').resolve()
         original_open = os.open
+        denied_reads = []
         def denied_open(path, flags, *args, **kwargs):
-            if Path(path) == exclude:
+            if Path(path).resolve() == exclude:
+                denied_reads.append(Path(path))
                 raise PermissionError('EXCLUSION_READ_DENIED')
             return original_open(path, flags, *args, **kwargs)
         task_before, source_before = snapshot(self.target), snapshot(self.source)
         with mock.patch.object(lifecycle.os, 'open', side_effect=denied_open):
             with self.assertRaisesRegex(PermissionError, 'EXCLUSION_READ_DENIED'):
-                lifecycle.install(self.source, self.target)
+                lifecycle.install(self.source, target_alias)
+        self.assertEqual(len(denied_reads), 1)
         self.assertEqual(snapshot(self.target), task_before)
         self.assertEqual(snapshot(self.source), source_before)
 
