@@ -10,8 +10,11 @@
   Recorder may finish them after READY but only before confirmation/freeze, and reports
   anything pending.
 - On a material official change after CP3 or near the deadline, record the latest READY
-  time, keep the gate order, and tell the participant at once when it cannot finish in
-  time instead of inventing an exception. No role, checkpoint, quiz, gate flag or
+  time and keep the gate order: targeted Constraint Red recheck of the changed scope;
+  data checks, test preparation and unchanged-part review in parallel; related product
+  edits only after the gate re-closes; only changed facts in notes/outlines; the
+  submission-preview notification unchanged. Tell the participant at once when it
+  cannot finish in time instead of inventing an exception. No role, checkpoint, quiz, gate flag or
   runtime code change; EXAM_POLICY.md unchanged. VERSION label not bumped.
 
 ## 2026-11-04-operational-r7.2.1
