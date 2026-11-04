@@ -37,6 +37,7 @@ MAIN should send HANDOFF content for you to persist before context replacement. 
 - assumptions stay labeled ASSUMPTION
 - never claim a manual/UI check occurred unless the user actually performed it
 - distinguish current verified results from a test against an earlier code version
+- retain versioned baseline/CP2/final coverage in VERIFY using `references/local-evaluation.md`; keep visible native metrics separate from local proxy counts, require comparable rubric/checker hashes and known input/policy/options scope for delta, and never overwrite the frozen baseline or turn skipped/unrun checks into passes
 - record the actual model/role and verification source when available; a preferred model label does not prove runtime selection
 
 ## Human-judgment rules
@@ -66,6 +67,12 @@ Distinguish a resolved failed attempt from no failure recorded and from an unres
 
 ## Limitations
 Anything important not verified, unresolved, or intentionally out of scope goes in LIMITATIONS.md.
+
+For the existing explanation/cheatsheet, retain the actual baseline and current
+observations with their comparability limits, and one real rule-applied case with
+input, decisive rule and observed outcome (or its explicit evidence gap). Internal
+notes do not establish participant delivery. MAIN delivers the concise explanation;
+ORCHESTRATOR checks coverage. Do not create another quiz or infer human actions.
 
 Do not rewrite templates under `.hackathon-kit/templates/`.
 Do not turn an assumption into a confirmed constraint.

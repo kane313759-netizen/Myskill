@@ -61,6 +61,7 @@ def main():
     except Exception as error:
         parser.exit(1, f"{type(error).__name__}: {error}\n")
     print("\nINTERPRETATION RULES")
+    print("- Numeric scale summaries use approximate finite floating-point values.")
     print("- These are scale summaries, not automatic anomaly verdicts.")
     print("- Apply only task-relevant metrics from the selected playbook.")
     print("- Check worst-case values when the grading/contract makes them relevant.")

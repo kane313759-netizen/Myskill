@@ -17,6 +17,37 @@ FAILURES = [
 ]
 
 
+def failure_like_lines(handle):
+    """Inspect bounded windows, delaying suffix matches until their context arrives."""
+    tail, from_start, line_failed = "", True, False
+
+    def failed(text, at_start, final):
+        candidate = ("" if at_start else "_") + text
+        # Preserve match positions while masking zero-count phrases.
+        candidate = ZERO_FAILURE.sub(lambda match: " " * len(match.group()), candidate)
+        safe_end = len(candidate) if final else max(0, len(candidate) - 256)
+        return any(match.end() <= safe_end for pattern in FAILURES
+                   for match in pattern.finditer(candidate))
+
+    # readline(size) also bounds memory for a log containing one enormous line.
+    for chunk in iter(lambda: handle.readline(65536), ""):
+        final = chunk.endswith("\n")
+        if not line_failed:
+            # Whitespace runs need no unbounded storage. This also preserves a
+            # physical line's anchored prefix across any number of blank chunks.
+            joined = re.sub(r"\s+", " ", tail + chunk)
+            if failed(joined, from_start, final):
+                line_failed = True
+                yield joined.strip()[:1000]
+            if not final:
+                from_start = from_start and len(joined) <= 512
+                tail = joined[-512:]
+        if final:
+            tail, from_start, line_failed = "", True, False
+    if tail and not line_failed and failed(tail, from_start, True):
+        yield tail.strip()[:1000]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("log")
@@ -26,26 +57,12 @@ def main():
         parser.exit(1, f"Not a file: {path}\n")
     failures = []
     total = 0
-    tail = ""
-    continuing = False
-    line_failed = False
-    # readline(size) also bounds memory for a log containing one enormous line.
     try:
         with path.open("r", encoding="utf-8", errors="replace") as handle:
-            for chunk in iter(lambda: handle.readline(65536), ""):
-                joined = tail + chunk
-                # Keep short failure tokens split at a chunk boundary visible;
-                # a continuation must not invent a new physical line start.
-                candidate = ZERO_FAILURE.sub("", ("_" if continuing else "") + joined)
-                if not line_failed and any(pattern.search(candidate) for pattern in FAILURES):
-                    total += 1
-                    line_failed = True
-                    if len(failures) < 40:
-                        failures.append(joined.strip()[:1000])
-                if chunk.endswith("\n"):
-                    tail, continuing, line_failed = "", False, False
-                else:
-                    tail, continuing = joined[-256:], True
+            for excerpt in failure_like_lines(handle):
+                total += 1
+                if len(failures) < 40:
+                    failures.append(excerpt)
     except OSError as error:
         parser.exit(1, f"Cannot read log: {error}\n")
     print(f"FAILURE_LIKE_LINES\t{len(failures)}")

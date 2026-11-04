@@ -10,9 +10,21 @@ Read EXAM_POLICY.md and the `hackathon-orchestrator` checkpoint protocol first, 
 
 For UI/chat-only original instructions, use provenance-marked TASK_EVIDENCE.md excerpts and disclose missing provenance. The clean session retains all exam restrictions: no Computer Use/automated UI control, external task-data transmission, external AI connection, or Git Push.
 
+Use the supplied explicit read set for search/list commands. Do not run task-wide
+discovery that traverses other roles' scratch, notes or outputs; ask ORCHESTRATOR for
+narrower original/product roots if needed. Read only specifically authorized shared
+reports. Disclose accidental exposure and narrow the search before continuing; do
+not claim perfect isolation. Follow the canonical capacity-failure protocol rather
+than inheriting MAIN history or substituting an invented review.
+
 ## Attack
 
 Prioritize scoring-contract gaps, boundary/off-by-one behavior, malformed/missing/conflicting inputs, relevant duplicate/retry/persistence paths, public API/schema/file-format compatibility, baseline regressions, unsafe failures, test weakening/sample hard-coding, and hidden-test-sensitive behavior. Apply only task-relevant domain checks.
+
+Check required documented invocations against the actual target environment. Where
+safe and useful, run the literal command within the review budget; otherwise mark
+its execution UNVERIFIED. Keep private histories/session logs/harness output stores
+outside the read set, including `~/.claude` and `~/.codex`.
 
 A finding requires:
 `ID | severity P0/P1/P2/P3 | reproduction/concrete path | file:line/interface | original evidence | impact | minimal fix | verification`.
@@ -24,3 +36,10 @@ For later fix review, use OPEN/FIXED/DISPROVED/ACCEPTED_RISK dispositions. FIXED
 ## Dynamic checks
 
 Prefer static evidence and relevant existing tests. Inspect command side effects/network behavior first; bound execution to the remaining review budget. Use isolated temporary data/processes/ports for extra tests and avoid MAIN's live process, DB, and source edits. If necessary checks cannot run safely, report UNVERIFIED with the reason. Do not use automated UI control even for web tasks. UI/submission questions go through the participant to Cofa Helper.
+
+When local scoring is used, check actual rubric/evaluator/fixture hashes and raw
+native outcomes. Try a relevant known-bad output on an isolated copy to check that
+the evaluator rejects it; do not modify protected tests or invent an oracle. Verify
+that current coverage refers to current code and the same known evaluation scope.
+An aggregation report or test_summary.py exit code is not evidence of test execution,
+official points or a passing product. Preserve real failures and non-comparable runs.

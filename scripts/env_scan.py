@@ -114,26 +114,26 @@ def script_names(path, max_bytes=65536):
         if len(names) > 100:
             return names[:100], "script-name limit reached"
         return names, None
-    except (OSError, UnicodeError, ValueError) as error:
+    except (OSError, UnicodeError, ValueError, RecursionError) as error:
         return None, "cannot inspect script names: " + type(error).__name__
 
 
 def render(root, markers, counts, notices, max_output_bytes):
     def lines():
-        yield "PROJECT\t" + json.dumps(str(Path(root).resolve()), ensure_ascii=False)
+        yield "PROJECT\t" + json.dumps(str(Path(root).resolve()), ensure_ascii=True)
         yield "NOTE\tInventory only; inspect original task, grading and submission evidence before choosing commands."
         yield "NOTE\tNo discovered command is executed; environment-file contents and script bodies are not printed."
         for marker in markers:
-            yield "FOUND\t" + json.dumps(marker, ensure_ascii=False)
+            yield "FOUND\t" + json.dumps(marker, ensure_ascii=True)
             if Path(marker).name == "package.json":
                 names, warning = script_names(Path(root) / marker)
                 if names is not None:
-                    yield "SCRIPT_NAMES\t" + json.dumps(names, ensure_ascii=False)
+                    yield "SCRIPT_NAMES\t" + json.dumps(names, ensure_ascii=True)
                 if warning:
-                    yield "NOTE\t" + json.dumps(marker + ": " + warning, ensure_ascii=False)
+                    yield "NOTE\t" + json.dumps(marker + ": " + warning, ensure_ascii=True)
         yield "SCANNED\t" + json.dumps(counts, sort_keys=True)
         for notice in notices:
-            yield "TRUNCATED_OR_UNREADABLE\t" + json.dumps(notice, ensure_ascii=False)
+            yield "TRUNCATED_OR_UNREADABLE\t" + json.dumps(notice, ensure_ascii=True)
     result = []
     used = 0
     marker = "TRUNCATED\toutput byte budget reached\n"

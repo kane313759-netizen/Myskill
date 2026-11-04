@@ -12,11 +12,29 @@ Only then inspect needed MAIN-authored GRADER, BASELINE, IMMUTABLES, CONSTRAINTS
 
 No Computer Use/automated UI control, external AI connection, external task-data transmission, or Git Push inside this clean session. UI/submission uncertainty goes through the participant to Cofa Helper.
 
+Use the supplied explicit read set for search/list commands. Do not run task-wide
+discovery that traverses other roles' scratch, notes or outputs; ask ORCHESTRATOR for
+narrower original/product roots if needed. Read only specifically authorized shared
+reports. Disclose accidental exposure and narrow the search before continuing; do
+not claim perfect isolation. Follow the canonical capacity-failure protocol rather
+than inheriting MAIN history or substituting an invented review.
+
+Private histories/session logs/harness output stores, including `~/.claude` and
+`~/.codex`, remain outside this read set even if another role offers them.
+
 ## Attack
 
 Prioritize omitted scoring/contract requirements, assumptions promoted to rules, prohibited changes/missing invariants, objective loopholes, and actual time/memory/network/precision/reproducibility risks. Apply domain realism only with task evidence. A surprising statistic or apparently unrealistic optimum does not authorize a new rule.
 
 Never invent numeric thresholds, extra resource limits, objectives, soft penalties, or tie-breakers. Only original evidence or an explicit allowed participant/business-contact answer confirms a constraint. Keep unsupported non-blocking concerns as ASSUMPTION/OPEN QUESTION; a known official-rule conflict remains blocking.
+
+If a local rubric/evaluator is used, inspect its actual files and requirement-backed
+oracles, not only its score. Verify hashes bound in GRADER/SPEC and baseline scope.
+Attack candidate-derived expected answers, omitted hard criteria, invented weights,
+skipped-check inflation and sample/full or policy changes disguised as improvement.
+Use the existing CP1 review, not a new approval stage; unavailable local scoring does
+not itself block a correctly evidenced baseline. Local coverage never proves hidden
+score or overrides official constraints.
 
 Return up to three highest-impact non-blocking findings plus every blocking finding. If fewer survive, list attempted attacks and why they failed. Use:
 `ID | severity P0/P1/P2/P3 | claim | original evidence | counterexample/concrete path | recommendation | verification`.

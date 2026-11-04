@@ -92,7 +92,7 @@ class ToolInventoryTests(unittest.TestCase):
             for path in self.root.rglob("*") if path.is_file()
         }
 
-    def run_inventory(self, *args, path=None, guarded=True, prefix="", isolated=False):
+    def inventory_environment(self, path):
         environment = dict(os.environ)
         environment.update(
             PATH=str(self.bin) if path is None else path,
@@ -102,6 +102,24 @@ class ToolInventoryTests(unittest.TestCase):
         )
         if os.name == "nt":
             environment["PATHEXT"] = ".EXE"
+        return environment
+
+    def native_candidate(self, name, path):
+        # Match the helper's interpreter, cwd and environment. In particular,
+        # native Windows which may choose cwd before the supplied PATH entry.
+        result = subprocess.run(
+            [sys.executable, "-B", "-c",
+             "import json, os, shutil, sys\n"
+             "print(json.dumps(shutil.which(sys.argv[1], path=os.environ['PATH'])))\n",
+             name], cwd=str(self.task), env=self.inventory_environment(path),
+            capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stderr, "")
+        return json.loads(result.stdout)
+
+    def run_inventory(self, *args, path=None, guarded=True, prefix="", isolated=False):
+        environment = self.inventory_environment(path)
         if guarded:
             command = [sys.executable, "-B", "-c", prefix + GUARDED_RUN, str(SCRIPT)]
         else:
@@ -360,6 +378,90 @@ shutil._access_check = bounded_probe
         self.assertEqual(duckdb["candidate_path"], str(link))
         self.assertTrue(duckdb["task_local_candidate"])
         self.assertTrue(duckdb["provenance_review_required"])
+
+    def test_symlink_parent_dotdot_preserves_the_observed_candidate(self):
+        inner = self.bin / "inner"
+        inner.mkdir()
+        alias = self.task / "alias"
+        try:
+            alias.symlink_to(inner, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("directory symlinks unavailable")
+        target = self.command(self.bin, "jq")
+        decoy = self.command(self.task, "jq")
+        before = self.snapshot()
+        for entry in (str(alias / ".."), os.path.join("alias", "..")):
+            with self.subTest(path_entry=entry):
+                native = self.native_candidate("jq", entry)
+                self.assertIsNotNone(native)
+                expected = native if os.path.isabs(native) else os.path.join(str(self.task), native)
+                output = self.run_inventory(path=entry)
+                jq = self.by_name(output)["jq"]
+                self.assertEqual(jq["candidate_path"], expected)
+                self.assertTrue(Path(jq["candidate_path"]).samefile(expected))
+                self.assertTrue(Path(expected).samefile(target) or Path(expected).samefile(decoy))
+                if os.name != "nt":
+                    # Keep the POSIX regression against lexical abspath: the
+                    # alias/.. lookup must identify the external target.
+                    self.assertEqual(expected, os.path.join(str(self.task), entry, target.name))
+                    self.assertTrue(Path(jq["candidate_path"]).samefile(target))
+                    self.assertFalse(Path(jq["candidate_path"]).samefile(decoy))
+                self.assertTrue(jq["provenance_review_required"])
+        self.assertEqual(self.snapshot(), before)
+
+    def test_observed_symlink_parent_dotdot_spelling_is_never_collapsed(self):
+        inner = self.bin / "inner"
+        inner.mkdir()
+        alias = self.task / "alias"
+        try:
+            alias.symlink_to(inner, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("directory symlinks unavailable")
+        target = self.command(self.bin, "jq")
+        decoy = self.command(self.task, "jq")
+        before = self.snapshot()
+        for observed in (str(alias / ".." / target.name),
+                         os.path.join("alias", "..", target.name)):
+            with self.subTest(observed_path=observed):
+                # Exercise the returned spelling independently of the native
+                # Windows cwd policy, without changing production precedence.
+                prefix = '''import shutil
+original_which = shutil.which
+def observed_which(name, path=None):
+    if name == "jq":
+        return %r
+    return original_which(name, path=path)
+shutil.which = observed_which
+''' % observed
+                output = self.run_inventory(path=str(alias / ".."), prefix=prefix)
+                jq = self.by_name(output)["jq"]
+                expected = observed if os.path.isabs(observed) else os.path.join(str(self.task), observed)
+                self.assertEqual(jq["candidate_path"], expected)
+                self.assertTrue(Path(jq["candidate_path"]).samefile(expected))
+                if os.name != "nt":
+                    self.assertTrue(Path(jq["candidate_path"]).samefile(target))
+                    self.assertFalse(Path(jq["candidate_path"]).samefile(decoy))
+                self.assertTrue(jq["provenance_review_required"])
+        self.assertEqual(self.snapshot(), before)
+
+    def test_symlink_parent_dotdot_uses_the_actual_target_for_locality(self):
+        inner = self.task / "inner"
+        inner.mkdir()
+        alias = self.bin / "alias"
+        try:
+            alias.symlink_to(inner, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("directory symlinks unavailable")
+        target = self.command(self.task, "duckdb")
+        decoy = self.command(self.bin, "duckdb")
+        before = self.snapshot()
+        output = self.run_inventory(path=str(alias / ".."))
+        duckdb = self.by_name(output)["duckdb"]
+        self.assertTrue(Path(duckdb["candidate_path"]).samefile(target))
+        self.assertFalse(Path(duckdb["candidate_path"]).samefile(decoy))
+        self.assertTrue(duckdb["task_local_candidate"])
+        self.assertTrue(duckdb["provenance_review_required"])
+        self.assertEqual(self.snapshot(), before)
 
 
 if __name__ == "__main__":

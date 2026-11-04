@@ -1,14 +1,31 @@
 """Regression tests use disposable repositories; no network or Unity/domain assumptions."""
+import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 SOURCE = Path(__file__).resolve().parents[1]
+
+
+def snapshot(root):
+    paths = list(root.rglob('*'))
+    return ({p.relative_to(root).as_posix() for p in paths if p.is_dir()},
+            {p.relative_to(root).as_posix(): p.read_bytes() for p in paths if p.is_file()})
+
+
+def backend_module():
+    spec = importlib.util.spec_from_file_location('reviewed_lifecycle', SOURCE / 'scripts/kit_lifecycle.py')
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+    return loaded
 
 
 class LifecycleTests(unittest.TestCase):
@@ -29,14 +46,14 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         return r
 
-    def call(self, command, *args, target=None):
+    def call(self, command, *args, target=None, timeout=None):
         root = target or self.target
         cmd = [sys.executable, '-B', str(self.source / 'scripts/kit_lifecycle.py'), command]
         if command == 'install':
             cmd += ['--source', str(self.source), '--target', str(root)]
         else:
             cmd += ['--kit', str(root / '.hackathon-kit')]
-        return subprocess.run(cmd + list(args), capture_output=True, text=True)
+        return subprocess.run(cmd + list(args), capture_output=True, text=True, timeout=timeout)
 
     def install(self, **kwargs):
         r = self.call('install', **kwargs)
@@ -83,6 +100,159 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(skill.read_text(), 'UNRELATED_SENTINEL')
         self.assertFalse((self.target / '.hackathon-kit').exists())
         self.assertEqual(list(skill.parent.parent.iterdir()), [skill.parent])
+
+    @unittest.skipUnless(os.name == 'posix', 'control-character filenames are unavailable on Windows')
+    def test_external_source_target_controls_cannot_change_git_exclusions(self):
+        task_source = self.target / 'src/main.py'
+        task_source.parent.mkdir()
+        task_source.write_bytes(b'PROTECTED TASK SOURCE\n')
+        source_before = snapshot(self.source)
+        for control in ('\n', '\r', '\t', '\x7f'):
+            with self.subTest(control=repr(control)):
+                target = self.target / ('stage' + control) / ('src' + control) / 'task'
+                target.mkdir(parents=True)
+                task_before = snapshot(self.target)
+                result = self.call('install', target=target, timeout=3)
+                self.assert_rc(result, 2)
+                self.assertIn('Unsafe target path', result.stderr)
+                self.assertEqual(snapshot(self.target), task_before)
+                self.assertEqual(snapshot(self.source), source_before)
+                self.assertEqual(subprocess.run(['git', '-C', str(self.target), 'check-ignore',
+                                                 '-q', '--', 'src/main.py'], capture_output=True).returncode, 1)
+
+    def test_invalid_git_exclusion_destination_fails_before_helper_writes(self):
+        exclude = self.target / '.git/info/exclude'
+        exclude.unlink()
+        exclude.mkdir()
+        sentinel = exclude / 'KEEP'
+        sentinel.write_bytes(b'EXISTING GIT METADATA\n')
+        task_before, source_before = snapshot(self.target), snapshot(self.source)
+        result = self.call('install', timeout=3)
+        self.assert_rc(result, 2)
+        self.assertIn('Non-regular file', result.stderr)
+        self.assertEqual(snapshot(self.target), task_before)
+        self.assertEqual(snapshot(self.source), source_before)
+
+    def test_unreadable_git_exclusions_fail_before_helper_writes(self):
+        lifecycle = backend_module()
+        # Exercise a lexical alias everywhere; Windows temp paths can also differ
+        # through 8.3 names after the installer resolves the target directory.
+        target_alias = self.target / '..' / self.target.name
+        exclude = (target_alias / '.git/info/exclude').resolve()
+        original_open = os.open
+        denied_reads = []
+        def denied_open(path, flags, *args, **kwargs):
+            if Path(path).resolve() == exclude:
+                denied_reads.append(Path(path))
+                raise PermissionError('EXCLUSION_READ_DENIED')
+            return original_open(path, flags, *args, **kwargs)
+        task_before, source_before = snapshot(self.target), snapshot(self.source)
+        with mock.patch.object(lifecycle.os, 'open', side_effect=denied_open):
+            with self.assertRaisesRegex(PermissionError, 'EXCLUSION_READ_DENIED'):
+                lifecycle.install(self.source, target_alias)
+        self.assertEqual(len(denied_reads), 1)
+        self.assertEqual(snapshot(self.target), task_before)
+        self.assertEqual(snapshot(self.source), source_before)
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'named pipes unavailable')
+    def test_fifo_source_files_are_rejected_without_opening_or_writes(self):
+        for name in ('EXAM_POLICY.md', 'VERSION'):
+            with self.subTest(name=name):
+                path = self.source / name
+                original = path.read_bytes()
+                path.unlink()
+                os.mkfifo(str(path))
+                try:
+                    source_before, task_before = snapshot(self.source), snapshot(self.target)
+                    result = self.call('install', timeout=3)
+                    self.assert_rc(result, 2)
+                    self.assertIn('Non-regular file', result.stderr)
+                    self.assertTrue(stat.S_ISFIFO(path.lstat().st_mode))
+                    self.assertEqual(snapshot(self.source), source_before)
+                    self.assertEqual(snapshot(self.target), task_before)
+                finally:
+                    path.unlink()
+                    path.write_bytes(original)
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'named pipes unavailable')
+    def test_fifo_manifest_legacy_and_exclusions_fail_without_mutations(self):
+        self.install()
+        for relative, commands in (
+                ('.hackathon-kit/manifest.json', ('install', 'doctor', 'clean')),
+                ('.hackathon-kit/run/INSTALLED_SKILLS.txt', ('install', 'doctor', 'clean')),
+                ('.git/info/exclude', ('install',))):
+            with self.subTest(path=relative):
+                path = self.target / relative
+                original = path.read_bytes() if path.exists() else None
+                if path.exists():
+                    path.unlink()
+                os.mkfifo(str(path))
+                try:
+                    task_before, source_before = snapshot(self.target), snapshot(self.source)
+                    for command in commands:
+                        args = ('--apply',) if command == 'clean' else ()
+                        result = self.call(command, *args, timeout=3)
+                        self.assert_rc(result, 2)
+                        self.assertIn('Non-regular file', result.stderr)
+                        self.assertTrue(stat.S_ISFIFO(path.lstat().st_mode))
+                        self.assertEqual(snapshot(self.target), task_before)
+                        self.assertEqual(snapshot(self.source), source_before)
+                finally:
+                    path.unlink()
+                    if original is not None:
+                        path.write_bytes(original)
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'named pipes unavailable')
+    def test_digest_rechecks_opened_descriptor_after_file_becomes_fifo(self):
+        lifecycle = backend_module()
+        path = self.base / 'changing-source'
+        path.write_bytes(b'ORIGINAL')
+        original_open = os.open
+        def replaced_open(filename, flags):
+            path.unlink()
+            os.mkfifo(str(path))
+            self.assertTrue(flags & os.O_NONBLOCK)
+            return original_open(filename, flags)
+        with mock.patch.object(lifecycle.os, 'open', side_effect=replaced_open):
+            with self.assertRaisesRegex(lifecycle.LifecycleError, 'Opened file is not regular'):
+                lifecycle.digest(path)
+
+    def test_metadata_byte_limits_preserve_source_and_installation(self):
+        lifecycle = backend_module()
+        self.install()
+        for path, limit, commands in (
+                (self.target / '.hackathon-kit/manifest.json', lifecycle.METADATA_LIMIT, ('install', 'doctor', 'clean')),
+                (self.target / '.hackathon-kit/run/INSTALLED_SKILLS.txt', lifecycle.METADATA_LIMIT, ('install', 'doctor', 'clean')),
+                (self.target / '.git/info/exclude', lifecycle.METADATA_LIMIT, ('install',)),
+                (self.source / 'VERSION', lifecycle.VERSION_LIMIT, ('install',))):
+            with self.subTest(path=path):
+                original = path.read_bytes() if path.exists() else None
+                with path.open('wb') as handle:
+                    handle.truncate(limit + 1)
+                try:
+                    task_before, source_before = snapshot(self.target), snapshot(self.source)
+                    for command in commands:
+                        args = ('--apply',) if command == 'clean' else ()
+                        result = self.call(command, *args, timeout=3)
+                        self.assert_rc(result, 2)
+                        self.assertIn('byte limit', result.stderr)
+                        self.assertEqual(snapshot(self.target), task_before)
+                        self.assertEqual(snapshot(self.source), source_before)
+                finally:
+                    if original is None:
+                        path.unlink()
+                    else:
+                        path.write_bytes(original)
+
+    def test_support_copy_has_no_metadata_size_cap(self):
+        lifecycle = backend_module()
+        path = self.source / 'CALLING.md'
+        path.write_bytes(b'X' * (lifecycle.METADATA_LIMIT + 1))
+        expected = hashlib.sha256(path.read_bytes()).hexdigest()
+        self.install()
+        copied = self.target / '.hackathon-kit/CALLING.md'
+        self.assertEqual(hashlib.sha256(copied.read_bytes()).hexdigest(), expected)
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), expected)
 
     def test_identical_borrowed_core_is_verified_and_never_deleted(self):
         src = self.source / '.agents/skills/grader-intake'
@@ -191,6 +361,15 @@ class LifecycleTests(unittest.TestCase):
         self.assert_rc(self.call('doctor', target=nested), 0)
         self.git('check-ignore', '-q', '과제 [a]/.hackathon-kit/')
         self.git('check-ignore', '-q', '과제 [a]/.agents/skills/grader-intake/')
+
+    def test_new_nested_git_target_is_excluded_before_it_exists(self):
+        nested = self.target / '새 과제 [a]' / 'new task'
+        source_before = snapshot(self.source)
+        self.install(target=nested)
+        self.assert_rc(self.call('doctor', target=nested), 0)
+        self.git('check-ignore', '-q', '새 과제 [a]/new task/.hackathon-kit/')
+        self.git('check-ignore', '-q', '새 과제 [a]/new task/.agents/skills/grader-intake/')
+        self.assertEqual(snapshot(self.source), source_before)
 
     def test_shared_worktree_excludes_and_preexisting_rules_survive_cleanup(self):
         self.git('config', 'user.email', 'test@example.com')

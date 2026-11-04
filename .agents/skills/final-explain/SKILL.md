@@ -44,6 +44,33 @@ Trace one actual record/request through the relevant stages with consistent reco
 values. Mark any unobserved stage honestly; do not splice unrelated examples into a
 claimed single verified run.
 
+Cross-check material numbers, units and counts across the explanation, summary and
+answer outlines against cited current outputs. Define different measures explicitly
+(for example physical lines versus accepted records); do not silently equate them.
+Give runnable commands exactly as supported by the inspected current interface and
+target environment. Cite the execution that verified them, or mark them UNVERIFIED;
+do not present a different platform's command as having run here.
+
+Include two compact evidence anchors in the explanation actually delivered:
+- **Before and now:** one actual pre-edit baseline outcome and the corresponding
+  current check/result, with source/version and input/policy/checker scope. A setup
+  failure or unavailable baseline with its reason is valid; it is not a fabricated
+  initial score. If scope or check counts changed, describe the observations
+  separately and do not calculate a score improvement.
+- **A rule applied to a real case:** when the task selects, filters or rejects
+  inputs, describe one actually observed retained/excluded case: the relevant input,
+  decisive original rule, and observed result. Explain in ordinary task language why
+  it stayed or was excluded; a list of rules or bug titles alone is insufficient.
+  Prefer an actual exclusion or competing-input decision when available. A successful
+  calculation alone does not explain a selection/filtering decision.
+  For a task without that workflow, use an actual relevant validation/boundary case.
+  If no such case was observed, say NOT OBSERVED / UNVERIFIED; do not invent a case,
+  imply an unrun test passed, or start a costly new test just to fill the story.
+
+These anchors belong in the existing short explanation, not a new quiz, checkpoint
+or participant decision. Cite actual evidence and make them understandable without
+memorizing code, identifiers or precise timestamps.
+
 Return a concise explanation with source locations, verified results, and limitations to the orchestrator and Recorder. Recorder is the sole writer of explanation notes under `.hackathon-kit/run/`; do not race it with your own note edits.
 
 The official follow-up is 6 questions × 5 minutes without AI/copy-paste. This explanation is preparation during task solving only. `followup-prep` owns any rehearsal within the remaining submission time.

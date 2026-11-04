@@ -13,6 +13,15 @@ Fill the installed run/templates in place: preserve their level-2 section headin
 
 Before dispatching CP1 Red, run `python .hackathon-kit/scripts/gate_check.py --preflight` and fix any document-format gaps. This is a read-only format check, not CP1 approval; do not set STATE or edit the receipt. Review once the artifacts are ready, avoiding a new reviewer merely to discover a heading mismatch.
 
+Use `references/local-evaluation.md` within intake for a useful pre-edit local score
+and later comparable coverage. Prefer supplied grading, avoid invented official
+weights, and bind actual rubric/checker/oracle hashes in GRADER or SPEC. Capture the
+baseline report, actual source version, original input/policy/options scope and raw
+native outcomes before edits. Only build a small missing evaluator when justified
+by original requirements and budget; never create a full judge as a new phase.
+Send subsequent evidence to Recorder; do not overwrite baseline/shared notes or
+equate local coverage with hidden-test success. Changed scope/rules cannot claim delta.
+
 Do not implement product logic until clean CP1 Constraint Red has reviewed the current artifacts, blocking findings have verified dispositions, STATE is CLOSED, and `python .hackathon-kit/scripts/gate_check.py` succeeds. A CLOSED label by itself is insufficient. CP1_REVIEW.json is the review receipt; never edit or refresh it yourself.
 
 Freeze the five reviewed intake/spec documents after CP1. Send routine later results to Recorder for VERIFY/DECISIONS/LIMITATIONS. Material requirements/spec/constraint changes must be reported to ORCHESTRATOR for gate reopening and targeted clean review before affected implementation continues.
@@ -49,5 +58,11 @@ If context degrades, send factual HANDOFF content to Recorder, then stop writing
 ## Submission
 
 Follow CP3 in the canonical protocol. Verify the current implementation and blocking-finding fixes; P0/P1 cannot be waived at deadline. Choose a valid smaller/partial solution if needed and label unrun checks UNVERIFIED. `final-explain` provides factual explanation; `followup-prep` owns the single six-question preparation flow. Preserve notes through preparation; cleanup comes last only if the submission format requires it.
+
+Deliver the actual before/current check observations and one real rule-applied
+retained/excluded or relevant boundary case, including scope limits or missing
+evidence, in the existing concise explanation. Follow the canonical protocol for
+observed clock reports, scoped searches, capacity failures and final writer stop.
+Internal notes alone do not establish that the participant received these facts.
 
 No Computer Use/automated UI control, external AI connection, external task-data transmission, or Git Push. Use Cofa Helper through the participant for UI/submission questions and official incident reporting for repeated technical failures.

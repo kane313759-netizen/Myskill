@@ -9,6 +9,7 @@ import json
 import math
 import re
 from collections import Counter
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 ENCODINGS = ("utf-8-sig", "cp949")
@@ -58,6 +59,45 @@ def mean(numbers):
     """Keep finite input averages finite even when their unscaled sum overflows."""
     scale = max(abs(number) for number in numbers)
     return (math.fsum(number / scale for number in numbers) / len(numbers)) * scale if scale else 0.0
+
+
+def canonical_value(value):
+    """Preserve values and nested types when identifying duplicates and distinct data."""
+    def tagged(item):
+        if item is None:
+            return ['null']
+        if isinstance(item, bool):
+            return ['bool', item]
+        if isinstance(item, str):
+            return ['str', item]
+        if isinstance(item, int):
+            return ['int', str(item)]
+        if isinstance(item, Decimal):
+            return ['decimal', str(item)]
+        if isinstance(item, float):
+            return ['float', item.hex()]
+        if isinstance(item, dict):
+            return ['object', [[key, tagged(item[key])] for key in sorted(item)]]
+        if isinstance(item, list):
+            return ['array', [tagged(entry) for entry in item]]
+        # Workbook dates/times must remain distinct from equal-looking string cells.
+        kind = type(item)
+        return ['python', kind.__module__, kind.__qualname__, str(item)]
+    return json.dumps(tagged(value), ensure_ascii=True, separators=(',', ':'))
+
+
+def _json_decimal(value):
+    try:
+        number = Decimal(value)
+    except InvalidOperation as error:
+        raise ValueError('Unsupported JSON number: ' + value) from error
+    if not number.is_finite():
+        raise ValueError('Nonfinite JSON number: ' + value)
+    return number
+
+
+def _json_constant(value):
+    raise ValueError('Nonfinite JSON number: ' + value)
 
 
 def choose_encoding(path, encoding=None):
@@ -143,7 +183,8 @@ def _json_rows(path, max_rows, max_json_bytes, encoding, records_key):
         raise ValueError(f"JSON exceeds safe size limit ({max_json_bytes} bytes)")
     for candidate in _encodings(path, encoding):
         try:
-            data = json.loads(raw.decode(candidate))
+            data = json.loads(raw.decode(candidate), parse_float=_json_decimal,
+                              parse_constant=_json_constant)
             break
         except UnicodeDecodeError:
             continue

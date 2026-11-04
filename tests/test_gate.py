@@ -2,12 +2,15 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('kit_gate', ROOT / 'scripts/gate_check.py')
@@ -174,6 +177,66 @@ class GateTests(unittest.TestCase):
         for value in ([], None, {'reviewer': {'context_mode': []}}, {'findings': [{'id': [], 'severity': [], 'status': []}]}):
             (self.kit / 'run/CP1_REVIEW.json').write_text(json.dumps(value))
             self.assertTrue(gate.check_gate(self.kit))
+
+    def test_record_reader_bounds_actual_bytes_and_preserves_exact_limit(self):
+        path = self.task / 'record.md'
+        path.write_bytes(b'x' * gate.MAX_RECORD_BYTES)
+        self.assertEqual(len(gate.read_record(path)), gate.MAX_RECORD_BYTES)
+        path.write_bytes(b'x' * (gate.MAX_RECORD_BYTES + 1))
+        with self.assertRaisesRegex(ValueError, '2 MiB'):
+            gate.read_record(path)
+        # A stale initial size must not turn a growing file into an unbounded read.
+        initial = mock.Mock(st_mode=stat.S_IFREG, st_size=0)
+        with mock.patch.object(Path, 'lstat', return_value=initial):
+            with self.assertRaisesRegex(ValueError, '2 MiB'):
+                gate.read_record(path)
+
+    def test_opened_record_descriptor_is_rechecked(self):
+        path = self.task / 'record.md'
+        path.write_text('ordinary file', encoding='utf-8')
+        with mock.patch.object(gate.os, 'fstat', return_value=mock.Mock(st_mode=stat.S_IFIFO)):
+            with self.assertRaisesRegex(ValueError, 'opened record is not a regular file'):
+                gate.read_record(path)
+
+    def test_final_record_symlink_is_rejected_before_open(self):
+        target, link = self.task / 'record.md', self.task / 'record-link.md'
+        target.write_text('ordinary file', encoding='utf-8')
+        try:
+            link.symlink_to(target)
+        except (OSError, NotImplementedError):
+            self.skipTest('symlinks unavailable')
+        with mock.patch.object(gate.os, 'open', side_effect=AssertionError('must not open symlink')) as opened:
+            with self.assertRaisesRegex(ValueError, 'regular non-symlink'):
+                gate.read_record(link)
+        opened.assert_not_called()
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'named pipes unavailable')
+    def test_fifo_records_reject_without_blocking_in_every_gate_reader(self):
+        self.complete()
+        cases = [('run/STATE.md', ()), ('run/GRADER.md', ()),
+                 ('templates/GRADER.md', ()), ('run/CP1_REVIEW.json', ()),
+                 ('run/GRADER.md', ('--preflight',)),
+                 ('run/GRADER.md', ('--artifact-hashes',))]
+        for relative, extra in cases:
+            with self.subTest(relative=relative, extra=extra):
+                path = self.kit / relative
+                content = path.read_bytes()
+                path.unlink()
+                os.mkfifo(str(path))
+                try:
+                    with mock.patch.object(gate.os, 'open', side_effect=AssertionError('must not open FIFO')) as opened:
+                        with self.assertRaisesRegex(ValueError, 'regular non-symlink'):
+                            gate.read_record(path)
+                    opened.assert_not_called()
+                    result = subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/gate_check.py'),
+                                             '--kit', str(self.kit), *extra],
+                                            capture_output=True, text=True, timeout=3)
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    self.assertIn('regular non-symlink', result.stdout + result.stderr)
+                    self.assertNotIn('Traceback', result.stdout + result.stderr)
+                finally:
+                    path.unlink()
+                    path.write_bytes(content)
 
     def test_cli_hashes_is_utility_not_approval_and_gate_is_read_only(self):
         self.complete()

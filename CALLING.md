@@ -9,6 +9,8 @@ Use the README installation steps with a pre-exam verified SHA or frozen flat ZI
 Use the hackathon-orchestrator skill.
 Read .hackathon-kit/EXAM_POLICY.md first.
 One evidence pass for grader intake, safe baseline, immutables, routing and constraints.
+Track useful local baseline-to-final checks per references/local-evaluation.md;
+freeze rubric/checker hashes/scope, never invent official weights or hidden scores.
 Use original task tools, kit helpers and standard library; optional additions are NONE.
 Do not automatically search/adopt/install catalog helpers, even if present. Preserve
 permitted required project setup; record sources/setup/fallback in SPEC's existing CP1 plan.
@@ -21,7 +23,7 @@ Do not implement until independent CP1 review and gate_check pass.
 Only when supported by the provided environment; Sol 6.1 preferred when available.
 
 ```text
-Read .hackathon-kit/prompts/TUTOR.md and EXAM_POLICY.md.
+Read .hackathon-kit/prompts/TUTOR.md and .hackathon-kit/EXAM_POLICY.md.
 You are strictly read-only, including run notes and commands.
 Explain current code/evidence; do not decide or edit for MAIN.
 ```

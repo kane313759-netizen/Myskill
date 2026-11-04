@@ -26,6 +26,9 @@
 <!-- Task tools only: original supplied/declared/required tools, kit helpers and stdlib.
 Optional additions NONE, even if installed. Record task source/setup, availability,
 fallback, data/side-effect guards and budget in normal CP1; no extra flag/heading. -->
+<!-- For useful local scoring, bind actual rubric/evaluator/oracle paths+hashes,
+independent expected controls, input/policy/options scope and a bounded rerun plan.
+Use visible native scores separately; unknown official weights remain unknown. -->
 
 ## Domain playbooks activated
 - none by default

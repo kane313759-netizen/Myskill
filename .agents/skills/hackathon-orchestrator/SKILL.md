@@ -25,6 +25,14 @@ For UI/chat-only instructions or unavailable original files, capture provenance-
 
 Inspect baseline command side effects and network use before execution. Bound checks using remaining exam time, expected runtime, and time needed for implementation, review, submission, and follow-up preparation. Record unavailable checks with reasons; never fabricate a passing baseline. Activate data/tool/domain playbooks only with task/grader evidence.
 
+Make progress measurable using `references/local-evaluation.md` in this same intake
+pass. Prefer supplied visible grading; otherwise use only small useful local checks
+from original requirements. Bind local rubric/checker/oracle hashes in the existing
+GRADER or SPEC and preserve the pre-edit report/version/scope in BASELINE. CP1 Red
+reviews these as claims, including relevant positive/negative controls. No new role,
+checkpoint, gate bit or required numerical target is added. Official native metrics
+and local declared-check coverage remain separate; unknown weights stay unknown.
+
 Keep normal routing on original task tools, kit helpers and the standard library;
 optional additions are NONE. Do not automatically inventory, adopt or install catalog
 helpers, even if already present. Preserve permitted original project setup and
@@ -41,6 +49,33 @@ MAIN reports classification and intake outcomes; ORCHESTRATOR alone updates STAT
 Create a new reviewer with no inherited conversation. Where supported, explicitly use `fork_turns="none"`; otherwise use a genuinely clean separate session. A new agent with full inherited history is not an independent review. If neither is available, keep the gate open and report the missing review; do not relabel an inherited review as independent.
 
 Pass the role prompt, EXAM_POLICY.md, original task/grading/test/schema/sample paths, and only artifacts needed for that review. Read original sources first. All MAIN-authored documents, including GRADER/IMMUTABLES/SPEC and data profiles, are claims to verify, not independent authority. Do not include prior MAIN dialogue or DECISIONS as background facts. Record actual model and `NO_HISTORY` or `CLEAN_SESSION`; follow the same exam restrictions inside the isolated session.
+
+Supply an explicit read set: original source paths, current product roots and
+specifically shared evidence files. Reviewers must scope search/list commands to
+these paths; do not discover the whole task tree or enumerate other roles' scratch,
+notes or outputs. Narrow any mixed directory before searching it. Report accidental
+exposure, what was seen and its possible effect; do not claim perfect isolation.
+Assess whether a fresh clean review is needed for a material exposure.
+
+Private agent histories, session logs and harness output stores (including those
+under `~/.claude` and `~/.codex`) are outside the review read set. ORCHESTRATOR may
+share specific task-evidence reports, but cannot waive isolation by authorizing
+another role's private scratch or history.
+
+Before using a role's scratch path as cwd/TMPDIR, create its own directory from a
+known existing authorized parent. Use the installed prompt paths and current
+documented command syntax; inspect help on an argument error instead of guessing.
+If agent capacity is exhausted, retain the original request, finish/release owned
+auxiliary work and schedule required reviews sequentially. An existing Red may only
+recheck its own findings within the same checkpoint; it cannot supply the independent
+review for a new checkpoint. A new checkpoint, including CP3, must wait for a new
+NO_HISTORY/CLEAN_SESSION reviewer under the launch rule above. While waiting, keep
+that checkpoint's review status NOT_RUN; never copy an earlier DONE or relabel an
+old session as clean. Reuse other existing roles only for work consistent with their
+ownership and history. Relay a question only through an already
+authorized participant/support channel, without changing its content. Do not invent
+an answer or introduce external AI/UI automation. Missing independent review keeps
+the relevant gate open; an unavailable tool is not a passing check.
 
 # CP1 — SPEC FREEZE
 
@@ -69,6 +104,12 @@ MAIN builds the smallest scoring-relevant end-to-end path. Preserve contracts/te
 
 At the first working scoring-relevant path, run clean CODE_RED and then Recorder. Repeat Constraint Red only for a material assumption/constraint/objective risk. Inspect dynamic-test side effects; isolate temporary data, processes, and ports, and avoid MAIN's live DB/process. Report necessary checks that cannot safely run as UNVERIFIED. MAIN sends factual evidence to Recorder, which maintains ongoing notes and prepares six-axis follow-up coverage early.
 
+Recorder retains baseline/CP2/final local coverage under unchanged rubric, evaluator
+hashes and known input/policy/options scope. Cheap affected checks may track material
+progress between checkpoints; heavy reruns need a relevant change/failure/contract.
+Changed checks/scope are non-comparable, never silent score improvement. A local
+maximum does not replace the original tests, independent reviews or official rules.
+
 Reuse the reviewed task toolchain after routine edits; do not add optional helper
 experiments. MAIN sends actual errors/results to Recorder. Material dependency,
 mutation or network/data-route changes use the normal reopen/review rule before
@@ -78,21 +119,57 @@ lint success or empty extraction is not product verification.
 
 # CP3 — PRE-SUBMIT
 
-Record the official exam clock/timezone and the earlier of the stage cutoff and whole-exam cutoff. The supplied brief gives 10:00–14:00, about 5 minutes of transition (excluded from solving but included in the total window), and 30 minutes for six follow-up answers; late starts do not extend 14:00. Reserve the full follow-up and transition when planning the latest solving submission, and start submission at least 10 minutes before that deadline as the detailed guide recommends. Use newer official UI instructions if they change the schedule; never infer exam time from the host UTC clock alone.
+Record the official exam clock/timezone and the earlier of the stage cutoff and whole-exam cutoff. The latest confirmed official schedule is 2026-11-04 19:00–23:00 as printed in the guide; confirm the official timezone in the exam UI and do not reuse that date for a future exam. Newer official UI instructions always win. The guide describes about 5 minutes of question-generation transition (excluded from solving but included in the total window); the UI may show up to 10 minutes per attempt and restart preparation on automatic retry. Late starts, waiting and retries do not extend 23:00. Reserve the full 30 minutes for six follow-up answers and transition time when planning the latest solving submission, and start submission at least 10 minutes before that deadline as the detailed guide recommends. Never infer exam time from the host UTC clock alone.
+
+Current-time/remaining-time reports need an actual clock-tool or system-clock
+observation and the officially confirmed deadline/timezone. Never guess the current
+time or hard-code a retest date. A host clock observation does not establish the
+official exam schedule. If either source is unavailable, state UNKNOWN and obtain
+the missing official time through the participant/Cofa channel.
 
 Budget CP3 from estimated review/check/repair/submission/preparation time and the actual deadline; start earlier if needed. A 15–20-minute reminder does not guarantee that all remaining work fits. Stop feature expansion, then:
 
 1. Clean final CODE_RED and CONSTRAINT_RED review the current result and original evidence; ORCHESTRATOR records findings and verified dispositions.
 2. MAIN fixes submission-blocking defects and runs `verification`. P0/P1 cannot be waived at deadline; choose a valid smaller/partial solution if needed. Mark other unrun checks UNVERIFIED and state limitations honestly.
+   Before collection/freeze, any later behavior-changing edit needs affected Code
+   Red review under the launch/reuse rules above and relevant verification within
+   the existing checkpoint. Reconcile changed
+   product and required runnable-document paths with the last reviewed version in
+   the existing checkpoint report/VERIFY before READY. A text-only edit still needs
+   source/command consistency checks; equal result bytes do not prove code safety
+   or permit any edit after actual collection/freeze.
 3. Recorder finalizes factual evidence notes. MAIN uses `final-explain` for factual explanation and `followup-prep` as the sole practice owner, covering all six official question slots. Do not quiz the participant twice or defer evidence collection to this checkpoint.
 4. Before declaring preparation complete, ORCHESTRATOR reads the final VERIFY/LIMITATIONS/FOLLOWUP_CHEATSHEET against the latest checkpoint dispositions and current code version. If a late clarification, review decision, or fix occurred after Recorder prepared the notes, send the actual new evidence back to Recorder and refresh only affected claims/outlines; do not repeat a whole quiz. A resolved finding must not remain pending in the final answer sheet, and earlier reproduced failures must not be erased.
    During the permitted preparation phase, deliver the concise final explanation and six prepared outlines to the participant. Check the actual delivered coverage against current evidence; internal notes or an agent return alone do not establish delivery. Record any time-limited omission honestly, preserve the submission deadline, and do not restart completed practice. This adds no per-step teach-back or second quiz.
-5. ORCHESTRATOR records cp3_code_red/cp3_constraint_red as DONE, verification as RECORDED, and followup_prep as DONE only after the corresponding work and six answer outlines are complete. Run doctor. Cleanup is last, after preparation and preservation of notes, and only if the submission format requires helper removal.
+   Confirm that the delivered text contains the actual before/current observations
+   and one real rule-applied case required by `final-explain`, or their explicit
+   evidence gap/reason. Do not ask the participant to discover these missing facts.
+5. Before marking either CP3 Red DONE, ORCHESTRATOR checks its existing checkpoint
+   report for the actual fresh reviewer/session, creation method and
+   NO_HISTORY/CLEAN_SESSION mode, current reviewed code/result scope, findings and
+   dispositions. An earlier checkpoint's review or its targeted fix recheck cannot
+   satisfy this final review. A context label alone does not establish a fresh
+   launch; report missing evidence and leave that review NOT_RUN rather than DONE.
+   Record cp3_code_red/cp3_constraint_red as DONE, verification as RECORDED, and
+   followup_prep as DONE only after the corresponding work and six answer outlines
+   are complete. Run doctor. Cleanup is last, after preparation and preservation of
+   notes, and only if the submission format requires helper removal.
+
+Before declaring writer stop/READY, finish factual completion updates using already
+observed results. Distinguish ready for collection from actual collection/freeze.
+After a stop/freeze instruction, report any pending record rather than silently
+marking it complete or resuming writes; only an explicit authorized pre-freeze
+resumption may finish it. A frozen submission is never rewritten for a later grade.
 
 Use Cofa Helper for exam UI/submission questions and official incident reporting for repeated technical failures. The participant handles UI actions; no Computer Use/automated UI control, external task-data transmission, external AI connection, or Git Push.
 
 # Context replacement and review budget
 
 If MAIN's context degrades, have it send HANDOFF content to Recorder, stop the old writer, then start one replacement MAIN from evidence. If Recorder is unavailable, ORCHESTRATOR may explicitly transfer HANDOFF.md alone to MAIN for one sequential write, then return ownership. ORCHESTRATOR records the replacement; only one MAIN is active.
+
+After interruption/reconnect, reconcile known owned sessions, outstanding requests,
+pending reports and authorized file changes before dispatching a replacement. An
+unknown worker status is not completion; confirm the old writer has stopped before
+starting another. Use explicit shared evidence, not private session-log discovery.
 
 There are three planned checkpoints. Extra review is for material requirement/spec changes, a new blocking risk, major architecture change, or repeated failure; recheck affected findings/evidence rather than reopening every checklist after small edits.
