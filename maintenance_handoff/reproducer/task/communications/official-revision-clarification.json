@@ -1,0 +1,12 @@
+{
+  "notice_id": "REVISION-RANGE-ERRATUM-1",
+  "issued_at_utc": "2026-11-04T05:53:41.320869+00:00",
+  "issuer": "모의 출제자/감독 root; 실제SK운영진이 아님",
+  "kind": "출제 명세의 표현가능성 오류 정정",
+  "verbatim": "기존 원문의 상한 없는 개정번호 정수 조건과 필수 SQLite INTEGER 저장 형식이 충돌함을 인정하고 정정합니다. 유효 revision은 bool이 아닌 0 이상 9223372036854775807 이하의 정수입니다. 범위 밖 revision 행은 BAD_SCHEMA로 거부하며, FUTURE·중복ID 예약·버전 선택보다 앞서 처리합니다. 원본 TASK/자료는 수정하지 않습니다. 기존 공개·권한·선택·순위·정책·출력 규칙과 채점 배점은 유지합니다. 제공 sample/full 입력의 모든 revision은 이 범위 안이라 해당 데이터의 기대 결과는 달라지지 않습니다. 이 정정을 받기 전에 상한을 임의 확정하지 않은 대응은 올바른 대응입니다.",
+  "field": "revision",
+  "minimum": 0,
+  "maximum": 9223372036854775807,
+  "on_invalid_row": "BAD_SCHEMA",
+  "grading": "No point-weight change. Existing normal sample/full truth unchanged; separate revised validation controls published only as execution evidence after collection."
+}

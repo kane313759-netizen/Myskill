@@ -1,0 +1,11 @@
+# Historical synthetic reproducer — maintenance only
+
+This is an authored synthetic task, not an SK exam problem. It is not installed by the kit or included by package_release.py. Do not expose organizer/reference/fixed_candidate to a fresh performer or claim a blind rerun after reading them.
+
+Use Python3.12 for this historical harness (kit helpers retain their separately tested3.8+ compatibility). In a NEW SCRATCH COPY of this directory, `python -B organizer/generate_data.py` regenerates deterministic sample6000/full240000 input rows,80/1500 queries, public12 answers and construction truth. It writes generatedfiles; never point it at a preserved oldartifact. Compare with task/DATA_INVENTORY.json before generation if verifying exact old hashes.
+
+Inspect `python -B -m organizer.harness.prepare_truth --help` and `python -B organizer/grade.py --help` before running. Prepare independent base truth, then use organizer.harness.policy_truth for the released max3 overlay; grade requires explicit matching --task/--candidate/--truth/--policy/--work. The --work directory must not already exist. Put stdoutlogs outside it. Set PYTHONDONTWRITEBYTECODE=1 for parent and child executions. Execute a copy of fixed_candidate, preserve originals and check all filenames/hashes after.
+
+Core contains two disclosed organizer corrections: revisionI64bound from publishedmockerratum, and no mandatory equality for advisory META count. Existing numeric weights/denominator unchanged. The fixed96-pointinputscope does not include hugeCSVinteger weights; default integer conversion in the reference is a known limitation. Extra hugeinteger checks used independently precommitted literal decimal expected answers, not reference outputs or candidate-derived oracles. Do not weaken parent untrusted-output parsers globally or silently claim complete reference coverage.
+
+The optional legacy_checker intentionally contradicts one tie expectation. OriginalTASK/native rubric is authority; it is a supplied-fixture discrepancy, not a generated implementation failure. Historical scores and deadline failure must not be retroactively rewritten. To test final skill operating unknown-task behavior, design a fresh private task/grader/control set before the performer starts; this public solvedfixture alone cannot prove that property.

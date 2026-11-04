@@ -1,0 +1,16 @@
+{
+  "updated_at": "2026-11-04T07:40:51.244174+00:00",
+  "user_latest_instruction": "서술형 연습 빼고 일단 완벽한 스킬이 되어야 한다",
+  "goal": "SKILL_HARDENING_AND_VERIFICATION",
+  "actual_user_written_practice": "EXCLUDED_NOT_PENDING",
+  "official_six_question_prep_feature": "PRESERVE",
+  "source_commit": "9ac5479a109b4302e6d3a42fcc74b251999ddad2",
+  "priority": [
+    "finalexactrevisionintegration",
+    "late_notice_deadline_collection",
+    "role_gate_clean_review_recovery",
+    "readonly_execution_and_lifecycle_boundaries"
+  ],
+  "historical_failures": "PRESERVE_NOT_RETROACTIVELY_PASS",
+  "limits": "ActualProbeUI/models/Proctor unavailablehere mustnotbeclaimedverified"
+}

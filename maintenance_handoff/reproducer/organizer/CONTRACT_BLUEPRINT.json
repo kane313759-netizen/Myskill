@@ -1,0 +1,154 @@
+{
+  "canonical_json": "UTF-8; json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False). No BOM. JSON artifact files end with one LF. Fingerprint serialization has no LF. No insignificant whitespace in required JSON artifacts.",
+  "cli": "Success 0. Any invalid query, policy mismatch, corrupt bundle, unsafe output, invalid source structure, or changed --resume returns 2. Failed search preserves pre-existing ANSWERS bytes. Same source inventory+effective policy resume returns 0 and leaves all four artifact bytes and mtimes unchanged. Failed build preserves existing output artifacts; fresh build may create OUT only when no protected collision exists. Build without --resume refuses a nonempty OUT. verify succeeds without source data; checks format/hashes/schema/read-only logical consistency, not source truth. search/verify/serve may not change any bundle file byte or mtime.",
+  "cli_commands": [
+    "python kb.py build --input DATA --out OUT [--policy FILE] [--resume]",
+    "python kb.py search --index OUT --queries FILE --out ANSWERS [--policy FILE]",
+    "python kb.py verify --index OUT",
+    "python kb.py serve --index OUT --host 127.0.0.1 --port PORT [--policy FILE]"
+  ],
+  "contract_version": "KB-TRIAL-1",
+  "csv": {
+    "tag_weights": "UTF-8 without BOM, exact header tag,weight. tag nonempty exact string; weight ASCII [1-9][0-9]*. Duplicate tag invalid. CSV extra/missing columns or malformed encoding invalid. Empty files and blank physical CSV rows invalid. CSV record order carries no meaning.",
+    "tenants": "CP949 bytes, CSV newline rules, exact header tenant_id,label. tenant_id nonempty exact string; label any string including empty. Duplicate tenant_id and reserved __public__ row invalid. Registered nonpublic tenants only."
+  },
+  "document_schema": "Exact 10 fields record_id,tenant_id,doc_id,revision,updated_at,published_at,state,title,body,tags; no additional or missing keys. Identifier fields nonempty strings; revision nonboolean integer >=0; state PUBLISHED or WITHDRAWN; title nonblank string; body any string; tags array of known exact strings, with repetitions allowed.",
+  "generator": "organizer/generate_data.py",
+  "http": "GET /health => 200 {status:ok,policy_id:<id>}; GET /stats => stats; POST /search one query => result. Malformed JSON/query =>400 {error:BAD_QUERY}. Unknown path404 {error:NOT_FOUND}; unsupported method405 {error:METHOD_NOT_ALLOWED}. GET / => UTF-8 HTML for nondevelopers, includes policy id, max results, as_of, document count, and limitation that this is evidence retrieval with no generated counseling answer. JSON responses canonical+LF; HTML contents not exact-byte graded. Policy mismatch fails before listen with exit2.",
+  "id_rules": "record_id, tenant_id, doc_id and tag identifiers are nonempty exact strings. Never strip, casefold, normalize Unicode, or coerce numeric-looking identifiers. qid is a nonempty string. title must contain at least one nonwhitespace code point; body may be empty.",
+  "input_layout": {
+    "documents": "documents-*.jsonl (relative path UTF-8 byte order)",
+    "full": "task/data/full",
+    "full_queries": "task/queries/full.jsonl",
+    "public_expected": "task/expected/sample-first12.jsonl",
+    "required_files": [
+      "META.json",
+      "tenants.csv",
+      "tag_weights.csv",
+      "policy.json"
+    ],
+    "sample": "task/data/sample",
+    "sample_queries": "task/queries/sample.jsonl"
+  },
+  "json_types": "Boolean never satisfies integer. Non-finite JSON numbers and duplicate object keys are invalid at every depth.",
+  "line_processing": "Files sorted by relative UTF-8 path bytes; lines in physical order. Strip one terminal LF and preceding CR, and optional UTF-8 BOM only at first physical line of each file. A payload is blank iff empty or valid UTF-8 consisting entirely of Unicode whitespace. Nonblank payload >65536 bytes => OVERSIZE before UTF-8 or JSON validation. Otherwise invalid UTF-8/JSON/duplicate keys/nonfinite => BAD_JSON; bad fields or unknown tenant/tag => BAD_SCHEMA; either updated_at or published_at after as_of => FUTURE; previously retained record_id => DUPLICATE_RECORD_ID; else retain.",
+  "manifest": {
+    "exact_fields": {
+      "artifacts": {
+        "index.sqlite": "SHA256",
+        "rejections.json": "SHA256",
+        "stats.json": "SHA256"
+      },
+      "as_of_utc": "META.as_of_utc",
+      "effective_policy": "complete effective policy object",
+      "policy_fingerprint": "SHA256(canonical effective_policy)",
+      "schema_version": 1,
+      "source_fingerprint": "SHA256(canonical source_inventory)",
+      "source_inventory": [
+        {
+          "path": "relative POSIX path",
+          "sha256": "file SHA256",
+          "size": "integer bytes"
+        }
+      ]
+    },
+    "inventory_rule": "Every DATA regular file recursively, including original policy and META, sorted by relative path UTF-8 bytes. Reject symlinks and nonregular entries. OUT must be disjoint from DATA and may not alias any source."
+  },
+  "meta": {
+    "exact_fields": {
+      "as_of_utc": "2026-11-02T00:00:00Z",
+      "expected_nonblank_document_rows": "nonnegative integer reference statistic",
+      "schema_version": 1
+    }
+  },
+  "policy": {
+    "base": {
+      "effective_at": "2026-11-01T00:00:00+09:00",
+      "max_results": 5,
+      "policy_id": "KB-BASE-1"
+    },
+    "exact_fields": {
+      "effective_at": "timezone-aware ISO-8601 string",
+      "max_results": "positive integer",
+      "policy_id": "nonempty string"
+    },
+    "overlay": "--policy supplies a complete replacement policy object; DATA/policy.json stays unchanged. policy_fingerprint = SHA256(canonical effective policy). effective_at must not exceed META.as_of_utc."
+  },
+  "public_output_schema": "task/docs/OUTPUT_SCHEMA.md",
+  "public_spec": "task/TASK.md",
+  "queries": "Exact keys qid,tenant_id,terms, optional limit. qid and tenant_id nonempty strings; terms array of strings (empty and unknown terms permitted); limit positive nonboolean integer. Distinct terms once. Tenant must be registered nonpublic tenant; __public__ query is FORBIDDEN. Unknown tenant FORBIDDEN before matching. Known tenant sees own plus __public__. Sum positive integer weights of matching distinct exact terms. score>0 only; order (-score, doc_id UTF-8 bytes, tenant_id UTF-8 bytes); cap min(limit or policy.max_results, policy.max_results).",
+  "rejections": {
+    "exact_fields": {
+      "counts": {
+        "BAD_JSON": "count",
+        "BAD_SCHEMA": "count",
+        "DUPLICATE_RECORD_ID": "count",
+        "FUTURE": "count",
+        "OVERSIZE": "count"
+      },
+      "retained_records": "eligible unique record_id records before version selection",
+      "schema_version": 1
+    },
+    "invariants": [
+      "sum(counts.values()) + retained_records = actual nonblank document lines",
+      "blank lines are excluded",
+      "UNKNOWN tenant or tag is BAD_SCHEMA",
+      "record_id becomes reserved only when first eligible valid record is retained"
+    ]
+  },
+  "result": {
+    "exact_fields": {
+      "policy_id": "effective policy id",
+      "qid": "query qid",
+      "sources": [
+        {
+          "doc_id": "original string",
+          "revision": "nonnegative integer",
+          "score": "positive integer",
+          "snippet": "body[:80] Unicode code points",
+          "tenant_id": "original string",
+          "title": "original string"
+        }
+      ],
+      "status": "OK|NO_MATCH|FORBIDDEN"
+    },
+    "serialization": "canonical JSON plus LF per query, including HTTP response bodies as canonical JSON plus LF"
+  },
+  "selection": "Within exact (tenant_id,doc_id), greatest revision then actual updated_at instant; exact tie retains first physical record. Latest WITHDRAWN hides key. published_at is used only for future exclusion. record_id dedup spans all files and tenants.",
+  "sha256": "lowercase 64-digit hexadecimal",
+  "sqlite": {
+    "determinism": "Fresh SQLite bytes may differ; required logical rows and all search answers must be deterministic.",
+    "docs": "Only selected PUBLISHED records. tags stores canonical JSON array preserving input tag order and duplicates. Extra columns/tables/indexes permitted; required table names and column types remain usable. No private-only schema.",
+    "required_meta": {
+      "as_of_utc": "META.as_of_utc",
+      "policy_fingerprint": "effective fingerprint",
+      "registered_tenants": "canonical JSON array of every registered nonpublic tenant_id sorted by UTF-8 bytes",
+      "schema_version": "1",
+      "tag_weights": "canonical JSON object mapping every known tag to positive nonboolean integer weight"
+    },
+    "required_tables": {
+      "docs": "tenant_id TEXT, doc_id TEXT, revision INTEGER, title TEXT, body TEXT, tags TEXT; PRIMARY KEY(tenant_id,doc_id)",
+      "meta": "key TEXT PRIMARY KEY, value TEXT"
+    }
+  },
+  "stats": {
+    "exact_fields": {
+      "as_of_utc": "META.as_of_utc",
+      "doc_count": "selected PUBLISHED keys",
+      "max_results": "effective max",
+      "policy_id": "effective policy id",
+      "schema_version": 1,
+      "selected_keys": "all selected keys including WITHDRAWN",
+      "status": "COMPLETE",
+      "tenant_count": "registered nonpublic tenants",
+      "withdrawn_count": "selected WITHDRAWN keys"
+    },
+    "invariants": [
+      "selected_keys = doc_count + withdrawn_count",
+      "all counts are nonnegative nonboolean integers",
+      "tenant_count excludes __public__"
+    ]
+  },
+  "timestamps": "Aware ISO-8601 string accepted by datetime.fromisoformat after terminal Z -> +00:00; no surrounding whitespace; reject a missing offset, non-string, bool, invalid date, or a date-only value. Compare actual instants. Original strings need not be canonicalized.",
+  "verify_limits": "Validate canonical JSON artifact shapes/types, hashes, internal fingerprints, required DB table/column shape, unique key/content types, registered_tenants/tag_weights meta shapes/canonical values, docs tenant membership and known tags, doc_count=COUNT(docs), selected_keys=doc_count+withdrawn_count, required DB meta and policy agreement. No fresh rebuild/source provenance claim. Verify does not require source files."
+}
