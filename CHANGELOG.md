@@ -9,6 +9,9 @@
 - Scope independent reviewer discovery to explicit original/product/shared-evidence
   paths. Record accidental exposure; preserve clean-history requirements when
   capacity is exhausted and schedule required reviews sequentially.
+- Existing Red sessions may only recheck their own same-checkpoint findings; each
+  new checkpoint still needs a fresh clean review with launch/scope evidence before
+  DONE. README examples remain conditional on the actual task workflow.
 - Use observed clock values with official deadlines, prepare owned scratch paths
   before use, and finish factual status updates before writer stop. Preserve the
   distinction between ready and actually frozen; never rewrite a frozen submission.

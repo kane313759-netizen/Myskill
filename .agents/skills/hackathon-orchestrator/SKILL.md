@@ -61,9 +61,13 @@ Before using a role's scratch path as cwd/TMPDIR, create its own directory from 
 known existing authorized parent. Use the installed prompt paths and current
 documented command syntax; inspect help on an argument error instead of guessing.
 If agent capacity is exhausted, retain the original request, finish/release owned
-auxiliary work and schedule required reviews sequentially. Reuse an existing role
-only for work consistent with its ownership and history; a reused/inherited MAIN
-context cannot replace a clean Red. Relay a question only through an already
+auxiliary work and schedule required reviews sequentially. An existing Red may only
+recheck its own findings within the same checkpoint; it cannot supply the independent
+review for a new checkpoint. A new checkpoint, including CP3, must wait for a new
+NO_HISTORY/CLEAN_SESSION reviewer under the launch rule above. While waiting, keep
+that checkpoint's review status NOT_RUN; never copy an earlier DONE or relabel an
+old session as clean. Reuse other existing roles only for work consistent with their
+ownership and history. Relay a question only through an already
 authorized participant/support channel, without changing its content. Do not invent
 an answer or introduce external AI/UI automation. Missing independent review keeps
 the relevant gate open; an unavailable tool is not a passing check.
@@ -128,7 +132,16 @@ Budget CP3 from estimated review/check/repair/submission/preparation time and th
    Confirm that the delivered text contains the actual before/current observations
    and one real rule-applied case required by `final-explain`, or their explicit
    evidence gap/reason. Do not ask the participant to discover these missing facts.
-5. ORCHESTRATOR records cp3_code_red/cp3_constraint_red as DONE, verification as RECORDED, and followup_prep as DONE only after the corresponding work and six answer outlines are complete. Run doctor. Cleanup is last, after preparation and preservation of notes, and only if the submission format requires helper removal.
+5. Before marking either CP3 Red DONE, ORCHESTRATOR checks its existing checkpoint
+   report for the actual fresh reviewer/session, creation method and
+   NO_HISTORY/CLEAN_SESSION mode, current reviewed code/result scope, findings and
+   dispositions. An earlier checkpoint's review or its targeted fix recheck cannot
+   satisfy this final review. A context label alone does not establish a fresh
+   launch; report missing evidence and leave that review NOT_RUN rather than DONE.
+   Record cp3_code_red/cp3_constraint_red as DONE, verification as RECORDED, and
+   followup_prep as DONE only after the corresponding work and six answer outlines
+   are complete. Run doctor. Cleanup is last, after preparation and preservation of
+   notes, and only if the submission format requires helper removal.
 
 Before declaring writer stop/READY, finish factual completion updates using already
 observed results. Distinguish ready for collection from actual collection/freeze.

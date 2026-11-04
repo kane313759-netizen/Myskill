@@ -11,6 +11,11 @@ is not independent. Give it original requirements and the candidate/diff, not th
 author's reasoning or previous review votes. Keep review scratch outside the kit
 checkout and task submission, within the actual permitted workspace.
 
+For an offline handoff, include the comparison base's source as well as candidate
+source and the diff; a base commit ID alone may be inaccessible to the reviewer.
+Use a permitted local scratch path in the reviewer's environment. Paths from the
+author's environment are references, not requirements to create or access them.
+
 Copy this request, replacing the revision/path placeholders:
 
 ```text
