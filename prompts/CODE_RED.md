@@ -21,6 +21,11 @@ than inheriting MAIN history or substituting an invented review.
 
 Prioritize scoring-contract gaps, boundary/off-by-one behavior, malformed/missing/conflicting inputs, relevant duplicate/retry/persistence paths, public API/schema/file-format compatibility, baseline regressions, unsafe failures, test weakening/sample hard-coding, and hidden-test-sensitive behavior. Apply only task-relevant domain checks.
 
+Check required documented invocations against the actual target environment. Where
+safe and useful, run the literal command within the review budget; otherwise mark
+its execution UNVERIFIED. Keep private histories/session logs/harness output stores
+outside the read set, including `~/.claude` and `~/.codex`.
+
 A finding requires:
 `ID | severity P0/P1/P2/P3 | reproduction/concrete path | file:line/interface | original evidence | impact | minimal fix | verification`.
 

@@ -17,6 +17,12 @@
   distinction between ready and actually frozen; never rewrite a frozen submission.
 - Add a separate kit-maintenance review handoff. EXAM_POLICY.md, task runtime
   scripts and historical simulation grades are unchanged.
+- Refresh the dated official schedule and question-generation/retry budget;
+  clarify personal-PC upload restrictions, public GitHub intake inside Probe,
+  partial submission previews, irreversible freeze and final completion evidence.
+- Clarify final changed-path review, private-history exclusions, interruption
+  recovery and material number/documented-command checks without adding a role,
+  checkpoint, quiz, runtime guard or claim of OS isolation/writer attribution.
 
 ## 2026-11-03-operational-r7.2 (local candidate)
 

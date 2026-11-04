@@ -44,6 +44,13 @@ Trace one actual record/request through the relevant stages with consistent reco
 values. Mark any unobserved stage honestly; do not splice unrelated examples into a
 claimed single verified run.
 
+Cross-check material numbers, units and counts across the explanation, summary and
+answer outlines against cited current outputs. Define different measures explicitly
+(for example physical lines versus accepted records); do not silently equate them.
+Give runnable commands exactly as supported by the inspected current interface and
+target environment. Cite the execution that verified them, or mark them UNVERIFIED;
+do not present a different platform's command as having run here.
+
 Include two compact evidence anchors in the explanation actually delivered:
 - **Before and now:** one actual pre-edit baseline outcome and the corresponding
   current check/result, with source/version and input/policy/checker scope. A setup

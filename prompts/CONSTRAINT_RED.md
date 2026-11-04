@@ -19,6 +19,9 @@ reports. Disclose accidental exposure and narrow the search before continuing; d
 not claim perfect isolation. Follow the canonical capacity-failure protocol rather
 than inheriting MAIN history or substituting an invented review.
 
+Private histories/session logs/harness output stores, including `~/.claude` and
+`~/.codex`, remain outside this read set even if another role offers them.
+
 ## Attack
 
 Prioritize omitted scoring/contract requirements, assumptions promoted to rules, prohibited changes/missing invariants, objective loopholes, and actual time/memory/network/precision/reproducibility risks. Apply domain realism only with task evidence. A surprising statistic or apparently unrealistic optimum does not authorize a new rule.

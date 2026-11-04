@@ -57,6 +57,11 @@ notes or outputs. Narrow any mixed directory before searching it. Report acciden
 exposure, what was seen and its possible effect; do not claim perfect isolation.
 Assess whether a fresh clean review is needed for a material exposure.
 
+Private agent histories, session logs and harness output stores (including those
+under `~/.claude` and `~/.codex`) are outside the review read set. ORCHESTRATOR may
+share specific task-evidence reports, but cannot waive isolation by authorizing
+another role's private scratch or history.
+
 Before using a role's scratch path as cwd/TMPDIR, create its own directory from a
 known existing authorized parent. Use the installed prompt paths and current
 documented command syntax; inspect help on an argument error instead of guessing.
@@ -114,7 +119,7 @@ lint success or empty extraction is not product verification.
 
 # CP3 — PRE-SUBMIT
 
-Record the official exam clock/timezone and the earlier of the stage cutoff and whole-exam cutoff. The supplied brief gives 10:00–14:00, about 5 minutes of transition (excluded from solving but included in the total window), and 30 minutes for six follow-up answers; late starts do not extend 14:00. Reserve the full follow-up and transition when planning the latest solving submission, and start submission at least 10 minutes before that deadline as the detailed guide recommends. Use newer official UI instructions if they change the schedule; never infer exam time from the host UTC clock alone.
+Record the official exam clock/timezone and the earlier of the stage cutoff and whole-exam cutoff. The latest confirmed official schedule is 2026-11-04 19:00–23:00 as printed in the guide; confirm the official timezone in the exam UI and do not reuse that date for a future exam. Newer official UI instructions always win. The guide describes about 5 minutes of question-generation transition (excluded from solving but included in the total window); the UI may show up to 10 minutes per attempt and restart preparation on automatic retry. Late starts, waiting and retries do not extend 23:00. Reserve the full 30 minutes for six follow-up answers and transition time when planning the latest solving submission, and start submission at least 10 minutes before that deadline as the detailed guide recommends. Never infer exam time from the host UTC clock alone.
 
 Current-time/remaining-time reports need an actual clock-tool or system-clock
 observation and the officially confirmed deadline/timezone. Never guess the current
@@ -126,6 +131,13 @@ Budget CP3 from estimated review/check/repair/submission/preparation time and th
 
 1. Clean final CODE_RED and CONSTRAINT_RED review the current result and original evidence; ORCHESTRATOR records findings and verified dispositions.
 2. MAIN fixes submission-blocking defects and runs `verification`. P0/P1 cannot be waived at deadline; choose a valid smaller/partial solution if needed. Mark other unrun checks UNVERIFIED and state limitations honestly.
+   Before collection/freeze, any later behavior-changing edit needs affected Code
+   Red review under the launch/reuse rules above and relevant verification within
+   the existing checkpoint. Reconcile changed
+   product and required runnable-document paths with the last reviewed version in
+   the existing checkpoint report/VERIFY before READY. A text-only edit still needs
+   source/command consistency checks; equal result bytes do not prove code safety
+   or permit any edit after actual collection/freeze.
 3. Recorder finalizes factual evidence notes. MAIN uses `final-explain` for factual explanation and `followup-prep` as the sole practice owner, covering all six official question slots. Do not quiz the participant twice or defer evidence collection to this checkpoint.
 4. Before declaring preparation complete, ORCHESTRATOR reads the final VERIFY/LIMITATIONS/FOLLOWUP_CHEATSHEET against the latest checkpoint dispositions and current code version. If a late clarification, review decision, or fix occurred after Recorder prepared the notes, send the actual new evidence back to Recorder and refresh only affected claims/outlines; do not repeat a whole quiz. A resolved finding must not remain pending in the final answer sheet, and earlier reproduced failures must not be erased.
    During the permitted preparation phase, deliver the concise final explanation and six prepared outlines to the participant. Check the actual delivered coverage against current evidence; internal notes or an agent return alone do not establish delivery. Record any time-limited omission honestly, preserve the submission deadline, and do not restart completed practice. This adds no per-step teach-back or second quiz.
@@ -154,5 +166,10 @@ Use Cofa Helper for exam UI/submission questions and official incident reporting
 # Context replacement and review budget
 
 If MAIN's context degrades, have it send HANDOFF content to Recorder, stop the old writer, then start one replacement MAIN from evidence. If Recorder is unavailable, ORCHESTRATOR may explicitly transfer HANDOFF.md alone to MAIN for one sequential write, then return ownership. ORCHESTRATOR records the replacement; only one MAIN is active.
+
+After interruption/reconnect, reconcile known owned sessions, outstanding requests,
+pending reports and authorized file changes before dispatching a replacement. An
+unknown worker status is not completion; confirm the old writer has stopped before
+starting another. Use explicit shared evidence, not private session-log discovery.
 
 There are three planned checkpoints. Extra review is for material requirement/spec changes, a new blocking risk, major architecture change, or repeated failure; recheck affected findings/evidence rather than reopening every checklist after small edits.

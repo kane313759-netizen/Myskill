@@ -14,6 +14,7 @@ scope. Missing/skipped checks stay in the denominator. N/A with reason is valid.
 
 ## Final review / blockers
 <!-- Record final Code Red and Constraint Red report references, concrete attempted attacks, all finding dispositions, and residual limitations. P0/P1 cannot be waived by time pressure; fix/disprove or choose a smaller valid solution and verify it. -->
+<!-- Identify the last reviewed product/runnable-document version and any later changed paths, affected rechecks and verification. Version/hash evidence binds content, not writer identity or proof of clean-context isolation. -->
 
 ## Rules
 - native test exit status and framework summary are authoritative
