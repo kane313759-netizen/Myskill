@@ -1,6 +1,8 @@
 """Task limits and explicitly uncertain proxy comparisons."""
 import math
 
+PROXY_LIMIT_HINT = ' (if this is a limit stated in the task text, record it under hard_limits with source_quote)'
+
 def finite(value):
     return type(value) in (int, float) and math.isfinite(value)
 
@@ -26,7 +28,7 @@ def comparison_policy(comparison):
         if not finite(a) or not finite(b) or direction not in ('HIGHER_IS_BETTER','LOWER_IS_BETTER'):
             warnings.append('UNVERIFIED proxy metric: '+str(proxy.get('metric')))
         elif b < a if direction=='HIGHER_IS_BETTER' else b > a:
-            warnings.append('proxy metric is worse than baseline: '+str(proxy.get('metric')))
+            warnings.append('proxy metric is worse than baseline: '+str(proxy.get('metric'))+PROXY_LIMIT_HINT)
     primary=dict(comparison)
     if isinstance(comparison.get('primary'),dict): primary.update(comparison['primary'])
     a,b=primary.get('baseline_value'),primary.get('candidate_value')
@@ -34,12 +36,15 @@ def comparison_policy(comparison):
         if b < a if primary['direction']=='HIGHER_IS_BETTER' else b > a:
             if str(primary.get('task_metric_ref') or '').strip():
                 errors.append('candidate scores lower on the task metric under identical evaluation')
-            else: warnings.append('primary proxy metric is worse than baseline')
+            else: warnings.append('primary proxy metric is worse than baseline: '+str(primary.get('metric'))+PROXY_LIMIT_HINT)
     if comparison.get('selection')=='CURRENT_BASELINE':
         option=comparison.get('best_alternative')
         if not isinstance(option,dict) or not option.get('name') or not isinstance(option.get('metric_values'),dict) or not option.get('rejection_reason') or option.get('rejection_basis') not in ('HARD_LIMIT','TASK_METRIC','SAFETY','OTHER'):
             pending.append('CURRENT_BASELINE requires best_alternative with rejection_basis')
         else:
+            ref=option.get('evidence')
+            if not isinstance(ref,dict) or any(not isinstance(ref.get(k),str) or not ref[k].strip() for k in ('path','sha256')):
+                pending.append('best_alternative evidence missing')
             names=set(option['metric_values'])
             proxy_names={p.get('metric') for p in proxies}
             if option['rejection_basis']=='OTHER' or names and names<=proxy_names:

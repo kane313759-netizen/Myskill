@@ -422,7 +422,7 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
             'artifact': {'path': 'result.txt', 'sha256': digest(self.root / 'result.txt')}}))
         self.record('baseline_comparison', data)
         self.assertTrue(any('best_alternative' in x for x in self.result('final')['unverified']))
-        data['best_alternative'] = {'name':'A','metric_values':{'score':9},'rejection_reason':'synthetic task limit','rejection_basis':'HARD_LIMIT'}
+        data['best_alternative'] = {'name':'A','metric_values':{'score':9},'rejection_reason':'synthetic task limit','rejection_basis':'HARD_LIMIT','evidence':self.write('alternative-result.json',json.dumps({'metric_values':{'score':9}}))}
         data['alternatives'] = [{'name': name, 'assumptions': 'same data', 'result': 'not better', 'evidence': data['baseline_evidence']} for name in ('A', 'B')]
         data['baseline_assumptions_check'] = [{'check': n, 'method': 'review', 'result': 'verified'} for n in ('response_shape', 'progress_variable', 'operating_shift')]
         self.record('baseline_comparison', data)

@@ -564,6 +564,22 @@ def _check(plan, root, kit, phase='final', source=None):
             policy = module('v27_comparison')['comparison_policy'](comparison)
             errors.extend(policy['errors']); pending.extend(policy['pending']); warnings.extend(policy['warnings'])
             errors.extend(r3_policy(gates=comparison.get('gates',[]))['errors'])
+            alternative=comparison.get('best_alternative')
+            if comparison.get('selection')=='CURRENT_BASELINE' and isinstance(alternative,dict):
+                ref=alternative.get('evidence')
+                if isinstance(ref,dict) and all(isinstance(ref.get(k),str) and ref[k].strip() for k in ('path','sha256')):
+                    try:
+                        path=h['safe_path'](root,ref['path'],must_exist=False)
+                        if not path.is_file():
+                            pending.append('best_alternative evidence file missing')
+                        else:
+                            observed=h['read_json'](bound(ref))
+                            metrics=observed.get('metric_values',observed) if isinstance(observed,dict) else None
+                            expected=alternative.get('metric_values')
+                            if not isinstance(metrics,dict) or not isinstance(expected,dict) or any(k not in metrics or metrics[k]!=v for k,v in expected.items()):
+                                raise ValueError('metric_values do not match result file')
+                    except (OSError,ValueError,TypeError,AttributeError) as exc:
+                        errors.append('best_alternative evidence: '+str(exc))
             for limit in comparison.get('hard_limits', []):
                 try:
                     text = h['read_bytes'](bound(limit.get('evidence'))).decode('utf-8-sig')

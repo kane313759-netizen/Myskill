@@ -37,7 +37,7 @@ class RegressionR41(unittest.TestCase):
   t,c=self.fixture();c['selection']='CURRENT_BASELINE';c['candidate_value']=c['baseline_value']
   a=json.loads((t.root/c['baseline_evidence']['path']).read_text(encoding='utf8'));b=json.loads((t.root/c['candidate_evidence']['path']).read_text(encoding='utf8'));b['value']=a['value'];a['artifact']=b['artifact'];c['baseline_evidence']=t.write('baseline-same.json',json.dumps(a))
   c['candidate_evidence']=t.write('selected.json',json.dumps(b));c['baseline_assumptions_check']=[dict(check=n,method='synthetic check',result='observed') for n in ('response_shape','progress_variable','operating_shift')]
-  c['best_alternative']=dict(name='one',metric_values={'score':11},rejection_reason='synthetic reason',rejection_basis='OTHER')
+  c['best_alternative']=dict(name='one',metric_values={'score':11},rejection_reason='synthetic reason',rejection_basis='OTHER',evidence=t.write('alternative-result.json',json.dumps({'metric_values':{'score':11}})))
   t.record('baseline_comparison',c);r=t.result('final');self.assertEqual(r['errors'],[]);self.assertTrue(any('NO_OP' in x for x in r['warnings']))
   c['best_alternative']['rejection_basis']='HARD_LIMIT';t.record('baseline_comparison',c);self.assertFalse(any('NO_OP' in x for x in t.result('final')['warnings']))
  def test_05_one_positive_one_negative(self):
