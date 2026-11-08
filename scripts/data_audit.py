@@ -684,7 +684,7 @@ def audit(root, plan):
                 continue
             if jsonl or path.suffix.lower() == '.csv' or path.name.lower().endswith('.csv.gz'):
                 scanned = runpy.run_path(str(Path(__file__).with_name('v27_jsonl.py')))['scan_jsonl'](path,plan,spec,io,_stream_csv) if jsonl else _stream_csv(path, plan, spec, io)
-                prof = scanned['profile'] or _profile([],io,[])
+                prof = scanned['profile'] or _profile(scanned['sample'],io,[])
                 prof.update(path=name, sheet=None)
                 profiles.append(prof)
                 artifacts.append({'path':name, 'bytes':path.stat().st_size, 'sha256':scanned['sha256'],

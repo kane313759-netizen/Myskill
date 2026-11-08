@@ -55,6 +55,8 @@ class RegressionR41(unittest.TestCase):
    self.assertEqual(set(r['files'][0]['tables'][0]['columns']),{'a','b','nested'})
    (root/'a.jsonl').write_text(text+'broken\n',encoding='utf8');r=AUDIT(root,{'files':['a.jsonl','c.csv']})
    self.assertEqual(r['files'][0]['broken_lines'],1);self.assertFalse(r['files'][0]['complete_rows']);self.assertTrue(r['files'][1]['complete_rows'])
+   (root/'empty.jsonl').write_text('{}\n{}\n',encoding='utf8');r=AUDIT(root,{'files':['empty.jsonl']})
+   self.assertEqual(r['files'][0]['rows_scanned'],2);self.assertTrue(r['files'][0]['complete_rows'])
  def test_07_legacy_gate_warning(self):
   t,c=self.fixture();c['gates']=[self.gate(t,c)];t.record('baseline_comparison',c);r=t.result('final')
   self.assertEqual(r['errors'],[]);self.assertTrue(any('legacy gate treated as proxy' in x for x in r['warnings']))

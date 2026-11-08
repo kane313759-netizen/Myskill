@@ -21,7 +21,7 @@ def scan_jsonl(path, plan, spec, io, scan_csv):
                 if time.monotonic()-started>budget: break
             else: full_hash=digest.hexdigest()
     opener=gzip.open if path.name.lower().endswith('.gz') else open
-    columns={}; broken=0; size=0; complete=True; reason=None
+    columns={}; broken=0; valid_rows=0; size=0; complete=True; reason=None
     def reject_constant(value): raise ValueError('nonfinite JSON value')
     with tempfile.TemporaryDirectory(prefix='v27-jsonl-') as directory:
         spool=Path(directory)/'rows.jsonl'; table=Path(directory)/'rows.csv'
@@ -36,10 +36,11 @@ def scan_jsonl(path, plan, spec, io, scan_csv):
                     row=json.loads(line.decode(spec.get('encoding','utf-8-sig')),parse_constant=reject_constant)
                     if not isinstance(row,dict): raise ValueError('JSONL row must be an object')
                     columns.update(dict.fromkeys(row))
+                    valid_rows+=1
                     target.write(json.dumps(row,ensure_ascii=True,allow_nan=False)+'\n')
                 except (ValueError,UnicodeError): broken+=1
         if not columns:
-            return {'rows':0,'sample':[],'bytes':size,'sha256':full_hash,'complete':complete and not broken,
+            return {'rows':valid_rows,'sample':[{} for _ in range(min(valid_rows,plan.get('max_rows',2000),10000))],'bytes':size,'sha256':full_hash,'complete':complete and not broken,
                     'reason':reason or ('malformed JSONL lines' if broken else None),'broken_lines':broken,
                     'profile':{},'analysis_limits':[]}
         with spool.open(encoding='utf8') as source, table.open('w',encoding='utf8',newline='') as target:
