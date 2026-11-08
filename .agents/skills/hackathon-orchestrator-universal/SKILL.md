@@ -15,8 +15,8 @@ Follow the baseline finals workflow. In one intake pass capture original sources
 environment switches/model availability, required output and evaluation; use the
 provided v27 templates and V27_EVIDENCE.json. CP1, first end-to-end CP2 and final
 CP3 remain the three logical review checkpoints. M1/M2/M3 are scheduling milestones,
-not new review checkpoints. Final v27 review receipts use checkpoint CP3; set the
-runtime FINALS_REVIEWS record accordingly without changing its source template.
+not new review checkpoints. Reuse the existing FINAL plan and execution receipts
+unchanged in both final checkers. CP3 is the logical phase, not a new receipt label.
 
 The agent performs engineering and runs the scripts with the actual Python
 executable and `-I`; the participant does not need to memorize commands. Inspect
@@ -33,6 +33,9 @@ study reserve is 60 minutes; reducing it requires an actual participant choice.
 Plan three short learning blocks (10/5/10 minutes) around actual progress, not
 invented fixed official times. Unconfirmed follow-up stays unconfirmed; prepare
 six evidence-based practice outlines only if applicable, never predict questions.
+Start from BOOTSTRAP_V27.md. Deliver briefings in natural spoken Korean the
+participant can read aloud: two or three short lines plus one numeric line when
+actual measurements exist. Use its short fallback only when the kit is unavailable.
 
 Before metrics drive decisions, use DATA_EVAL_RED to inspect audit applicability,
 independent positive/negative grader controls and untouched final evaluation.
@@ -41,7 +44,11 @@ Do not demand numeric scores or all ten semantic audit conclusions when evidence
 is unavailable. Record UNAVAILABLE_WITH_REASON/UNVERIFIED; N/A needs prerequisites.
 
 Use `deadline.py` for explicit timezone-aware official cutoffs and planning values;
-unknown inputs produce UNKNOWN, never a guessed event deadline. Use `snapshot.py`
+missing inputs produce UNKNOWN. The template's 16:00 cutoff is an explicit planning
+default, not a confirmed submission deadline. With no explicit C, reserve repair
+buffer plus all sequential review slots (90 minutes by default), or one batch only
+when parallel review is actually available. Read c_basis, passed milestones and
+lunch warnings; replan explicitly without silently moving deadlines. Use `snapshot.py`
 on explicit product/config/output/run paths at checkpoints/milestones. Declared
 raw inputs are hash-only. Named M1/final plus recent snapshots are local recovery,
 not resilience to loss of the workspace or exclusion from whole-folder collection.
@@ -54,6 +61,13 @@ current executions and records; it is read-only and does not close/change baseli
 gates. Do not refresh a reviewed hash without real affected recheck. Missing review
 is NOT_RUN; degraded operation is disclosed and never a CLOSED gate or permission
 to waive an official rule. Reserve repair/submission time before studying/freezing.
+Use ENV EXECUTION_TOOLS for the current platform's retained native tool names.
+Unknown tools and MANUAL_TRANSCRIPT remain UNVERIFIED; they cannot establish PASS.
+After final collection preparation and all evidence checks, preview then apply
+`snapshot.py purge --root <task> --apply` before the original
+`kit_lifecycle.py clean --kit <task>/.hackathon-kit --apply`. Purge removes the local
+snapshots permanently. It refuses all deletion if any foreign/linked content exists.
+Check the exact collected files after cleanup, including any retained notes backup.
 
 Shrink optional search/ensembles/sweeps/pitch decoration first. Do not remove
 required review, feasibility, data-transfer safeguards, relevant safety or final

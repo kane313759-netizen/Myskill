@@ -16,6 +16,7 @@ MAX_FILE_BYTES = 64 * 1024 * 1024
 MAX_TOTAL_BYTES = 256 * 1024 * 1024
 RECORD_LIMIT = 2 * 1024 * 1024
 PINNED = {'M1', 'FINAL', '최종'}
+SNAPSHOT_ID = re.compile(r'[0-9]{8}T[0-9]{12}Z_(?:[A-Za-z0-9_-]{1,32}|최종)_[0-9a-f]{10}')
 
 
 def _unique(pairs):
@@ -336,6 +337,75 @@ def create_snapshot(root, manifest, name, keep_recent=5, now=None):
     return result
 
 
+def _purge_inventory(parent):
+    """Preflight every entry before purge changes any file or permission."""
+    candidates = []
+    with os.scandir(str(parent)) as entries:
+        for index, entry in enumerate(entries):
+            if index >= 1000:
+                raise ValueError('purge inventory exceeds its entry limit; nothing deleted')
+            path = Path(entry.path)
+            if _linked(path):
+                raise ValueError('purge refuses linked/reparse content; nothing deleted')
+            if not entry.is_dir(follow_symlinks=False) or not SNAPSHOT_ID.fullmatch(entry.name):
+                raise ValueError('purge found unrecognized snapshot content; nothing deleted: ' + entry.name)
+            info = verify_snapshot(path)
+            record = _read_json(_safe(path, 'MANIFEST.json'))
+            expected_dirs = {'.'}
+            for relative in record['files']:
+                current = _safe(path, 'files/' + relative).parent
+                while current != path:
+                    expected_dirs.add(current.relative_to(path).as_posix())
+                    current = current.parent
+            files, directories = _walk(path)
+            if {item.relative_to(path).as_posix() for item in directories} != expected_dirs:
+                raise ValueError('purge found unexpected snapshot directories; nothing deleted')
+            if any(item.stat().st_nlink != 1 for item in files):
+                raise ValueError('purge refuses hard-linked files; nothing deleted')
+            candidates.append((path, info['manifest_sha256']))
+    return sorted(candidates, key=lambda item: item[0].name)
+
+
+def purge(root, apply=False):
+    """Preview or delete only a fully verified owned snapshot collection.
+
+    Stop writers first. The complete inventory is checked before any mutation;
+    filesystem operations do not provide an OS transaction against concurrent edits.
+    """
+    root = Path(root).absolute()
+    if type(apply) is not bool:
+        raise ValueError('purge apply must be an explicit boolean')
+    for current in (root,) + tuple(root.parents):
+        if _linked(current):
+            raise ValueError('purge root ancestors cannot be linked/reparse paths')
+    if not root.is_dir():
+        raise ValueError('purge root must be a real existing task directory')
+    parent = _safe(root, '.hackathon-kit/snapshots', must_exist=False)
+    result = {'status': 'PURGED' if apply else 'PREVIEW', 'apply': apply,
+              'snapshots': [], 'removed': [], 'parent_removed': False,
+              'notice': 'Apply permanently removes local snapshots, including M1 and FINAL. Stop writers before cleanup.'}
+    if not parent.exists():
+        return result
+    if not parent.is_dir():
+        raise ValueError('purge found unexpected snapshots path; nothing deleted')
+    candidates = _purge_inventory(parent)
+    result['snapshots'] = [str(path.relative_to(root)) for path, _ in candidates]
+    if not apply:
+        return result
+    # Revalidate the complete inventory once more before the first chmod/unlink.
+    if _purge_inventory(parent) != candidates:
+        raise ValueError('purge inventory changed; nothing deleted')
+    _safe(root, '.hackathon-kit/snapshots')
+    os.chmod(str(parent), stat.S_IRWXU)
+    for path, _ in candidates:
+        _remove_owned_snapshot(parent, path)
+        result['removed'].append(str(path.relative_to(root)))
+    _safe(root, '.hackathon-kit/snapshots')
+    parent.rmdir()  # Never recursively remove additions or unrecognized content.
+    result['parent_removed'] = True
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
@@ -346,12 +416,17 @@ def main():
     create.add_argument('--keep-recent', type=int, default=5)
     verify = sub.add_parser('verify')
     verify.add_argument('--snapshot', type=Path, required=True)
+    purge_parser = sub.add_parser('purge', help='Preview owned snapshot removal before kit clean')
+    purge_parser.add_argument('--root', type=Path, required=True)
+    purge_parser.add_argument('--apply', action='store_true', help='Permanently remove all verified snapshots')
     args = parser.parse_args()
     try:
         if args.command == 'create':
             result = create_snapshot(args.root, _read_json(args.manifest), args.name, args.keep_recent)
-        else:
+        elif args.command == 'verify':
             result = verify_snapshot(args.snapshot)
+        else:
+            result = purge(args.root, args.apply)
         print(json.dumps(result, ensure_ascii=True, indent=2))
         return 0
     except (OSError, UnicodeError, ValueError, TypeError, RecursionError) as error:

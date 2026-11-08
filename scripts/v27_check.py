@@ -12,9 +12,13 @@ import sys
 
 SWITCHES = ('FOLLOWUP', 'T_SUB', 'WINDOW_END', 'LUNCH_POLICY', 'WORK_ENV',
             'AI_SCOPE', 'MODELS', 'EXTERNAL_TRANSFER', 'GIT_PUSH', 'COMPUTER_USE',
-            'SUBMISSION', 'S', 'PITCH_STUDY_WINDOW')
+            'SUBMISSION', 'S', 'PITCH_STUDY_WINDOW', 'EXECUTION_TOOLS')
 CORE = {'independent_reviews', 'submission_constraints', 'clean_replay',
         'security_and_transfer', 'safe_fallback'}
+
+
+class UnverifiedExecution(Exception):
+    """A retained platform observation needs an available reviewed adapter."""
 
 
 def module(name):
@@ -41,6 +45,7 @@ def _check(plan, root, kit, phase='final', source=None):
     h = module('v27_common')
     root, kit = Path(root), Path(kit)
     errors, pending, warnings = [], [], []
+    execution_tools = ['exec_command']
     records = plan.get('records', {}) if isinstance(plan, dict) else {}
     if not isinstance(plan, dict) or plan.get('version') != 1 or not isinstance(records, dict):
         return dict(status='FAIL', errors=['version 1 evidence plan with records required'], unverified=[], warnings=[])
@@ -78,6 +83,9 @@ def _check(plan, root, kit, phase='final', source=None):
                 errors.append(label + ': ' + str(exc))
 
     def native(proof):
+        tool = proof.get('tool')
+        if tool == 'MANUAL_TRANSCRIPT' or tool not in execution_tools:
+            raise UnverifiedExecution('실행 도구를 확인할 수 없음: ' + str(tool) + '; retained observation remains UNVERIFIED')
         request, result = proof.get('request', {}), proof.get('result', {})
         command, argv = request.get('cmd', ''), proof.get('argv', [])
         if not isinstance(argv, list) or not argv or not all(isinstance(x, str) for x in argv):
@@ -85,7 +93,7 @@ def _check(plan, root, kit, phase='final', source=None):
         renderings = (subprocess.list2cmdline(argv), shlex.join(argv))
         if '\n' in command or '\r' in command or command not in renderings + tuple('& ' + value for value in renderings):
             raise ValueError('native command is not the exact retained argv')
-        if proof.get('tool') != 'exec_command' or '-I' not in argv or any(x in argv for x in ('-c', '-m', '--eval')):
+        if '-I' not in argv or any(x in argv for x in ('-c', '-m', '--eval')):
             raise ValueError('actual isolated native command/result required')
         if Path(argv[0]).resolve() != Path(sys.executable).resolve() or result.get('exit_code') != 0:
             raise ValueError('unexpected interpreter or unsuccessful native result')
@@ -129,6 +137,8 @@ def _check(plan, root, kit, phase='final', source=None):
                 raise ValueError('native execution used different or changed rules/plan')
             if output != value:
                 raise ValueError('native stdout does not match retained result')
+        except UnverifiedExecution as exc:
+            pending.append(name + ': execution: ' + str(exc))
         except (OSError, ValueError, TypeError, KeyError) as exc:
             errors.append(name + ': execution: ' + str(exc))
 
@@ -157,6 +167,10 @@ def _check(plan, root, kit, phase='final', source=None):
                 errors.append('ENV ' + name + ': invalid explicit switch value')
             if name == 'AI_SCOPE' and (not isinstance(item['value'], list) or not item['value'] or not all(meaningful(x) for x in item['value'])):
                 errors.append('AI_SCOPE needs an explicit nonempty permitted/preparation list')
+        execution_tools = switches.get('EXECUTION_TOOLS', {}).get('value')
+        if not isinstance(execution_tools, list) or not execution_tools or not all(meaningful(value) for value in execution_tools) or len(set(execution_tools)) != len(execution_tools):
+            errors.append('EXECUTION_TOOLS needs an explicit nonempty distinct list of platform tool names')
+            execution_tools = []
         models = switches.get('MODELS', {}).get('value', {})
         if not isinstance(models, dict):
             raise ValueError('MODELS value must be an object')
@@ -177,7 +191,9 @@ def _check(plan, root, kit, phase='final', source=None):
                 errors.append(role + ': model was not actually available')
         state = record('state')
         calculated = module('deadline')['calculate'](env)
-        if calculated.get('status') != 'KNOWN':
+        if calculated.get('status') == 'PAST_CONFIRMATION':
+            pending.append('deadline: confirmation deadline has passed; submission is not established')
+        elif calculated.get('status') != 'KNOWN':
             pending.append('deadline: official usable cutoff is UNKNOWN')
         else:
             followup = switches.get('FOLLOWUP', {}).get('value')
@@ -278,6 +294,8 @@ def _check(plan, root, kit, phase='final', source=None):
                         actual, known = control.get('actual_metrics', {}).get(metric), positive.get('actual_metrics', {}).get(metric)
                         if type(actual) not in (int, float) or type(known) not in (int, float) or direction not in ('HIGHER_IS_BETTER', 'LOWER_IS_BETTER') or not (actual < known if direction == 'HIGHER_IS_BETTER' else actual > known):
                             raise ValueError('negative metric must actually be worse than its independent known answer')
+                except UnverifiedExecution as exc:
+                    pending.append('grader control: ' + str(exc))
                 except (OSError, ValueError, TypeError, KeyError) as exc:
                     errors.append('grader control: ' + str(exc))
         elif grading.get('local_grader_used') is not False:
@@ -311,15 +329,17 @@ def _check(plan, root, kit, phase='final', source=None):
                 else:
                     try:
                         observed = h['read_json'](bound(proof.get('evidence')))
-                        argv, outcome = native(observed)
                         hashes(proof.get('scope'), 'safety ' + name)
                         replay = record('clean_run', required=False) or {}
                         required_scope = dict(replay.get('input_sha256', {}))
                         required_scope.update({x['path']: x['sha256'] for x in replay.get('artifacts', [])})
                         if not required_scope or any(proof.get('scope', {}).get(path) != digest for path, digest in required_scope.items()):
                             raise ValueError('safety scope does not cover current replay inputs and final artifacts')
+                        argv, outcome = native(observed)
                         if outcome.get('tests', {}).get(name) != 'PASS' or outcome.get('scope') != proof.get('scope') or not any(path_index(argv, root / path) is not None for path in proof.get('scope', {})):
                             raise ValueError('safety verdict is not bound to an actual current test command/result')
+                    except UnverifiedExecution as exc:
+                        pending.append('safety ' + name + ': ' + str(exc))
                     except (OSError, ValueError, TypeError) as exc:
                         errors.append('safety ' + name + ': ' + str(exc))
     study = record('study', required=phase == 'final')
@@ -352,7 +372,7 @@ def _check(plan, root, kit, phase='final', source=None):
                         current[ref['path']] = ref['sha256']
                 if not current or any(reviews.get('required_scope', {}).get(path) != digest for path, digest in current.items()):
                     errors.append('CP3 independent scope must cover current replay inputs/artifacts, audited sources, SPEC_DRAFT and DATA_AUDIT evidence')
-                errors.extend(module('finals_review_check')['check_reviews'](reviews, kit, 'CP3'))
+                errors.extend(module('finals_review_check')['check_reviews'](reviews, kit, 'FINAL'))
             else:
                 policy = module('review_execution')
                 base = module('finals_review_check')

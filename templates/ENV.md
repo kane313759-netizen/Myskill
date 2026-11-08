@@ -9,15 +9,18 @@
   "version": 1,
   "switches": {
     "FOLLOWUP": {"value": "AFTER_CONFIRM", "classification": "PLAN_DEFAULT", "reason": "2차 방식에 대비한 엄격한 계획값. 본선 후속 평가 방식 미확인"},
-    "T_SUB": {"value": "UNKNOWN", "classification": "UNKNOWN", "reason": "공식 제출 확정 마감 미확인"},
-    "WINDOW_END": {"value": "UNKNOWN", "classification": "UNKNOWN", "reason": "후속 평가를 포함한 공식 시간창 미확인"},
+    "T_SUB": {"value": "2026-11-11T16:00:00+09:00", "classification": "PLAN_DEFAULT", "reason": "참가자가 전달한 본선 안내의 경기 종료 시각(FINALS_POLICY.md). 공식 제출 확정 마감 아님"},
+    "WINDOW_END": {"value": "2026-11-11T16:00:00+09:00", "classification": "PLAN_DEFAULT", "reason": "참가자가 전달한 본선 안내의 경기 종료 시각(FINALS_POLICY.md). 공식 제출 확정 마감 아님"},
     "T_FU": {"value": "UNKNOWN", "classification": "UNKNOWN", "reason": "고정 후속 평가 시작 시각 미확인"},
     "followup_minutes": {"value": 30, "classification": "PLAN_DEFAULT", "reason": "2차 방식에 대비한 계획값"},
     "transition_minutes": {"value": 5, "classification": "PLAN_DEFAULT", "reason": "계획 예비 시간"},
     "LUNCH_POLICY": {"value": "PAUSE", "classification": "PLAN_DEFAULT", "reason": "공식 점심 중 작업 허용 미확인"},
+    "LUNCH_START": {"value": "2026-11-11T12:00:00+09:00", "classification": "PLAN_DEFAULT", "reason": "참가자가 전달한 본선 안내의 점심 시작 시각. 작업 허용 여부와 별개인 계획값"},
+    "LUNCH_END": {"value": "2026-11-11T13:00:00+09:00", "classification": "PLAN_DEFAULT", "reason": "참가자가 전달한 본선 안내의 점심 종료 시각. 작업 허용 여부와 별개인 계획값"},
     "WORK_ENV": {"value": "PROVIDED", "classification": "PLAN_DEFAULT", "reason": "반입·제공 환경 미확인"},
     "AI_SCOPE": {"value": ["PROVIDED_ONLY"], "classification": "PLAN_DEFAULT", "reason": "제공 AI만 사용한다는 준비 가정. 실제 허용 목록 미확인"},
     "MODELS": {"value": {"AVAILABLE": [], "RECOMMENDED": [], "RESTRICTED": ["Astra"]}, "classification": "PLAN_DEFAULT", "reason": "본선 목록 미확인. Astra는 2차 제한을 유지하는 준비 가정"},
+    "EXECUTION_TOOLS": {"value": ["exec_command"], "classification": "PLAN_DEFAULT", "reason": "현재 Codex 실행 도구의 준비값. 실제 본선 플랫폼 도구 이름 확인 후 목록을 갱신"},
     "EXTERNAL_TRANSFER": {"value": "PROHIBITED", "classification": "PLAN_DEFAULT", "reason": "허용 환경 밖 저장소·클라우드·메일·다른 AI·다른 계정으로 전송하지 않는 준비 가정"},
     "GIT_PUSH": {"value": "PROHIBITED", "classification": "PLAN_DEFAULT", "reason": "본선 공식 허용 전에는 로컬 작업만"},
     "COMPUTER_USE": {"value": "PROHIBITED", "classification": "PLAN_DEFAULT", "reason": "본선 공식 허용 전에는 사용하지 않는 준비 가정"},
@@ -25,7 +28,10 @@
     "S": {"value": 60, "classification": "PLAN_DEFAULT", "reason": "참가자가 요청한 마지막 학습 60분. 실제 선택 없이 자동 축소 금지"},
     "S_pre": {"value": 60, "classification": "PLAN_DEFAULT", "reason": "후속 평가가 없는 경우도 기본 학습 60분"},
     "R": {"value": 10, "classification": "PLAN_DEFAULT", "reason": "제출 조작 예비 최소 10분"},
-    "C": {"value": 40, "classification": "PLAN_DEFAULT", "reason": "CP3 리뷰·수정 계획 예비 40분. 과제 크기에 따라 확대"},
+    "REVIEW_PARALLEL": {"value": "UNKNOWN", "classification": "PLAN_DEFAULT", "reason": "본선 독립 리뷰 동시 실행 가능 여부 미확인. 확인 전에는 순차 실행으로 계산"},
+    "REVIEW_MINUTES_EACH": {"value": 10, "classification": "PLAN_DEFAULT", "reason": "독립 리뷰 1개당 계획 10분. 실제 과제·실행 관측에 따라 조정"},
+    "FIX_BUFFER": {"value": 20, "classification": "PLAN_DEFAULT", "reason": "최종 리뷰 발견 사항 수정·재검증 계획 예비 20분"},
+    "FINAL_REVIEW_ROLES": {"value": 7, "classification": "PLAN_DEFAULT", "reason": "핵심 RED 6개와 조건부 SECURITY_RED 1개. SECURITY_RED가 TRIGGERED 또는 UNKNOWN이면 7, NOT_TRIGGERED를 확인하면 6으로 갱신"},
     "PITCH_STUDY_WINDOW": {"value": "UNKNOWN", "classification": "UNKNOWN", "reason": "제출 후 피칭 전 노트북 학습 허용 미확인"},
     "participant_study_choice": {"value": null, "classification": "UNKNOWN", "reason": "실제 참가자 선택 없음"}
   },
@@ -34,3 +40,5 @@
 ```
 
 학습 시간을 줄일 경우 참가자의 실제 선택과 근거 문서 해시를 별도로 남긴다. `SUBMISSION` 확인은 미리보기 준비와 실제 확정 영수증을 구분한다. v2.7 계산은 `V27_STATE.json`에만 기록하며 기존 STATE 키를 추가하거나 계획 마감으로 공식 마감을 덮지 않는다.
+
+기본 C는 별도로 고정하지 않고 리뷰 수·동시 실행 가능 여부·수정 예비로 계산한다. 기본값은 20 + 10 × 7 = 90분이며, 동시 실행 YES를 확인한 경우 30분이다. 필요하면 출처 분류와 이유를 갖춘 `C` 스위치를 추가해 직접 지정할 수 있다. `c_basis`가 실제 계산 근거를 남긴다. 점심 겹침 경고는 일정을 자동 변경하지 않으므로 필요한 경우 참가자가 일정을 재계획한다.

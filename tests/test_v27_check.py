@@ -64,6 +64,14 @@ class EvidenceTests(unittest.TestCase):
     def result(self, phase='intake'):
         return CHECK['check'](self.plan, self.root, self.kit, phase)
 
+    def test_past_confirmation_stays_unverified_with_an_explicit_past_reason(self):
+        self.env['switches']['NOW'] = {'value': '2026-11-11T16:05:00+09:00', 'classification': 'PLAN_DEFAULT', 'reason': 'Synthetic observed-clock fixture'}
+        self.sync_env()
+        result = self.result()
+        self.assertEqual(result['status'], 'UNVERIFIED')
+        self.assertTrue(any('confirmation deadline has passed' in text for text in result['unverified']))
+        self.assertFalse(any('UNKNOWN' in text for text in result['unverified']))
+
     def cp1_records(self):
         self.write('input.csv', 'id,value\n1,2\n2,3\n')
         self.plan['data_audit_plan'] = {'files': ['input.csv'], 'max_rows': 100}
@@ -296,7 +304,7 @@ class EvidenceTests(unittest.TestCase):
         self.plan['records']['clean_run']['execution'] = self.write(native['path'], json.dumps(proof))
         self.assertTrue(any('exact retained argv' in error for error in self.result('final')['errors']))
 
-    def test_final_complete_synthetic_receipts_with_actual_native_replay_pass_read_only(self):
+    def complete_final_records(self):
         self.product_records()
         audit_ref = self.plan['records']['data_audit']
         audit = json.loads((self.root / audit_ref['path']).read_text(encoding='utf-8'))
@@ -314,7 +322,7 @@ scripts=Path(%r)
 product=runpy.run_path(str(root/'product.py'),run_name='synthetic_product_test')
 assert product['safe_decide'](None)=={'decision':'REVIEW','warning':'invalid input'}
 assert product['safe_decide'](2)=={'decision':'PASS','value':4}
-assert not runpy.run_path(str(scripts/'finals_review_check.py'))['check_reviews'](json.loads((root/'.hackathon-kit/run/finals_reviews.json').read_text()),root/'.hackathon-kit','CP3')
+assert not runpy.run_path(str(scripts/'finals_review_check.py'))['check_reviews'](json.loads((root/'.hackathon-kit/run/finals_reviews.json').read_text()),root/'.hackathon-kit','FINAL')
 assert runpy.run_path(str(scripts/'submit_check.py'))['check_submission'](root,json.loads((root/'submission_rules.json').read_text()))['status']=='PASS'
 assert runpy.run_path(str(scripts/'security_check.py'))['check_security'](root,json.loads((root/'security_plan.json').read_text()))['status']=='PASS'
 replay=json.loads((root/'.hackathon-kit/run/clean_run.json').read_text())
@@ -329,7 +337,7 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         review_scope = dict(scope)
         for ref in (audit_ref, self.plan['spec_draft'], self.plan['records']['data_audit_resolution']):
             review_scope[ref['path']] = ref['sha256']
-        reviews = self.reviews('CP3', ('CONSTRAINT_RED', 'DATA_EVAL_RED', 'ALGORITHM_RED', 'CODE_RED', 'EDGE_RED', 'SUBMISSION_RED'), review_scope)
+        reviews = self.reviews('FINAL', ('CONSTRAINT_RED', 'DATA_EVAL_RED', 'ALGORITHM_RED', 'CODE_RED', 'EDGE_RED', 'SUBMISSION_RED'), review_scope)
         reviews['security'] = {'decision': 'NOT_TRIGGERED', 'reason': 'Synthetic local file-only task source inspected.', 'inspected_sources': {'TASK.md': digest(self.root / 'TASK.md')}, 'triggers': []}
         reviews['reviews']['SECURITY_RED'] = {'status': 'NOT_APPLICABLE', 'reason': 'No material service/secret/privileged boundary in this fixture.'}
         self.record('finals_reviews', reviews)
@@ -343,6 +351,10 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         self.record('safety', {'agent_or_interactive': False, 'enabled_core': sorted(CHECK['CORE']), 'results': {name: {'status': 'PASS', 'evidence': native, 'scope': scope} for name in CHECK['CORE']}})
         delivery = self.write('delivery-fixture.json', json.dumps({'synthetic': True, 'event': 'DELIVERED', 'minutes': 60, 'note': 'Validator fixture only, no actual participant delivery asserted.'}))
         self.record('study', {'final_minutes': 60, 'delivery': 'DELIVERED', 'actual_delivery_evidence': delivery})
+        return reviews
+
+    def test_final_complete_synthetic_receipts_with_actual_native_replay_pass_read_only(self):
+        reviews = self.complete_final_records()
         before = {str(path): path.read_bytes() for path in self.root.rglob('*') if path.is_file()}
         result = self.result('final')
         self.assertEqual(result['status'], 'PASS', result)
@@ -360,6 +372,96 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         self.record('previous_reviews', original_previous)
         self.write('product.py', (self.root / 'product.py').read_text() + '\n# changed after native safety test\n')
         self.assertEqual(self.result('final')['status'], 'FAIL')
+
+    def replace_execution_tools(self, tool, transcript_only=False):
+        for name in ('submission', 'security', 'clean_run'):
+            ref = self.plan['records'][name]['execution']
+            observed = json.loads((self.root / ref['path']).read_text(encoding='utf-8'))
+            observed = {'tool': tool, 'transcript': 'Synthetic manual fixture; no native assertion.'} if transcript_only else dict(observed, tool=tool)
+            self.plan['records'][name]['execution'] = self.write(ref['path'], json.dumps(observed))
+        safety = json.loads((self.root / self.plan['records']['safety']['path']).read_text(encoding='utf-8'))
+        ref = next(iter(safety['results'].values()))['evidence']
+        observed = json.loads((self.root / ref['path']).read_text(encoding='utf-8'))
+        observed = {'tool': tool, 'transcript': 'Synthetic manual fixture; no native assertion.'} if transcript_only else dict(observed, tool=tool)
+        replacement = self.write(ref['path'], json.dumps(observed))
+        for proof in safety['results'].values():
+            proof['evidence'] = replacement
+        self.record('safety', safety)
+
+    def test_same_final_receipts_pass_original_aggregate_and_v27_cli(self):
+        reviews = self.complete_final_records()
+        aggregate = runpy.run_path(str(ROOT / 'scripts/finals_review_check.py'))
+        self.assertEqual(aggregate['check_reviews'](reviews, self.kit, 'FINAL'), [])
+        self.assertEqual(self.result('final')['status'], 'PASS')
+        plan = self.write('final-evidence-plan.json', json.dumps(self.plan))
+        process = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'scripts/v27_check.py'),
+                                  '--root', str(self.root), '--kit', str(self.kit), '--phase', 'final', '--plan', plan['path']],
+                                 capture_output=True, text=True, encoding='utf-8')
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(json.loads(process.stdout)['status'], 'PASS')
+
+    def test_configured_bash_tool_keeps_native_validation(self):
+        self.complete_final_records()
+        self.env['switches']['EXECUTION_TOOLS'] = {'value': ['bash'], 'classification': 'PLAN_DEFAULT', 'reason': 'Synthetic observed platform adapter.'}
+        self.sync_env()
+        self.replace_execution_tools('bash')
+        self.assertEqual(self.result('final')['status'], 'PASS', self.result('final'))
+        proof = self.plan['records']['clean_run']['execution']
+        observed = json.loads((self.root / proof['path']).read_text(encoding='utf-8'))
+        observed['request']['cmd'] += ' # unsupported command suffix'
+        self.plan['records']['clean_run']['execution'] = self.write(proof['path'], json.dumps(observed))
+        self.assertEqual(self.result('final')['status'], 'FAIL')
+
+    def test_unlisted_tool_is_unverified_without_disabling_current_hash_checks(self):
+        self.complete_final_records()
+        self.replace_execution_tools('unlisted_platform_tool')
+        result = self.result('final')
+        self.assertEqual(result['status'], 'UNVERIFIED', result)
+        self.assertEqual(result['errors'], [])
+        self.assertTrue(any('실행 도구를 확인할 수 없음' in value for value in result['unverified']))
+        self.write('product.py', (self.root / 'product.py').read_text() + '\n# changed after native replay\n')
+        self.assertEqual(self.result('final')['status'], 'FAIL')
+
+    def test_manual_transcript_never_passes_even_when_listed(self):
+        self.complete_final_records()
+        self.env['switches']['EXECUTION_TOOLS'] = {'value': ['exec_command', 'MANUAL_TRANSCRIPT'], 'classification': 'PLAN_DEFAULT', 'reason': 'Synthetic manual transcript example.'}
+        self.sync_env()
+        self.replace_execution_tools('MANUAL_TRANSCRIPT', transcript_only=True)
+        result = self.result('final')
+        self.assertEqual(result['status'], 'UNVERIFIED', result)
+        self.assertEqual(result['errors'], [])
+        self.assertTrue(any('MANUAL_TRANSCRIPT' in value for value in result['unverified']))
+
+    def test_grader_platform_tools_use_the_same_pending_contract(self):
+        self.complete_final_records()
+        self.env['switches']['EXECUTION_TOOLS'] = {'value': ['exec_command', 'bash'], 'classification': 'PLAN_DEFAULT', 'reason': 'Synthetic observed evaluator adapter.'}
+        self.sync_env()
+        grading = self.grading()
+        for control in grading['controls']:
+            ref = control['execution']
+            observed = json.loads((self.root / ref['path']).read_text(encoding='utf-8'))
+            observed['tool'] = 'bash'
+            control['execution'] = self.write(ref['path'], json.dumps(observed))
+        self.record('grading', grading)
+        self.assertEqual(self.result('final')['status'], 'PASS', self.result('final'))
+        for control in grading['controls']:
+            ref = control['execution']
+            observed = json.loads((self.root / ref['path']).read_text(encoding='utf-8'))
+            observed['tool'] = 'unlisted_evaluator_tool'
+            control['execution'] = self.write(ref['path'], json.dumps(observed))
+        self.record('grading', grading)
+        result = self.result('final')
+        self.assertEqual(result['status'], 'UNVERIFIED', result)
+        self.assertEqual(result['errors'], [])
+        self.assertEqual(sum('grader control:' in value for value in result['unverified']), 4)
+
+    def test_planning_template_schedule_remains_unverified_in_intake(self):
+        self.env = COMMON['extract_json_document'](ROOT / 'templates/ENV.md')
+        self.sync_env()
+        result = self.result('intake')
+        self.assertEqual(result['status'], 'UNVERIFIED', result)
+        self.assertEqual(result['errors'], [])
+        self.assertTrue(any('computed planning target is not an official confirmed cutoff' in value for value in result['unverified']))
 
     def test_malformed_records_fail_safely_and_isolated_cli_runs(self):
         self.env['switches']['MODELS']['value'] = None

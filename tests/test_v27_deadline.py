@@ -33,16 +33,18 @@ class DeadlineTests(unittest.TestCase):
              ('22:25', '22:15', '21:15', '20:35')),
         ]
         for value, expected in cases:
+            value = dict(value, C=40)
             with self.subTest(value=value):
                 result = deadline.calculate(value)
                 self.assertEqual(result['status'], 'KNOWN')
                 self.assertEqual(tuple(result[key][11:16] for key in
                                        ('confirmation_deadline', 'submission_start', 'work_lock', 'cp3_start')), expected)
+                self.assertEqual(result['c_basis'], {'mode': 'EXPLICIT', 'key': 'C', 'minutes': 40})
         self.assertEqual(deadline.calculate({})['status'], 'UNKNOWN')
 
     def test_earlier_submission_cutoff_is_respected_and_timezone_compared(self):
         result = deadline.calculate({'FOLLOWUP': 'AFTER_CONFIRM', 'WINDOW_END': at('16:00'),
-                                     'T_SUB': '2026-11-11T05:00:00+00:00'})
+                                     'T_SUB': '2026-11-11T05:00:00+00:00', 'C': 40})
         self.assertEqual(result['confirmation_deadline'], '2026-11-11T05:00:00+00:00')
         self.assertEqual(result['cp3_start'], '2026-11-11T03:10:00+00:00')
 
@@ -60,11 +62,78 @@ class DeadlineTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 deadline.calculate(dict(base, **change))
 
-    def test_past_review_time_requires_replanning(self):
-        with self.assertRaisesRegex(ValueError, 'already past'):
-            deadline.calculate({'FOLLOWUP': 'NONE', 'T_SUB': at('16:00'), 'NOW': at('14:11')})
-        result = deadline.calculate({'FOLLOWUP': 'NONE', 'T_SUB': at('16:00'), 'NOW': at('14:10')})
+    def test_past_review_time_keeps_schedule_until_confirmation(self):
+        base = {'FOLLOWUP': 'FIXED_TIME', 'T_SUB': at('16:00'), 'T_FU': at('16:00'), 'C': 40}
+        result = deadline.calculate(dict(base, NOW=at('14:30')))
         self.assertEqual(result['status'], 'KNOWN')
+        self.assertEqual(result['cp3_start'], at('14:10'))
+        self.assertEqual(result['work_lock'], at('14:50'))
+        self.assertEqual(result['passed'], ['cp3_start'])
+        self.assertTrue(any('cp3_start' in message for message in result['warnings']))
+        result = deadline.calculate(dict(base, NOW=at('15:05')))
+        self.assertEqual(result['status'], 'PAST_CONFIRMATION')
+        self.assertEqual(result['confirmation_deadline'], at('15:00'))
+        self.assertIn('confirmation_deadline', result['passed'])
+        self.assertEqual(deadline.calculate(dict(base, NOW=at('14:10')))['status'], 'KNOWN')
+
+    def test_review_reserve_accounts_for_sequential_and_parallel_roles(self):
+        base = {'FOLLOWUP': 'FIXED_TIME', 'T_SUB': at('16:00'), 'T_FU': at('16:00')}
+        sequential = deadline.calculate(base)
+        self.assertEqual(sequential['review_reserve_minutes'], 90)
+        self.assertEqual(sequential['cp3_start'], at('13:20'))
+        self.assertEqual(sequential['c_basis']['batches'], 7)
+        self.assertEqual(sequential['c_basis']['parallel_assumption'], 'NO')
+        parallel = deadline.calculate(dict(base, REVIEW_PARALLEL='YES'))
+        self.assertEqual(parallel['review_reserve_minutes'], 30)
+        self.assertEqual(parallel['c_basis']['batches'], 1)
+        no_security = deadline.calculate(dict(base, FINAL_REVIEW_ROLES=6, REVIEW_PARALLEL='NO'))
+        self.assertEqual(no_security['review_reserve_minutes'], 80)
+        self.assertEqual(no_security['c_basis']['final_review_roles'], 6)
+        self.assertEqual(deadline.calculate(dict(base, REVIEW_RESERVE=40))['c_basis']['key'], 'REVIEW_RESERVE')
+
+    def test_distributed_template_is_a_planning_schedule_with_lunch_warning(self):
+        env = deadline._read_input(ROOT / 'templates/ENV.md')
+        self.assertEqual(env['switches']['T_SUB']['classification'], 'PLAN_DEFAULT')
+        self.assertEqual(env['switches']['WINDOW_END']['classification'], 'PLAN_DEFAULT')
+        self.assertNotIn('C', env['switches'])
+        result = deadline.calculate(env)
+        self.assertEqual(result['status'], 'KNOWN')
+        self.assertEqual(result['work_lock'], at('14:15'))
+        self.assertEqual(result['cp3_start'], at('12:45'))
+        self.assertEqual(result['review_reserve_minutes'], 90)
+        self.assertTrue(any('lunch' in message.lower() for message in result['warnings']))
+        self.assertEqual(env['switches']['EXECUTION_TOOLS']['value'], ['exec_command'])
+
+    def test_lunch_warning_does_not_move_schedule_and_respects_boundaries(self):
+        base = {'FOLLOWUP': 'FIXED_TIME', 'T_SUB': at('16:00'), 'T_FU': at('16:00'), 'C': 90,
+                'LUNCH_POLICY': 'PAUSE', 'LUNCH_START': at('13:30'), 'LUNCH_END': at('14:00')}
+        result = deadline.calculate(base)
+        self.assertEqual((result['cp3_start'], result['work_lock']), (at('13:20'), at('14:50')))
+        self.assertTrue(any('lunch' in message.lower() for message in result['warnings']))
+        self.assertFalse(deadline.calculate(dict(base, LUNCH_END=at('13:20'), LUNCH_START=at('12:00')))['warnings'])
+        self.assertFalse(deadline.calculate(dict(base, LUNCH_POLICY='CONTINUOUS'))['warnings'])
+
+    def test_invalid_review_assumptions_and_lunch_intervals_fail(self):
+        base = {'FOLLOWUP': 'NONE', 'T_SUB': at('16:00')}
+        for change in ({'REVIEW_PARALLEL': 'MAYBE'}, {'REVIEW_MINUTES_EACH': 0},
+                       {'FIX_BUFFER': -1}, {'FINAL_REVIEW_ROLES': True}, {'FINAL_REVIEW_ROLES': 0},
+                       {'FINAL_REVIEW_ROLES': 8}, {'REVIEW_MINUTES_EACH': 1440},
+                       {'LUNCH_POLICY': 'PAUSE', 'LUNCH_START': at('13:00'), 'LUNCH_END': at('12:00')}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                deadline.calculate(dict(base, **change))
+
+    def test_past_confirmation_cli_returns_one_with_schedule(self):
+        with tempfile.TemporaryDirectory(prefix='v27-deadline-now-') as temporary:
+            source = Path(temporary) / 'ENV.json'
+            base = {'FOLLOWUP': 'FIXED_TIME', 'T_SUB': at('16:00'), 'T_FU': at('16:00'), 'C': 40}
+            cmd = [sys.executable, '-I', '-X', 'utf8', str(ROOT / 'scripts/deadline.py'), '--input', str(source)]
+            for now, status, code in (('14:30', 'KNOWN', 0), ('15:05', 'PAST_CONFIRMATION', 1)):
+                source.write_text(json.dumps(dict(base, NOW=at(now))), encoding='utf-8')
+                result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
+                self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+                value = json.loads(result.stdout)
+                self.assertEqual(value['status'], status)
+                self.assertEqual(value['submission_start'], at('14:50'))
 
     def test_isolated_cli_markdown_input_unknown_and_new_output_only(self):
         with tempfile.TemporaryDirectory(prefix='v27-deadline-') as temporary:

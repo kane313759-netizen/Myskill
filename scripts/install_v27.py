@@ -17,7 +17,7 @@ MANDATORY = ('scripts/v27_common.py', 'scripts/deadline.py', 'scripts/v27_check.
              'references/v27-baseline.json', 'references/v27-contract.md',
              'references/v27-r81-map.md', 'templates/ENV.md', 'templates/EXAM_POLICY_FINAL.md',
              'templates/DATA_AUDIT.md', 'templates/SAFETY_TESTS.md', 'templates/STUDY_BRIEF.md',
-             'templates/V27_STATE.json', 'templates/V27_EVIDENCE.json')
+             'templates/V27_STATE.json', 'templates/V27_EVIDENCE.json', 'BOOTSTRAP_V27.md')
 
 
 def install(source, target, allow_internal_source=False):
@@ -28,16 +28,27 @@ def install(source, target, allow_internal_source=False):
             COMMON['read_bytes'](COMMON['safe_path'](source, rel))
         except (OSError, ValueError) as error:
             errors.append(str(error))
+    if errors:
+        raise ValueError('; '.join(errors))
+    backend = runpy.run_path(str(source / 'scripts/kit_lifecycle.py'), run_name='v27_baseline_lifecycle')
+    COMMON['_no_links'](target / '.hackathon-kit')
+    old = backend['load_manifest'](target / '.hackathon-kit', optional=True)
     skill_rel = '.agents/skills/' + ADDON_SKILL + '/SKILL.md'
     expected = COMMON['sha256_file'](COMMON['safe_path'](source, skill_rel))
     destination = COMMON['safe_path'](target, skill_rel, must_exist=False)
     if destination.exists() and COMMON['sha256_file'](destination) != expected:
-        # Baseline has no required-name entry for this newly added skill. Fail
-        # before its otherwise optional collision handling could silently skip it.
-        errors.append('Unverified/locally changed universal skill preserved; resolve this collision before installing.')
+        owned_hash = (old or {}).get('owned_skills', {}).get(ADDON_SKILL)
+        if not owned_hash or backend['tree_digest'](destination.parent) != owned_hash:
+            errors.append('Unverified/locally changed universal skill preserved; resolve this collision before installing.')
+    bootstrap = COMMON['safe_path'](target, '.hackathon-kit/BOOTSTRAP_V27.md', must_exist=False)
+    bootstrap_hash = COMMON['sha256_file'](source / 'BOOTSTRAP_V27.md')
+    if bootstrap.exists():
+        current = COMMON['sha256_file'](bootstrap)
+        previous = (old or {}).get('managed_files', {}).get('BOOTSTRAP_V27.md')
+        if current != bootstrap_hash and (not previous or current != previous):
+            errors.append('Locally changed/unowned BOOTSTRAP_V27.md preserved; resolve this collision before installing.')
     if errors:
         raise ValueError('; '.join(errors))
-    backend = runpy.run_path(str(source / 'scripts/kit_lifecycle.py'), run_name='v27_baseline_lifecycle')
     lookup_root = target
     while not lookup_root.exists():
         lookup_root = lookup_root.parent
@@ -72,6 +83,12 @@ def install(source, target, allow_internal_source=False):
     backend['install'](source, target, allow_internal_source=allow_internal_source)
     kit = target / '.hackathon-kit'
     manifest = COMMON['read_json'](kit / 'manifest.json')
+    # The protected backend has a fixed root-file list. Own this additive root
+    # document explicitly, so doctor and the original cleanup can validate it.
+    COMMON['_no_links'](bootstrap)
+    backend['write_bytes'](bootstrap, COMMON['read_bytes'](source / 'BOOTSTRAP_V27.md'))
+    manifest['managed_files']['BOOTSTRAP_V27.md'] = bootstrap_hash
+    COMMON['atomic_json'](kit / 'manifest.json', manifest)
     for rel in MANDATORY:
         if COMMON['sha256_file'](kit / rel) != COMMON['sha256_file'](source / rel):
             raise ValueError('Add-on support file is locally changed or incomplete: ' + rel)

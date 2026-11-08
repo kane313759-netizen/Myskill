@@ -10,7 +10,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMON = runpy.run_path(str(Path(__file__).with_name('v27_common.py')))
-EXTRAS = ('R81_MAP.md', 'V27_ADDON.md', 'references/v27-baseline.json')
+EXTRAS = ('R81_MAP.md', 'V27_ADDON.md', 'BOOTSTRAP_V27.md', 'references/v27-baseline.json')
 
 
 def build(source, output, include_untracked=False):

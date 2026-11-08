@@ -1,5 +1,7 @@
 # Universal v2.7 추가 배포
 
+**시작은 [BOOTSTRAP_V27.md](BOOTSTRAP_V27.md)**의 한 문장을 사용한다. 키트를 설치할 수 없을 때의 짧은 대체 지시도 같은 파일에 있다.
+
 현재 기준은 `2026-11-08-finals-r8.2-candidate`이다. v2.7은 이 기준의 파일 112개를 수정하지 않고 기능을 추가한다. 원문 명세의 r8.1보다 이미 강화된 여섯 RED와 조건부 SECURITY_RED를 유지한다. 기준 VERSION을 v2.7로 바꾸지 않으며, 별도 추가 기능 버전은 2.7이다.
 
 설치한 작업 폴더에서 `$hackathon-orchestrator-universal`로 시작한다. 본선 원문과 실제 과제를 먼저 확인하고, ENV의 준비 가정을 공식 규칙으로 취급하지 않는다. 현재 안내문만으로는 본선 후속 평가·모델·API·제출 확정 방식이 정해지지 않았다.
@@ -35,3 +37,30 @@ python -I scripts/package_v27.py --source . --output /임시폴더/Myskill-unive
 ```
 
 별도 `validate-v27` CI가 Windows/Linux와 Python 3.8/3.12에서 기준 회귀·추가 기능·설치·패키지를 검사한다. 네 조합의 실제 결과 확인 전에는 해당 커밋을 설치 준비 완료로 표시하지 않는다. 기본 패키저와 기본 워크플로는 그대로 보존되므로 v2.7 배포에는 `package_v27.py`를 쓴다.
+
+## 수집 전 도우미 정리
+
+최종 수집 준비와 증거 검사를 마친 뒤 다음 순서로 정리한다. purge 미리보기는 아무것도 지우지 않으며, `--apply`는 로컬 스냅샷을 삭제한다. 이 삭제 후에는 해당 보관본으로 복구할 수 없다. 다른 내용이나 연결 경로가 있으면 purge가 전체 삭제를 거부하므로 원인을 확인한다.
+
+```text
+python -I .hackathon-kit/scripts/snapshot.py purge --root .
+python -I .hackathon-kit/scripts/snapshot.py purge --root . --apply
+python -I .hackathon-kit/scripts/kit_lifecycle.py clean --kit .hackathon-kit --apply
+```
+
+마지막으로 실제 제출 파일과 원래 clean이 만든 메모 백업 등 수집 제외 대상을 확인한다. 검사가 끝나기 전에 스냅샷을 지우거나 helper 삭제를 제출 성공으로 기록하지 않는다.
+
+기준 소스 `affd3c1623f67697247c67f6d30df9e76b9bc076`는 공개 [finals-r8.2-baseline](https://github.com/kane313759-netizen/Myskill/tree/finals-r8.2-baseline) 브랜치에서 확인할 수 있다.
+
+## 변경 이력
+
+### 2026-11-08 · v2.7 r1
+
+- 기존 최종 기록 이름 FINAL을 재사용하고 논리 단계 CP3와 구분.
+- 스냅샷 전체 선검증 purge의 미리보기·명시 적용 및 기존 clean 연결.
+- 리뷰 예산 C의 순차/병렬 계산, c_basis와 점심 겹침 경고.
+- 지난 CP3 시각 이후 일정 유지, passed 표시와 PAST_CONFIRMATION.
+- 16:00을 공식 마감과 구별한 계획값으로 제공.
+- EXECUTION_TOOLS와 수동 기록의 정직한 UNVERIFIED 처리.
+- 한국어 단일 시작 문서·키트 없는 대체 지시의 패키징과 소유권 설치.
+- 공개 기준 브랜치 추가. 보호 파일 112개 및 기존 정책·STATE는 보존.

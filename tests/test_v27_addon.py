@@ -3,6 +3,7 @@ import contextlib
 import ast
 import io
 import json
+import re
 from pathlib import Path
 import runpy
 import subprocess
@@ -36,6 +37,20 @@ class AddonTests(unittest.TestCase):
                 if isinstance(node, ast.ImportFrom):
                     self.assertNotIn((node.module or '').split('.')[0], blocked, path.name)
 
+    def test_v27_bootstrap_is_packaged(self):
+        with tempfile.TemporaryDirectory(prefix='v27-bootstrap-') as tmp:
+            archive = Path(tmp) / 'kit.zip'
+            with contextlib.redirect_stdout(io.StringIO()):
+                PACKAGE['build'](ROOT, archive, include_untracked=True)
+            with zipfile.ZipFile(archive) as bundle:
+                self.assertIn('BOOTSTRAP_V27.md', bundle.namelist())
+                text = bundle.read('BOOTSTRAP_V27.md').decode('utf-8')
+                blocks = re.findall(r'```text\n(.*?)\n```', text, re.S)
+                self.assertEqual(len(blocks), 2)
+                self.assertEqual(len(blocks[0].splitlines()), 1)
+                self.assertIn('$hackathon-orchestrator-universal', blocks[0])
+                self.assertLessEqual(len(blocks[1].splitlines()), 25)
+
     def test_package_install_reinstall_doctor_and_cleanup(self):
         with tempfile.TemporaryDirectory(prefix='v27-dist-') as tmp:
             base = Path(tmp)
@@ -58,12 +73,22 @@ class AddonTests(unittest.TestCase):
                 installed = INSTALL['install'](source, target)
             self.assertEqual(installed['status'], 'INSTALLED')
             kit = target / '.hackathon-kit'
+            self.assertEqual((kit / 'BOOTSTRAP_V27.md').read_bytes(), (source / 'BOOTSTRAP_V27.md').read_bytes())
+            self.assertIn('BOOTSTRAP_V27.md', COMMON['read_json'](kit / 'manifest.json')['managed_files'])
             notes = kit / 'run/ENV.md'
             notes.write_text('actual user notes', encoding='utf-8')
             with contextlib.redirect_stdout(io.StringIO()):
                 INSTALL['install'](source, target)
             self.assertEqual(notes.read_text(encoding='utf-8'), 'actual user notes')
             self.assertEqual(task.read_text(encoding='utf-8'), 'original task')
+            # A verified, unchanged owned r0/r1 installation can receive a skill
+            # update; unrelated/local edits remain protected by the collision test.
+            skill = source / '.agents/skills/hackathon-orchestrator-universal/SKILL.md'
+            skill.write_bytes(skill.read_bytes() + b'\nUpdated source skill fixture.\n')
+            with contextlib.redirect_stdout(io.StringIO()):
+                INSTALL['install'](source, target)
+            self.assertEqual((target / '.agents/skills/hackathon-orchestrator-universal/SKILL.md').read_bytes(), skill.read_bytes())
+            self.assertEqual(notes.read_text(encoding='utf-8'), 'actual user notes')
             doctor = subprocess.run([sys.executable, '-I', str(kit / 'scripts/kit_lifecycle.py'),
                                      'doctor', '--kit', str(kit)], capture_output=True, text=True, encoding='utf-8')
             self.assertEqual(doctor.returncode, 0, doctor.stdout + doctor.stderr)
@@ -83,6 +108,20 @@ class AddonTests(unittest.TestCase):
                 INSTALL['install'](ROOT, target)
             self.assertFalse((target / '.hackathon-kit').exists())
             self.assertEqual(existing.read_text(encoding='utf-8'), 'user owned')
+
+    def test_changed_bootstrap_is_preserved_before_any_backend_writes(self):
+        with tempfile.TemporaryDirectory(prefix='v27-bootstrap-collision-') as tmp:
+            target = Path(tmp)
+            with contextlib.redirect_stdout(io.StringIO()):
+                INSTALL['install'](ROOT, target)
+            bootstrap = target / '.hackathon-kit/BOOTSTRAP_V27.md'
+            bootstrap.write_text('user modified bootstrap', encoding='utf-8')
+            sentinel = target / '.hackathon-kit/scripts/deadline.py'
+            before = sentinel.stat().st_mtime_ns
+            with self.assertRaisesRegex(ValueError, 'BOOTSTRAP_V27'):
+                INSTALL['install'](ROOT, target)
+            self.assertEqual(bootstrap.read_text(encoding='utf-8'), 'user modified bootstrap')
+            self.assertEqual(sentinel.stat().st_mtime_ns, before)
 
     def test_isolated_package_cli(self):
         with tempfile.TemporaryDirectory(prefix='v27-cli-') as tmp:

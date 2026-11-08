@@ -79,6 +79,29 @@ def _minutes(values, names, default, minimum=0):
     return value
 
 
+def _review_reserve(values):
+    explicit = next((name for name in ('C', 'REVIEW_RESERVE') if name in values), None)
+    if explicit:
+        minutes = _minutes(values, (explicit,), None, 0.000001)
+        return minutes, {'mode': 'EXPLICIT', 'key': explicit, 'minutes': minutes}
+    parallel = values.get('REVIEW_PARALLEL', 'UNKNOWN')
+    if parallel not in ('YES', 'NO', 'UNKNOWN'):
+        raise ValueError('REVIEW_PARALLEL must be YES, NO or UNKNOWN')
+    roles = values.get('FINAL_REVIEW_ROLES', 7)
+    if type(roles) is not int or roles not in (6, 7):
+        raise ValueError('FINAL_REVIEW_ROLES must be 6 or 7; use 7 while SECURITY_RED is triggered or unknown')
+    each = _minutes(values, ('REVIEW_MINUTES_EACH',), 10, 0.000001)
+    repair = _minutes(values, ('FIX_BUFFER',), 20)
+    batches = 1 if parallel == 'YES' else roles
+    minutes = repair + each * batches
+    if minutes > 1440:
+        raise ValueError('calculated C exceeds 1440 minutes')
+    return minutes, {'mode': 'CALCULATED', 'formula': 'FIX_BUFFER + REVIEW_MINUTES_EACH * batches',
+                     'review_parallel': parallel, 'parallel_assumption': 'YES' if parallel == 'YES' else 'NO',
+                     'review_minutes_each': each, 'fix_buffer_minutes': repair,
+                     'final_review_roles': roles, 'batches': batches, 'minutes': minutes}
+
+
 def calculate(values):
     """Return KNOWN planning bounds or UNKNOWN; input source truth stays external."""
     if not isinstance(values, dict):
@@ -99,7 +122,7 @@ def calculate(values):
     study = _minutes(values, ('S', 'STUDY_FINAL'), 60)
     study_pre = _minutes(values, ('S_pre', 'STUDY_PRE'), study)
     reserve = _minutes(values, ('R', 'SUBMISSION_RESERVE'), 10, 10)
-    review = _minutes(values, ('C', 'REVIEW_RESERVE'), 40, 0.000001)
+    review, c_basis = _review_reserve(values)
     choice = values.get('participant_study_choice', values.get('PARTICIPANT_STUDY_CHOICE'))
     chosen_study = study_pre if followup == 'NONE' else study
     if chosen_study != 60 and not (choice is True or
@@ -132,14 +155,33 @@ def calculate(values):
         lock = confirmation - timedelta(minutes=reserve + study_pre)
     start = confirmation - timedelta(minutes=reserve)
     cp3 = lock - timedelta(minutes=review)
+    warnings, passed = [], []
+    if values.get('LUNCH_POLICY') == 'PAUSE':
+        lunch_start, lunch_end = values.get('LUNCH_START'), values.get('LUNCH_END')
+        if _known(lunch_start) and _known(lunch_end):
+            lunch_start, lunch_end = _instant(lunch_start, 'LUNCH_START'), _instant(lunch_end, 'LUNCH_END')
+            if lunch_end <= lunch_start:
+                raise ValueError('LUNCH_END must be after LUNCH_START')
+            if cp3 < lunch_end and lock > lunch_start:
+                warnings.append('CP3 review interval overlaps PAUSE lunch; replan explicitly. No schedule was moved.')
+        elif _known(lunch_start) or _known(lunch_end):
+            warnings.append('Lunch overlap is unverified: both LUNCH_START and LUNCH_END are required.')
     now = values.get('NOW', values.get('now'))
-    if _known(now) and _instant(now, 'NOW') > cp3:
-        raise ValueError('planned CP3 start is already past the observed NOW; replan explicitly')
-    return {'status': 'KNOWN', 'followup': followup,
+    status = 'KNOWN'
+    if _known(now):
+        observed = _instant(now, 'NOW')
+        passed = [name for name, instant in (('cp3_start', cp3), ('work_lock', lock),
+                                           ('submission_start', start), ('confirmation_deadline', confirmation))
+                  if observed > instant]
+        if passed:
+            warnings.append('Observed NOW is past planned milestones: ' + ', '.join(passed) + '. Keep remaining deadlines visible; replan explicitly.')
+        if observed > confirmation:
+            status = 'PAST_CONFIRMATION'
+    return {'status': status, 'followup': followup,
             'confirmation_deadline': confirmation.isoformat(), 'submission_start': start.isoformat(),
             'work_lock': lock.isoformat(), 'cp3_start': cp3.isoformat(),
             'study_minutes': chosen_study, 'submission_reserve_minutes': reserve,
-            'review_reserve_minutes': review,
+            'review_reserve_minutes': review, 'c_basis': c_basis, 'passed': passed, 'warnings': warnings,
             'notice': 'Planning calculation only; inputs do not establish official rules or a live clock.'}
 
 
