@@ -224,7 +224,7 @@ class EvidenceTests(unittest.TestCase):
 
     def test_type_b_missing_limitations_fails_but_no_human_ack_is_needed(self):
         self.cp1_records()
-        card = dict(decision='optimizer', chosen='greedy', why='bounded plan', alternative='search', limitations='May miss a better assignment.', change_location='choose()')
+        card = dict(decision='optimizer', chosen='greedy', why='bounded plan', alternative='search', limitations='May miss a better assignment.', change_location='choose()', selection_by='AI', evidence_score={'metric':'quality','score':1,'alternative_difference':0.1})
         self.record('decisions', {'type_b_cards': [card]})
         self.assertEqual(self.result('cp1')['errors'], [])
         del card['limitations']
@@ -351,6 +351,31 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         self.record('safety', {'agent_or_interactive': False, 'enabled_core': sorted(CHECK['CORE']), 'results': {name: {'status': 'PASS', 'evidence': native, 'scope': scope} for name in CHECK['CORE']}})
         delivery = self.write('delivery-fixture.json', json.dumps({'synthetic': True, 'event': 'DELIVERED', 'minutes': 60, 'note': 'Validator fixture only, no actual participant delivery asserted.'}))
         self.record('study', {'final_minutes': 60, 'delivery': 'DELIVERED', 'actual_delivery_evidence': delivery})
+        scope = {'dataset': 'synthetic-independent-fixture'}
+        scope_ref = self.write('comparison_scope.json', json.dumps(scope))
+        baseline_artifact = self.write('baseline-result.txt', 'ok')
+        candidate_artifact = {'path': 'result.txt', 'sha256': digest(self.root / 'result.txt')}
+        baseline_ref = self.write('baseline_score.json', json.dumps({'metric': 'score', 'value': 10, 'scope': scope, 'artifact': baseline_artifact}))
+        candidate_ref = self.write('candidate_score.json', json.dumps({'metric': 'score', 'value': 11, 'scope': scope, 'artifact': candidate_artifact}))
+        self.record('baseline_comparison', {'status': 'AVAILABLE', 'metric': 'score', 'direction': 'HIGHER_IS_BETTER',
+            'baseline_value': 10, 'candidate_value': 11, 'selection': 'CANDIDATE', 'gates': [], 'baseline_evidence': baseline_ref,
+            'candidate_evidence': candidate_ref, 'shared_scope_evidence': scope_ref})
+        self.record('external_requests', {'status': 'NONE'})
+        program = self.write('maintenance_product.py', 'import json,sys\nprint(json.dumps(json.load(open(sys.argv[1]))))\n')
+        before = self.write('base_config.json', json.dumps({'limit': 1}))
+        runs = []
+        for n in (2, 3):
+            after = self.write('config_%d.json' % n, json.dumps({'limit': n}))
+            argv = self.native_argv([sys.executable, '-I', str(self.root / program['path']), str(self.root / after['path'])])
+            process = subprocess.run(argv, capture_output=True, text=True)
+            self.assertEqual(process.returncode, 0, process.stderr)
+            proof = self.write('maint_native_%d.json' % n, json.dumps({'tool': 'exec_command', 'argv': argv,
+                'request': {'cmd': subprocess.list2cmdline(argv)}, 'result': {'exit_code': process.returncode, 'output': process.stdout}}))
+            output = self.write('maint_output_%d.json' % n, process.stdout)
+            runs.append({'id': 'case-%d' % n, 'change': 'limit changed', 'before_config': before,
+                'after_config': after, 'program': program, 'execution': proof, 'observed_output': output,
+                'status': 'PASS', 'verification': 'output contains configured limit'})
+        self.record('maintenance', {'runs': runs})
         return reviews
 
     def test_final_complete_synthetic_receipts_with_actual_native_replay_pass_read_only(self):
@@ -373,6 +398,51 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         self.write('product.py', (self.root / 'product.py').read_text() + '\n# changed after native safety test\n')
         self.assertEqual(self.result('final')['status'], 'FAIL')
 
+    def test_worse_candidate_and_unverified_comparison_block_final(self):
+        self.complete_final_records()
+        ref = self.plan['records']['baseline_comparison']
+        data = json.loads((self.root / ref['path']).read_text())
+        scope = json.loads((self.root / data['shared_scope_evidence']['path']).read_text())
+        data['candidate_value'] = 9
+        data['candidate_evidence'] = self.write('worse.json', json.dumps({'metric': 'score', 'value': 9, 'scope': scope,
+            'artifact': {'path': 'result.txt', 'sha256': digest(self.root / 'result.txt')}}))
+        self.record('baseline_comparison', data)
+        self.assertTrue(any('worse than' in x for x in self.result('final')['errors']))
+        self.record('baseline_comparison', {'status': 'UNAVAILABLE_WITH_REASON', 'reason': 'No comparable score exists.'})
+        self.assertTrue(any('no comparable score' in x for x in self.result('final')['unverified']))
+
+    def test_baseline_retention_requires_two_alternatives_and_assumption_check(self):
+        self.complete_final_records()
+        data = json.loads((self.root / self.plan['records']['baseline_comparison']['path']).read_text())
+        data['selection'] = 'CURRENT_BASELINE'
+        data['candidate_value'] = data['baseline_value']
+        scope = json.loads((self.root / data['shared_scope_evidence']['path']).read_text())
+        data['candidate_evidence'] = self.write('baseline_selected_score.json', json.dumps({'metric': 'score', 'value': 10, 'scope': scope,
+            'artifact': {'path': 'result.txt', 'sha256': digest(self.root / 'result.txt')}}))
+        self.record('baseline_comparison', data)
+        self.assertTrue(any('two distinct alternatives' in x for x in self.result('final')['unverified']))
+        data['alternatives'] = [{'name': name, 'assumptions': 'same data', 'result': 'not better', 'evidence': data['baseline_evidence']} for name in ('A', 'B')]
+        data['baseline_assumptions_check'] = [{'check': n, 'method': 'review', 'result': 'verified'} for n in ('response_shape', 'progress_variable', 'operating_shift')]
+        self.record('baseline_comparison', data)
+        self.assertEqual(self.result('final')['status'], 'PASS')
+
+    def test_pending_external_reply_and_maintenance_block_final(self):
+        self.complete_final_records()
+        self.record('external_requests', {'status': 'TRACKED', 'requests': [{'state': 'PENDING','hypothesis':'h','target':'t','expected_if_true':'yes','expected_if_false':'no','budget_left':1,'layer_check':'checked'}]})
+        self.assertTrue(any('do not lock' in x for x in self.result('final')['unverified']))
+        self.record('external_requests', {'status': 'NONE'})
+        m = json.loads((self.root / self.plan['records']['maintenance']['path']).read_text())
+        m['runs'] = m['runs'][:1]
+        self.record('maintenance', m)
+        self.assertTrue(any('two actual' in x for x in self.result('final')['unverified']))
+
+    def test_technical_ab_participant_approval_rejected(self):
+        self.cp1_records()
+        card = {'decision': 'algorithm', 'chosen': 'linear', 'why': 'small data', 'alternative': 'tree',
+                'limitations': 'limited data', 'change_location': 'config', 'selection_by': 'PARTICIPANT'}
+        self.record('decisions', {'type_b_cards': [card]})
+        self.assertTrue(any('must not be delegated' in x for x in self.result('cp1')['errors']))
+
     def replace_execution_tools(self, tool, transcript_only=False):
         for name in ('submission', 'security', 'clean_run'):
             ref = self.plan['records'][name]['execution']
@@ -387,6 +457,13 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         for proof in safety['results'].values():
             proof['evidence'] = replacement
         self.record('safety', safety)
+        maintenance = json.loads((self.root / self.plan['records']['maintenance']['path']).read_text(encoding='utf-8'))
+        for run in maintenance['runs']:
+            ref = run['execution']
+            observed = json.loads((self.root / ref['path']).read_text(encoding='utf-8'))
+            observed = {'tool': tool, 'transcript': 'Synthetic manual fixture; no native assertion.'} if transcript_only else dict(observed, tool=tool)
+            run['execution'] = self.write(ref['path'], json.dumps(observed))
+        self.record('maintenance', maintenance)
 
     def test_same_final_receipts_pass_original_aggregate_and_v27_cli(self):
         reviews = self.complete_final_records()

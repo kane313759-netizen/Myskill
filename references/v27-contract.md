@@ -74,3 +74,38 @@ Type A는 실제 업무 판단·위험 수용·학습 시간 선택처럼 참가
 `install_v27.py`는 원래 설치기의 소유권·충돌 보존을 재사용하고 추가 파일 존재/해시를 확인한다. BOOTSTRAP_V27.md는 설치 후 `.hackathon-kit/BOOTSTRAP_V27.md`에 복사하고 managed_files로 소유권을 기록해 기존 doctor·clean과 호환한다. 변경되지 않은 기존 소유 스킬만 갱신하며 사용자가 수정한 파일은 보존하고 충돌을 보고한다. `package_v27.py`는 원래 패키저의 허용 목록에 명시된 신규 지도·시작 문서·계약·보호 JSON을 더한다. 기존 112개 파일 및 EXAM_POLICY와 기존 STATE 키는 보존한다. `--source`를 제공한 v27_check도 보호 해시를 읽기 전용 확인한다. 이 자기 기재 manifest는 신뢰할 수 있는 배포 SHA와 함께 확인해야 한다.
 
 P2 튜닝·변경 실험·피칭 검사 자동화는 구현하지 않았다. P1이 증거의 의미적 진실, 숨은 점수, 참가자의 기억, 모든 공격, 실제 접수 성공을 증명한다고 주장하지 않는다.
+
+## r2: 기준선, 진행자 회신, 변경 실행
+
+최종 검사에는 `records.baseline_comparison`, `records.external_requests`, `records.maintenance`가 필요하다. 모든 참조는 현재 작업 폴더의 `{path,sha256}`이다. 증거 자체는 출처 진위를 보증하지 않는다.
+
+- baseline_comparison: `AVAILABLE`일 때 `metric`, `direction` (`HIGHER_IS_BETTER` 또는 `LOWER_IS_BETTER`), 유한한 `baseline_value`/`candidate_value`, `selection`, `shared_scope_evidence`, `baseline_evidence`, `candidate_evidence`를 기록한다. 두 점수 JSON은 각각 `{metric,value,scope,artifact:{path,sha256}}`를 갖고 scope는 공통 범위 JSON과 일치해야 한다. 후보 artifact는 현재 clean_run 산출물이어야 하며 현행 유지일 때 기준선 artifact와 SHA256이 같아야 한다. 더 나쁜 후보는 FAIL. 평가가 불가능하면 `UNAVAILABLE_WITH_REASON`과 이유를 남기며 최종 검사는 UNVERIFIED다. 수치만 같고 조건이 다르면 비교로 취급하지 않는다. 선택이 `CURRENT_BASELINE`이면 `alternatives`에 서로 다른 두 `name`, `assumptions`, `result`, `evidence`와 `baseline_assumptions_check`가 필요하다. 현행의 합법성·안전성은 별도로 확인한다.
+- external_requests: `{status:NONE}` 또는 `{status:TRACKED,requests:[...]}`를 기록한다. 각 요청은 `PENDING` 또는 `RECEIVED`이고 RECEIVED는 `response_evidence`를 연결한다. PENDING은 최종 검사를 UNVERIFIED로 유지한다. 단 `deadline_fallback:true`와 기준선·관문 지표 및 제출 검증 통과가 모두 확인되면 경고로 낮춘다. 채팅의 발송·응답 기록을 실제 근거로 보존하며, 대기 중에는 다른 독립 작업을 계속한다.
+- maintenance: `runs`에 서로 다른 두 개 이상의 `{id,change,before_config,after_config,program,execution,observed_output,status:PASS,verification}`을 기록한다. 파일 참조는 해시를 포함하며, 두 설정의 바이트가 달라야 한다. 실제 native 실행은 `-I` Python으로 기록된 프로그램 및 변경 설정 파일을 사용하고 stdout JSON이 observed_output과 같아야 한다. 이 검사는 실행 기록과 파일 무결성만 검사하며 테스트 자체의 품질·OS 격리·인간 판단을 인증하지 않는다. 서로 다른 두 변화와 기대 관계를 요구하고 적절한 검토자가 내용을 검증한다.
+- `decisions.type_b_cards`는 설명 기록이며 `selection_by:AI`를 명시한다. `selection_by:PARTICIPANT` 또는 `participant_approval_required:true`는 기술 결정을 참가자에게 전가하므로 FAIL이다. Type A 업무·위험 판단은 이 제한과 구별한다.
+- 전체 데이터 감사는 명시된 CSV와 gzip CSV를 파일별 스트리밍한다. `max_rows`는 앞부분 프로파일 표본만 제한한다(실제 상한 10,000행). 전체 스캔은 `max_scan_bytes` 기본 2GiB, `max_scan_seconds` 기본 300초(최대 900초)를 각 파일에 적용하고, 초과 파일만 UNVERIFIED로 기록한 뒤 나머지를 계속 검사한다. 기간·출처·개체별 샘플은 기본 최대 2,000개이며 무작위 표본의 누락 가능성이 있다. CSV 외 기존 형식은 bounded 프로파일로 제한되며 전체를 읽지 못하면 UNVERIFIED다. 시각 역행·단위 계단은 후보 경보일 뿐, 이름·행 순서·누락·혼합 시간대·제품 구성에 따라 거짓 양성 또는 누락이 가능하다. 데이터의 실제 공정 순서·동일 개체·단위 개정 근거는 별도 확인한다.
+
+같은 개체의 앞선 단계 종료와 다음 단계 시작을 교차 비교한다. `time_order`에 id·sequence·start·end·source 역할을 지정하거나 일반 명칭으로 자동 추정한다. 출처별 비율이 기준(기본 5%) 이상이면 -14~+14시간의 30분 단위 후보를 검토하되 자동 보정하지 않는다. 역행 쌍 통계는 한정된 개체 표본에 대한 수치다. 중복 단계·재작업·분기·시간대 의미는 확정하지 않는다.
+
+## r3: 발견·관문·판단·요청 근거
+
+- 독립 의미 검토에서 상태가 `FINDING`인 항목마다 `grading.finding_impacts`에 `{item_id,finding_ref,action,metric,before,after,split,grader_sha256}` 또는 `{item_id,unmeasurable_reason}`을 기록한다. 수치 근거의 grader 해시는 현재 평가기 해시와 연결한다. 미측정 사유는 경고이며 성능 개선의 증거가 아니다.
+- `baseline_comparison.gates`는 명시 목록이다. 각 관문은 `{metric,direction,baseline_value,candidate_value,evidence}`이고 evidence JSON은 동일한 공통 `scope`, 주 지표와 같은 `baseline_artifact` 및 `candidate_artifact`와 지표 수치를 담는다. 어느 관문이든 나빠지면 FAIL이다.
+- 현행 유지의 `baseline_assumptions_check`는 `{check,method,result}` 목록이다. `response_shape`, `missing_reference_join`, `progress_variable`, `operating_shift` 중 중복 없는 세 가지 이상을 점검한다.
+- `decisions.type_a_choices`는 허용된 업무 주제 `problem_choice`, `miss_vs_overkill`, `speed_vs_precision`, `risk_tolerance`, `final_study_minutes`, `emergency_no_review`와 해시가 연결된 `question_ref`, `answer_ref`를 기록한다. Type B는 AI 선택을 유지하며 `evidence_score:{metric,score,alternative_difference}`에 실제 튜닝 기준과 대안 차이를 남긴다. 점수가 없으면 만들어내지 않는다.
+- `external_requests.requests` 각 항목에 hypothesis, target, expected_if_true, expected_if_false, budget_left, layer_check가 필요하다. 회신 전 fallback은 검증된 기준선 및 모든 관문과 현재 제출·clean_run 증거가 있을 때만 경고다.
+- 기간·출처의 중앙값 비가 10, 100, 1000배 또는 역수의 ±15%에 해당하면 `SCALE_STEP` 후보로 기록한다. 명시된 시간 열이나 첫 시간 열로 주·월을 구분한다. ID·순번 이름 힌트는 숫자 단위 비교에서 제외한다. 표본 근거는 사실·교정의 증명이 아니다.
+
+개체 표본은 최대 2,000개, 개체별 단계는 최대 128개이며 초과 단계는 누락 수를 기록한다. 기간·출처·출처×기간의 축소는 검사별 `analysis_limits` 경고로 남기며 표본 float 예산은 공유한다. 분석 축소는 행 읽기 완료 여부를 바꾸지 않는다. 긴 범주 값은 생략한다. 출처 비교의 범주 값은 보고서에 포함될 수 있으므로 해당 파일의 민감도를 확인한다.
+
+## r3.1: 행 완결성과 분석 한계
+
+`complete_rows`와 `all_provided_rows_examined`는 행 전체를 읽었는지만 표시한다. UNVERIFIED는 행을 다 읽지 못한 경우만, 분석 축소는 경고로 처리한다. 각 파일의 `analysis_limits`는 검사·이유·열·생략 수를 기록하고 `v27_check.py`는 이를 pending이 아닌 warning으로 표시한다. 단 데이터 오류, 파싱 실패 또는 별도 증거 부족은 원래의 FAIL/UNVERIFIED 규칙을 유지한다.
+
+고유값이 50을 넘은 범주 열은 즉시 출처 비교 그룹에서 제거한다. 단위 비교는 기간, 출처, 출처×기간 및 인접 비교의 표본에 합산 2,000,000개 float 예산을 적용한다. 수치 열 최대 512개를 비교하고 `scale_columns` 목록이 있으면 그 열만 지정 순서로 우선한다. 그룹별 표본 크기를 그룹 수에 따라 조정하며 최소 64개를 확보할 수 없는 그룹이나 512개 초과 열은 `analysis_limits`에 기록한다. 사용한 크기는 `scale_sampling`에 남긴다. 출처 중앙값은 자기 자신을 제외한 나머지 출처의 중앙값과 비교하며, 출처별 기간 변화도 검사한다. 시간 열이 없거나 시간순이 확인되지 않으면 파일 순서 인접 비교를 하지 않는다. 범주별 수준이 3배 이상 차이 나는 긴 형식은 항목별 시간 비교로 구분한다.
+
+관측된 숫자가 모두 정수이고 고유값이 50개 이하면서 최댓값이 100 이하이거나 열 이름에 code·bin·item·flag·type·class·status·grade·level이 포함되면 `treated_as_code`로 표시하고 단위 비교에서 제외한다. 이 규칙은 100 이하의 작은 정수 측정값에 생긴 실제 10배 변화를 놓칠 수 있다. 도메인 정보와 원자료로 확인한다.
+
+자동 ID는 표본의 (ID, 순서) 중복률이 가장 낮고 동률이면 서로 다른 ID가 더 많은 열을 선택하며 후보와 수치를 남긴다. 시간대 표시가 한 열에 섞이면 TIMEZONE_MIXED, 시간대 차이로 비교하지 못한 공정 쌍은 출처별 skipped_timezone_mismatch로 기록한다. 순서 역할을 유추하지 못한 시간 열 2개 이상의 입력에는 NOT_RUN과 역할 지정 필요를 표시한다. 모든 경보 및 시차 제안은 실제 현장 판단의 대체가 아니다.
+
+비CSV 표는 제한된 프로파일 범위에서 시간순 확인과 긴 형식의 범주별 인접 비교를 수행한다. 기간·출처 비교는 수행하지 않으며 해당 분석 한계를 경고한다.

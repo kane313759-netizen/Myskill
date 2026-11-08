@@ -1,4 +1,5 @@
 import json
+import gzip
 from pathlib import Path
 import runpy
 import subprocess
@@ -29,7 +30,7 @@ class DataAuditChecks(unittest.TestCase):
         profile = report['files'][0]['tables'][0]
         self.assertEqual(profile['duplicate_rows'], 1)
         self.assertEqual(profile['null_counts']['value'], 1)
-        self.assertEqual(len(profile['scale_suspects']), 1)
+        self.assertEqual(len(profile['scale_suspects']), 0)  # 10^4 is outside r3 rules
         self.assertEqual(profile['time_candidates'][0]['timezone_explicit_count'], 4)
         self.assertEqual(report['items'][4]['status'], 'UNVERIFIED')
         self.assertEqual(report['items'][6]['status'], 'UNVERIFIED')
@@ -39,8 +40,8 @@ class DataAuditChecks(unittest.TestCase):
         report = AUDIT(self.root, {'files': ['data.csv'], 'max_rows': 2,
                                    'na': [1], 'na_reasons': {'1': 'no time data'}})
         self.assertEqual(report['status'], 'FAIL')
-        self.assertEqual(report['scope']['rows_examined'], 2)
-        self.assertFalse(report['scope']['all_provided_rows_examined'])
+        self.assertEqual(report['scope']['rows_examined'], 4)
+        self.assertTrue(report['scope']['all_provided_rows_examined'])
         self.assertEqual(report['items'][0]['status'], 'UNVERIFIED')
 
     def test_document_only_na_with_instruction_risk_still_unverified(self):
@@ -77,7 +78,7 @@ class DataAuditChecks(unittest.TestCase):
         self.assertEqual(report['status'], 'RECORDED')
         self.assertEqual(len(report['files']), 1)
         self.assertEqual(AUDIT(self.root, {'files': ['../outside.csv']})['status'], 'FAIL')
-        self.assertEqual(AUDIT(self.root, {'files': ['data.csv'], 'max_file_bytes': 2})['status'], 'FAIL')
+        self.assertEqual(AUDIT(self.root, {'files': ['data.csv'], 'max_file_bytes': 2})['status'], 'UNVERIFIED')
 
     def test_malformed_csv_returns_structured_failure_through_api_and_cli(self):
         (self.root / 'bad.csv').write_text('id,value\n1,"unterminated\n', encoding='utf-8')
@@ -97,6 +98,48 @@ class DataAuditChecks(unittest.TestCase):
                                 capture_output=True, text=True, timeout=15)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(json.loads(result.stdout)['status'], 'RECORDED')
+
+    def test_gzip_full_scan_detects_late_scale_step_and_time_reversal(self):
+        with gzip.open(self.root / 'full.csv.gz', 'wt', encoding='utf-8', newline='') as f:
+            f.write('id,start_time,end_time,value\n')
+            for n in range(12020):
+                value = 1.5 if n < 11000 else 15
+                end = '2026-01-01T00:00:00Z' if n == 11500 else '2026-01-01T02:00:00Z'
+                f.write(f'{n},2026-01-01T01:00:00Z,{end},{value}\n')
+        result = AUDIT(self.root, {'files': ['full.csv.gz']})
+        self.assertEqual(result['status'], 'RECORDED', result)
+        self.assertTrue(result['scope']['all_provided_rows_examined'])
+        self.assertEqual(result['scope']['rows_examined'], 12020)
+        profile = result['files'][0]['tables'][0]
+        self.assertTrue(any(x.get('column') == 'value' and x.get('ratio') == 10 for x in profile['scale_suspects']))
+        self.assertEqual(profile['timestamp_pair_reversals'][0]['reversed_rows'], 1)
+
+    def test_gzip_decompression_budget_and_truncation_are_explicit(self):
+        with gzip.open(self.root / 'data.csv.gz', 'wt', encoding='utf-8') as f:
+            f.write('value\n' + 'long-data\n' * 50)
+        result = AUDIT(self.root, {'files': ['data.csv.gz'], 'max_scan_bytes': 100})
+        self.assertEqual(result['status'], 'UNVERIFIED')
+        self.assertIn('budget', result['files'][0]['partial_reason'])
+        result = AUDIT(self.root, {'files': ['data.csv.gz'], 'max_rows': 5})
+        self.assertTrue(result['scope']['all_provided_rows_examined'])
+        self.assertEqual(result['files'][0]['profile_rows'], 5)
+
+    def test_reversed_process_steps_within_wafer_ignore_file_order(self):
+        (self.root / 'route.csv').write_text(
+            'wafer,oper,start,end\n'
+            'a,200,2026-01-01T00:30:00,2026-01-01T01:30:00\n'
+            'b,200,2026-01-01T03:00:00,2026-01-01T04:00:00\n'
+            'a,100,2026-01-01T00:00:00,2026-01-01T01:00:00\n'
+            'b,100,2026-01-01T00:00:00,2026-01-01T01:00:00\n', encoding='utf-8')
+        result = AUDIT(self.root, {'files': ['route.csv']})
+        item = result['files'][0]['tables'][0]['sequence_reversals'][0]
+        self.assertEqual(item['comparable_pairs'], 2)
+        self.assertEqual(item['reversed_pairs'], 1)
+
+    def test_extreme_scale_step_never_emits_nonfinite_json(self):
+        (self.root / 'scale.csv').write_text('value\n' + '1e-300\n' * 10 + '1e300\n' * 10)
+        result = AUDIT(self.root, {'files': ['scale.csv']})
+        json.dumps(result, allow_nan=False)
 
 
 if __name__ == '__main__':
