@@ -59,6 +59,11 @@ class RegressionR31(unittest.TestCase):
   rows=[{'item':name,'value':v} for name,v in [('p',1),('q',10),('r',100),('s',1000)] for _ in range(150)]
   self.write('long.csv',list(rows[0]),rows);s=self.scan('long.csv')['files'][0]['tables'][0]['scale_suspects']
   self.assertFalse(s,s)
+ def test_timeless_json_profile_does_not_treat_file_order_as_time(self):
+  rows=[{'item':name,'value':v} for name,v in [('a',1),('b',10),('c',100),('d',1000)] for _ in range(150)]
+  (self.root/'long.json').write_text(json.dumps(rows),encoding='utf8')
+  s=self.scan('long.json',max_rows=1000)['files'][0]['tables'][0]['scale_suspects']
+  self.assertFalse(s,s)
  def test_06_timezone_mixed_and_skipped_pairs(self):
   rows=[{'lot':str(i),'step':j,'tool':'one','start':'2031-01-01T0%d:00:00%s'%(j*2,'Z' if j==1 else ''),'end':'2031-01-01T0%d:00:00%s'%(j*2+1,'Z' if j==1 else '')} for i in range(30) for j in range(2)]
   self.write('zones.csv',list(rows[0]),rows);r=self.scan('zones.csv');p=r['files'][0]['tables'][0]

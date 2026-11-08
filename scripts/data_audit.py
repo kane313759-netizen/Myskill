@@ -63,6 +63,10 @@ def _profile(rows, io, declared_columns=()):
     # Compare neighbouring windows, not just the global range: a 10x change
     # can be hidden by perfectly ordinary within-column magnitudes.
     for column in numeric:
+        # File order alone is never evidence of time, including non-CSV
+        # bounded profiles. CSV streaming performs its own full-scope check.
+        if not temporal or temporal[0].get('sample_nondecreasing') is not True:
+            break
         if _id_hint(column) and all(value.is_integer() for value in (io['as_num'](row.get(column)) for row in rows) if value is not None):
             continue
         series = [(idx, io['as_num'](row.get(column))) for idx, row in enumerate(rows)]
