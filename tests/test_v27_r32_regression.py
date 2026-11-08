@@ -76,4 +76,10 @@ class RegressionR32(unittest.TestCase):
         self.assertEqual(table['scale_sampling']['columns'], ['m519'])
         self.assertTrue(any(x['column']=='m519' for x in table['scale_suspects']))
 
+    def test_nonnumeric_value_disqualifies_integer_code(self):
+        self.write(['date','measurement'], (['2032-%02d-01'%m, ('unknown' if m==2 and i==0 else (100 if m<4 else 10))] for m in range(1,7) for i in range(30)))
+        table=self.scan()['tables'][0]
+        self.assertFalse(table['numeric_ranges']['measurement']['treated_as_code'])
+        self.assertTrue(any(x['column']=='measurement' for x in table['scale_suspects']))
+
 if __name__ == '__main__': unittest.main()

@@ -50,7 +50,7 @@ def _profile(rows, io, declared_columns=()):
         numbers = [value for value in numbers if value is not None]
         if numbers:
             numeric[column] = {'count': len(numbers), 'min': min(numbers), 'max': max(numbers),
-                               'treated_as_code': _integer_code(column, set(numbers))}
+                               'treated_as_code': len(numbers)==len(present) and _integer_code(column, set(numbers))}
         time_name = re.search(r'(?:^|[_\s-])(?:date|time|timestamp|datetime)(?:$|[_\s-])|[a-z](?:Time|Date)|timestamp|날짜|일시|시간', column, re.I)
         looks_iso = any(isinstance(v, str) and re.match(r'^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}|$)', v.strip()) for v in present)
         if time_name or looks_iso:
@@ -389,8 +389,10 @@ def _stream_csv(path, plan, spec, io):
                     val=row[col]
                     v=io['as_num'](val)
                     code=code_values[col]
-                    if code is not None and v is not None:
-                        if not v.is_integer(): code_values[col]=None
+                    if code is not None:
+                        if v is None:
+                            if not io['is_blank'](val): code_values[col]=None
+                        elif not v.is_integer(): code_values[col]=None
                         else:
                             code.add(v)
                             if len(code)>50: code_values[col]=None
