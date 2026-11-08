@@ -76,3 +76,12 @@ safe fallback exists; never fabricate a valid decision to keep the process alive
 After actual freeze no product edits. Human submission completion needs observed
 receipt, not a prepared file or a helper PASS. Refresh delivered explanations when
 pre-freeze fixes change the actual method/result; do not certify human comprehension.
+
+## r2 시험 결과 반영
+
+- 기술 선택은 AI가 Type B로 직접 결정하고 쉬운 말로 이유·대안·한계를 설명한다. 가상 또는 실제 비개발자에게 기술 A/B 선택이나 승인을 요구하지 않는다. 업무 위험 수용 등 실제 사람만 결정할 사안은 Type A로 남긴다.
+- 비교 가능한 현행 기준선이 있으면 같은 지표·방향·데이터·제약에서 후보와 비교한다. 후보가 더 나쁘면 제출 후보로 선택하지 않고 현행 기준선을 보존한다. 수치 비교가 불가능하면 이유와 `UNAVAILABLE_WITH_REASON`을 남기고 개선이나 최종 검증 완료를 주장하지 않는다.
+- `현행 유지`는 자동 기본 답이 아니다. 서로 다른 두 대안을 실제로 검토하고 결과·근거와 현행 방식의 가정을 점검한다. 점수만 높아도 안전·하드 제약은 별도 충족해야 한다.
+- 진행자에게 보낸 필수 요청의 회신이 대기 중이면 독립 작업은 계속하되 결과를 최종 잠금으로 표시하지 않는다. 기한이 임박해도 회신을 지어내거나 미응답을 수신으로 바꾸지 않는다.
+- 최종 전 최소 두 가지 서로 다른 설정 변경을 실제 재실행하고 입력·명령·결과와 검증을 남긴다. 적용할 설정이 없거나 실행이 불가능하면 이유를 남기고 UNVERIFIED다. 원본이나 최종 후보를 변경하지 않는 격리 사본에서 실행한다.
+- `data_audit.py`는 명시 파일의 모든 행을 예산 안에서 조사하고 `.csv.gz`, 인접 구간 중앙값의 스케일 계단, 같은 행의 시작/종료 시각 역행 후보를 보고한다. 예산 초과·부분 스캔·해독 불가는 완전 검사로 취급하지 않는다. 탐지는 단위 변경이나 인과관계의 확정이 아니다.

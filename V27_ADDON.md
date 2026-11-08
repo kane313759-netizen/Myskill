@@ -64,3 +64,7 @@ python -I .hackathon-kit/scripts/kit_lifecycle.py clean --kit .hackathon-kit --a
 - EXECUTION_TOOLS와 수동 기록의 정직한 UNVERIFIED 처리.
 - 한국어 단일 시작 문서·키트 없는 대체 지시의 패키징과 소유권 설치.
 - 공개 기준 브랜치 추가. 보호 파일 112개 및 기존 정책·STATE는 보존.
+
+### v2.7 r2 시험 개선
+
+기준선보다 나쁜 후보를 막고 현행 유지의 두 대안·가정을 확인한다. 진행자 회신 전에는 최종 잠금을 하지 않으며 최소 두 설정 변경의 실제 실행 증거를 요구한다. 감사 대상은 명시 파일로 한정한 채 gzip CSV와 규모 계단·시각 역행 후보를 검사한다. Type B 기술 선택은 AI가 수행하고 참가자 승인 카드로 바꾸지 않는다. 감사 경보와 실행 증거는 도메인 진실·공식 점수·인간 이해를 인증하지 않는다. 세부 스키마와 안전 예산은 references/v27-contract.md를 따른다.

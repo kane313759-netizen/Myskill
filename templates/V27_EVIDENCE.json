@@ -2,8 +2,30 @@
   "version": 1,
   "env_path": ".hackathon-kit/run/ENV.md",
   "records": {},
-  "required_checks": ["environment", "deadline", "data_audit", "grading", "decisions", "safety", "independent_reviews", "submission", "clean_run", "security", "study"],
-  "data_audit_plan": {"files": [], "max_rows": 10000, "max_file_bytes": 33554432, "na": [], "na_reasons": {}},
+  "required_checks": [
+    "environment",
+    "deadline",
+    "data_audit",
+    "grading",
+    "decisions",
+    "safety",
+    "independent_reviews",
+    "submission",
+    "clean_run",
+    "security",
+    "study",
+    "baseline_comparison",
+    "external_requests",
+    "maintenance"
+  ],
+  "data_audit_plan": {
+    "files": [],
+    "max_rows": 1000000,
+    "max_file_bytes": 33554432,
+    "na": [],
+    "na_reasons": {},
+    "max_decompressed_bytes": 67108864
+  },
   "spec_draft": null,
   "submission_rules": {},
   "security_plan": {},
@@ -23,6 +45,10 @@
     "cp1_reviews reuses base execution receipts for CONSTRAINT_RED and DATA_EVAL_RED at CP1 with current audit/SPEC scope. finals_reviews reuses the existing FINAL plan and receipts for the six core roles plus conditional SECURITY_RED at the logical CP3 phase; required_scope must cover current replay inputs/artifacts, audited sources, SPEC_DRAFT and audit evidence. previous_reviews retains the actual CP2 plan for worker/session reuse detection. Inherited-context launch facts cannot be relabelled clean.",
     "submission/security/clean_run record refs also include execution:{path,sha256}; execution retains native {tool:actual EXECUTION_TOOLS entry,argv:[actual isolated Python invocation],request:{cmd:exact canonical command},result:{exit_code:0,output:actual JSON stdout}}. Accepted cmd is list2cmdline(argv) or shlex.join(argv), optionally prefixed by PowerShell '& '. Exact helper/root/current rules-plan binding is required. Unlisted tools, MANUAL_TRANSCRIPT and planned commands remain UNVERIFIED. Native record integrity does not authenticate identity.",
     "snapshots lists actual snapshot manifest refs {path,sha256}; original data hashes are integrity checks, not independent backup copies.",
-    "P2 modules are optional and absent from required checks. This template is intentionally incomplete and must not pass as completed evidence."
+    "P2 modules are optional and absent from required checks. This template is intentionally incomplete and must not pass as completed evidence.",
+    "Final baseline_comparison is AVAILABLE with comparable scoped metric evidence, or UNAVAILABLE_WITH_REASON (UNVERIFIED); a worse candidate fails. CURRENT_BASELINE requires two distinct evidenced alternatives and a baseline assumptions check.",
+    "Final external_requests is NONE or TRACKED; each tracked item is PENDING (UNVERIFIED) or RECEIVED with response_evidence.",
+    "Final maintenance requires two distinct real changed-config program executions, hash-bound before_config, after_config, program, native execution, observed_output and verification. See v27-contract.md.",
+    "Technical Type B cards must record selection_by:AI; never require participant A/B choice or approval."
   ]
 }

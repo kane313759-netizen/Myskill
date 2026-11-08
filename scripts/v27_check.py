@@ -2,6 +2,7 @@
 """Read-only v2.7 evidence checks. Never advances STATE, a gate or a submission."""
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import runpy
@@ -217,6 +218,8 @@ def _check(plan, root, kit, phase='final', source=None):
             fresh = module('data_audit')['audit'](root, plan.get('data_audit_plan', {}))
             if fresh != audit:
                 errors.append('data_audit: retained result differs from current bounded audit')
+            if not audit.get('scope', {}).get('all_provided_rows_examined'):
+                pending.append('data_audit: full scan of explicitly provided rows is incomplete')
             items = audit.get('items', [])
             if {item.get('id') for item in items} != set(range(1, 11)) or len(items) != 10:
                 errors.append('data_audit: exactly ten distinct items required')
@@ -315,6 +318,10 @@ def _check(plan, root, kit, phase='final', source=None):
         for card in decisions.get('type_b_cards', []):
             if not all(meaningful(card.get(key)) for key in ('decision', 'chosen', 'why', 'alternative', 'limitations', 'change_location')):
                 errors.append('type B card needs decision, explanation, alternative, limitations and change_location')
+            if card.get('selection_by') == 'PARTICIPANT' or card.get('participant_approval_required') is True:
+                errors.append('technical Type B choices must not be delegated as participant A/B approval')
+            elif card.get('selection_by') != 'AI':
+                pending.append('type B: AI ownership of technical selection is not recorded')
         # Participant acknowledgement is deliberately not a gate.
     safety = record('safety')
     if safety:
@@ -435,6 +442,105 @@ def _check(plan, root, kit, phase='final', source=None):
         except (OSError, ValueError, TypeError, KeyError) as exc:
             errors.append('snapshot: ' + str(exc))
     if phase == 'final':
+        comparison = record('baseline_comparison')
+        if comparison:
+            if comparison.get('status') == 'UNAVAILABLE_WITH_REASON':
+                if not meaningful(comparison.get('reason')):
+                    errors.append('baseline comparison: unavailable needs a reason')
+                pending.append('baseline comparison: no comparable score; no improvement claim or automatic freeze')
+            elif comparison.get('status') == 'AVAILABLE':
+                metric, direction = comparison.get('metric'), comparison.get('direction')
+                left, right = comparison.get('baseline_value'), comparison.get('candidate_value')
+                if not meaningful(metric) or direction not in ('HIGHER_IS_BETTER', 'LOWER_IS_BETTER') or any(type(x) not in (int, float) or not math.isfinite(x) for x in (left, right)):
+                    errors.append('baseline comparison: finite comparable metric and direction required')
+                else:
+                    original, candidate = {}, {}
+                    try:
+                        original = h['read_json'](bound(comparison.get('baseline_evidence')))
+                        candidate = h['read_json'](bound(comparison.get('candidate_evidence')))
+                        scope = h['read_json'](bound(comparison.get('shared_scope_evidence')))
+                        if not isinstance(scope, dict) or not scope or any(item.get('metric') != metric or item.get('scope') != scope or item.get('value') != expected for item, expected in ((original, left), (candidate, right))):
+                            raise ValueError('both metric results must bind identical nonempty evaluation scope and recorded values')
+                        bound(original.get('artifact')); bound(candidate.get('artifact'))
+                        replay = record('clean_run', required=False) or {}
+                        if not any(item.get('path') == candidate['artifact'].get('path') and item.get('sha256') == candidate['artifact'].get('sha256') for item in replay.get('artifacts', [])):
+                            raise ValueError('candidate score must bind a current clean-run artifact')
+                    except (OSError, ValueError, TypeError) as exc:
+                        errors.append('baseline comparison evidence: ' + str(exc))
+                    if right < left if direction == 'HIGHER_IS_BETTER' else right > left:
+                        errors.append('candidate is worse than the comparable current baseline; retain baseline')
+                    if comparison.get('selection') == 'CURRENT_BASELINE':
+                        if right != left:
+                            errors.append('current baseline selection must score the same as the baseline under identical evaluation')
+                        if original.get('artifact', {}).get('sha256') != candidate.get('artifact', {}).get('sha256'):
+                            errors.append('current baseline selection must preserve the evaluated baseline artifact')
+                        alternatives = comparison.get('alternatives', [])
+                        if not isinstance(alternatives, list) or len(alternatives) < 2 or len({x.get('name') for x in alternatives if isinstance(x, dict) and meaningful(x.get('name'))}) < 2:
+                            pending.append('current baseline retention needs two distinct alternatives examined')
+                        else:
+                            for option in alternatives:
+                                try:
+                                    if not meaningful(option.get('assumptions')) or not meaningful(option.get('result')):
+                                        raise ValueError('alternative assumptions and observed result required')
+                                    bound(option.get('evidence'))
+                                except (OSError, ValueError, TypeError, AttributeError) as exc:
+                                    errors.append('baseline alternative: ' + str(exc))
+                        if not meaningful(comparison.get('baseline_assumptions_check')):
+                            pending.append('current baseline assumptions were not checked')
+                    elif comparison.get('selection') != 'CANDIDATE':
+                        errors.append('baseline comparison: selection must be CANDIDATE or CURRENT_BASELINE')
+            else:
+                pending.append('baseline comparison: availability and decision not recorded')
+
+        requests = record('external_requests')
+        if requests:
+            if requests.get('status') not in ('NONE', 'TRACKED'):
+                pending.append('external requests: explicit NONE or TRACKED status required')
+            elif requests['status'] == 'TRACKED':
+                entries = requests.get('requests')
+                if not isinstance(entries, list) or not entries:
+                    errors.append('external requests: tracked list required')
+                else:
+                    for item in entries:
+                        if item.get('state') == 'PENDING':
+                            pending.append('external request pending: do not lock before response')
+                        elif item.get('state') == 'RECEIVED':
+                            try:
+                                bound(item.get('response_evidence'))
+                            except (OSError, ValueError, TypeError) as exc:
+                                errors.append('external request response: ' + str(exc))
+                        else:
+                            pending.append('external request: state unresolved')
+
+        maintenance = record('maintenance')
+        if maintenance:
+            runs = maintenance.get('runs', [])
+            if not isinstance(runs, list) or len(runs) < 2:
+                pending.append('maintenance: two actual change executions required')
+            else:
+                ids, configurations = set(), set()
+                for run in runs:
+                    try:
+                        if not meaningful(run.get('id')) or run['id'] in ids or not meaningful(run.get('change')):
+                            raise ValueError('distinct change and run id required')
+                        ids.add(run['id'])
+                        before = bound(run.get('before_config')); after = bound(run.get('after_config'))
+                        if before.read_bytes() == after.read_bytes():
+                            raise ValueError('changed configuration is identical to baseline')
+                        if run['after_config']['sha256'] in configurations:
+                            raise ValueError('maintenance scenarios must use distinct changed configurations')
+                        configurations.add(run['after_config']['sha256'])
+                        proof = h['read_json'](bound(run.get('execution')))
+                        argv, output = native(proof)
+                        product = bound(run.get('program'))
+                        if path_index(argv, product) is None or path_index(argv, after) is None or output != h['read_json'](bound(run.get('observed_output'))):
+                            raise ValueError('execution must bind program, changed configuration and observed JSON output')
+                        if run.get('status') != 'PASS' or not meaningful(run.get('verification')):
+                            raise ValueError('actual outcome and verification required')
+                    except UnverifiedExecution as exc:
+                        pending.append('maintenance: ' + str(exc))
+                    except (OSError, ValueError, TypeError, KeyError) as exc:
+                        errors.append('maintenance: ' + str(exc))
         for name, script, api, arg in (
                 ('submission', 'submit_check', 'check_submission', 'submission_rules'),
                 ('security', 'security_check', 'check_security', 'security_plan')):

@@ -3,10 +3,15 @@
 import argparse
 from collections import Counter
 import csv
+import gzip
+import itertools
+import statistics
+import zlib
 from datetime import datetime
 import hashlib
 import io as text_io
 import json
+import math
 from pathlib import Path
 import re
 import runpy
@@ -55,9 +60,86 @@ def _profile(rows, io, declared_columns=()):
             temporal.append({'column': column, 'name_hint': bool(time_name), 'iso_value_hint': looks_iso,
                              'parsed_iso_count': len(parsed), 'timezone_explicit_count': aware,
                              'sample_nondecreasing': all(a <= b for a, b in zip(parsed, parsed[1:])) if comparable else None})
+    # Compare neighbouring windows, not just the global range: a 10x change
+    # can be hidden by perfectly ordinary within-column magnitudes.
+    for column in numeric:
+        series = [(idx, io['as_num'](row.get(column))) for idx, row in enumerate(rows)]
+        series = [(idx, value) for idx, value in series if value is not None and value > 0]
+        window = max(3, min(100, len(series) // 4))
+        if len(series) >= 2 * window:
+            best = None
+            for split in range(window, len(series) - window + 1, max(1, window // 2)):
+                left = statistics.median(value for _, value in series[split-window:split])
+                right = statistics.median(value for _, value in series[split:split+window])
+                if left and right and max(left / right, right / left) >= 5:
+                    ratio = right / left
+                    candidate = {'column': column, 'before_row': series[split-1][0] + 1,
+                                 'after_row': series[split][0] + 1, 'ratio': round(ratio, 6) if math.isfinite(ratio) else None,
+                                 'window': window, 'reason': 'adjacent window medians differ by at least 5x; verify units and population'}
+                    distance = abs(math.log(right) - math.log(left))
+                    if best is None or distance > best_distance:
+                        best = candidate
+                        best_distance = distance
+            if best:
+                scales.append(best)
+    # Only compare semantically paired timestamps; arbitrary row order is not a
+    # process-time reversal. Report counts, never raw identifiers or values.
+    reversals = []
+    time_columns = [item['column'] for item in temporal]
+    for earlier in time_columns:
+        for later in time_columns:
+            if earlier == later:
+                continue
+            if not (re.search(r'(start|begin|in|입고|시작)', earlier, re.I) and
+                    re.search(r'(end|finish|out|완료|종료)', later, re.I)):
+                continue
+            comparable = reversed_count = 0
+            for row in rows:
+                try:
+                    a = datetime.fromisoformat(str(row.get(earlier, '')).replace('Z', '+00:00'))
+                    b = datetime.fromisoformat(str(row.get(later, '')).replace('Z', '+00:00'))
+                    if (a.utcoffset() is None) != (b.utcoffset() is None):
+                        continue
+                    comparable += 1
+                    reversed_count += b < a
+                except (ValueError, TypeError, OverflowError):
+                    continue
+            reversals.append({'earlier_column': earlier, 'later_column': later,
+                              'comparable_rows': comparable, 'reversed_rows': reversed_count})
+    sequence_reversals = []
+    # A common manufacturing contract records one step per row. Sort within
+    # the same wafer by numeric process sequence, not by physical file order.
+    if {'wafer_id', 'step_seq', 'track_in', 'track_out'} <= set(columns):
+        groups = {}
+        for row in rows:
+            seq = io['as_num'](row.get('step_seq'))
+            ident = row.get('wafer_id')
+            if seq is not None and not io['is_blank'](ident):
+                groups.setdefault(str(ident), []).append((seq, row))
+        compared = reversed_count = ambiguous = 0
+        for group in groups.values():
+            group.sort(key=lambda item: item[0])
+            for (first_seq, first), (next_seq, second) in zip(group, group[1:]):
+                if first_seq == next_seq:
+                    ambiguous += 1
+                    continue
+                try:
+                    a = datetime.fromisoformat(str(first.get('track_out', '')).replace('Z', '+00:00'))
+                    b = datetime.fromisoformat(str(second.get('track_in', '')).replace('Z', '+00:00'))
+                    if (a.utcoffset() is None) != (b.utcoffset() is None):
+                        continue
+                    compared += 1
+                    reversed_count += b < a
+                except (ValueError, TypeError, OverflowError):
+                    continue
+        sequence_reversals.append({'id_column': 'wafer_id', 'sequence_column': 'step_seq',
+            'prior_column': 'track_out', 'next_column': 'track_in', 'comparable_pairs': compared,
+            'reversed_pairs': reversed_count, 'same_sequence_pairs_skipped': ambiguous,
+            'limitation': 'Rework, splits, parallel steps, uploads and timezone meaning require independent review.'})
     signatures = [io['canonical_value'](row) for row in rows]
     return {'columns': columns, 'types': types, 'null_counts': nulls, 'numeric_ranges': numeric,
             'key_candidates': candidates, 'time_candidates': temporal, 'scale_suspects': scales,
+            'timestamp_pair_reversals': reversals, 'sequence_reversals': sequence_reversals,
             'duplicate_rows': len(signatures) - len(set(signatures))}
 
 
@@ -66,10 +148,10 @@ def audit(root, plan):
     io = runpy.run_path(str(Path(__file__).with_name('data_io.py')), run_name='v27_data_io')
     if not isinstance(plan, dict) or not isinstance(plan.get('files'), list) or not plan['files']:
         raise ValueError('explicit provided data/document files are required')
-    maximum = plan.get('max_rows', 1000)
+    maximum = plan.get('max_rows', 1000000)
     byte_limit = plan.get('max_file_bytes', 8 * 1024 * 1024)
-    if isinstance(maximum, bool) or not isinstance(maximum, int) or not 0 < maximum <= 10000:
-        raise ValueError('max_rows must be 1..10000')
+    if isinstance(maximum, bool) or not isinstance(maximum, int) or not 0 < maximum <= 1000000:
+        raise ValueError('max_rows must be 1..1000000')
     if isinstance(byte_limit, bool) or not isinstance(byte_limit, int) or not 0 < byte_limit <= 32 * 1024 * 1024:
         raise ValueError('invalid max_file_bytes')
     if len(plan['files']) > 64:
@@ -93,18 +175,49 @@ def audit(root, plan):
             if total_bytes > 64 * 1024 * 1024:
                 raise ValueError('total audit byte budget exceeded')
             artifact = {'path': name, 'bytes': len(content), 'sha256': hashlib.sha256(content).hexdigest()}
-            if path.suffix.lower() in ('.csv', '.json', '.xlsx', '.xlsm'):
+            compressed_csv = path.name.lower().endswith('.csv.gz')
+            if path.suffix.lower() in ('.csv', '.json', '.xlsx', '.xlsm') or compressed_csv:
                 remaining = maximum - total_rows
                 if remaining <= 0:
                     raise ValueError('total audit row budget exhausted before this file')
                 artifact.update(kind='table', tables=[], rows_examined=0, complete_rows=True)
                 declared_columns = []
+                if compressed_csv:
+                    # Bound inflated bytes independently of compressed input to
+                    # avoid unbounded decompression and never touch data_io.py.
+                    inflated_limit = plan.get('max_decompressed_bytes', 64 * 1024 * 1024)
+                    if isinstance(inflated_limit, bool) or not isinstance(inflated_limit, int) or not 0 < inflated_limit <= 64 * 1024 * 1024:
+                        raise ValueError('invalid max_decompressed_bytes')
+                    with gzip.GzipFile(fileobj=text_io.BytesIO(content)) as stream:
+                        raw = stream.read(inflated_limit + 1)
+                    if len(raw) > inflated_limit:
+                        raise ValueError('decompressed data exceeds byte budget')
+                    encoding = spec.get('encoding')
+                    if encoding:
+                        decoded = raw.decode(encoding)
+                    else:
+                        try:
+                            decoded = raw.decode('utf-8-sig')
+                        except UnicodeDecodeError:
+                            decoded = raw.decode('cp949')
+                    reader = csv.reader(text_io.StringIO(decoded, newline=''), strict=True)
+                    declared_columns = io['_headers'](next(reader, []))
+                    def compressed_rows():
+                        for values in reader:
+                            if not values:
+                                continue
+                            if len(values) != len(declared_columns):
+                                raise ValueError('CSV line %s: wrong field count' % reader.line_num)
+                            yield dict(zip(declared_columns, values))
+                    tables = [(None, list(itertools.islice(compressed_rows(), remaining + 1)))]
+                else:
+                    tables = io['tables'](path, remaining + 1, byte_limit,
+                                          encoding=spec.get('encoding'), records_key=spec.get('records_key'),
+                                          sheet=spec.get('sheet'), all_sheets=False)
                 if path.suffix.lower() == '.csv':
                     encoding = io['choose_encoding'](path, spec.get('encoding'))
                     declared_columns = next(csv.reader(text_io.StringIO(content.decode(encoding))), [])
-                for sheet, rows in io['tables'](path, remaining + 1, byte_limit,
-                                              encoding=spec.get('encoding'), records_key=spec.get('records_key'),
-                                              sheet=spec.get('sheet'), all_sheets=False):
+                for sheet, rows in tables:
                     partial = len(rows) > remaining
                     sample = rows[:remaining]
                     if not all(isinstance(row, dict) for row in sample):
@@ -125,7 +238,7 @@ def audit(root, plan):
             else:
                 raise ValueError('unsupported input type; provide explicit CSV/JSON/workbook or document')
             artifacts.append(artifact)
-        except (OSError, UnicodeError, ValueError, TypeError, ImportError, RuntimeError, KeyError, csv.Error) as error:
+        except (OSError, EOFError, UnicodeError, ValueError, TypeError, ImportError, RuntimeError, KeyError, csv.Error, zlib.error) as error:
             errors.append({'path': name, 'error': str(error)})
     tables_present = any(item['kind'] == 'table' for item in artifacts)
     complete = not errors and all(item.get('complete_rows') is not False for item in artifacts)
@@ -133,7 +246,7 @@ def audit(root, plan):
     numeric_present = any(prof['numeric_ranges'] for prof in profiles)
     empty_workbook = any(item['path'].lower().endswith(('.xlsx', '.xlsm')) and item['rows_examined'] == 0 for item in artifacts)
     observations = {
-        1: [{'path': prof['path'], 'candidates': prof['time_candidates']} for prof in profiles],
+        1: [{'path': prof['path'], 'candidates': prof['time_candidates'], 'timestamp_pair_reversals': prof['timestamp_pair_reversals'], 'sequence_reversals': prof['sequence_reversals']} for prof in profiles],
         2: [{'path': prof['path'], 'numeric_ranges': prof['numeric_ranges'], 'scale_suspects': prof['scale_suspects']} for prof in profiles],
         4: [{'path': prof['path'], 'sample_key_candidates': prof['key_candidates'], 'duplicate_rows': prof['duplicate_rows']} for prof in profiles],
         10: [{'path': prof['path'], 'sample_null_counts': prof['null_counts']} for prof in profiles],
