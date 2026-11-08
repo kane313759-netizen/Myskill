@@ -24,7 +24,7 @@
     "na": [],
     "na_reasons": {},
     "max_scan_bytes": 2147483648,
-    "max_scan_seconds": 120,
+    "max_scan_seconds": 300,
     "reservoir_size": 2000
   },
   "spec_draft": null,

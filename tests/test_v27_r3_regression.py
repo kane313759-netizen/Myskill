@@ -56,13 +56,13 @@ class SyntheticStreamingTests(unittest.TestCase):
   self.write('small.csv',['x'],[{'x':1}])
   r=AUDIT(self.root,{'files':['large.json','small.csv'],'max_file_bytes':80})
   self.assertEqual(r['status'],'UNVERIFIED');self.assertFalse(r['files'][0]['complete_rows']);self.assertTrue(r['files'][1]['complete_rows'])
- def test_f2_source_reservoir_overflow_is_unverified(self):
+ def test_f2_source_reservoir_overflow_is_warning(self):
   rows=[]
   for n in range(2100):
    rows.extend([{'lot_id':str(n),'step':1,'tool':'shared','start':'2031-01-01T00:00:00','end':'2031-01-01T01:00:00'},
                 {'lot_id':str(n),'step':2,'tool':'S'+str(n),'start':'2031-01-01T02:00:00','end':'2031-01-01T03:00:00'}])
   self.write('many.csv',list(rows[0]),rows);r=AUDIT(self.root,{'files':['many.csv']})
-  self.assertEqual(r['status'],'UNVERIFIED');self.assertIn('reservoir budget',r['files'][0]['partial_reason'])
+  self.assertEqual(r['status'],'RECORDED');self.assertTrue(r['files'][0]['analysis_limits'])
  def test_f3_source_mixed_and_dates(self):
   rows=[]
   for day in range(1,25):

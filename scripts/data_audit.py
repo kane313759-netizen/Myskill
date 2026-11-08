@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 import csv
 import gzip
+import itertools
 import statistics
 import zlib
 from datetime import datetime
@@ -120,14 +121,14 @@ def _profile(rows, io, declared_columns=()):
 def _stream_csv(path, plan, spec, io):
     import heapq, random, time
     limit = plan.get('max_scan_bytes', plan.get('max_file_bytes', 2 * 1024 * 1024 * 1024))
-    seconds = plan.get('max_scan_seconds', 120)
+    seconds = plan.get('max_scan_seconds', 300)
     reservoir = plan.get('reservoir_size', 2000)
     requested_sample = plan.get('max_rows', 2000)
     sample_limit = min(requested_sample, 10000) if type(requested_sample) is int else requested_sample
     if type(limit) is not int or not 0 < limit <= 2 * 1024 * 1024 * 1024:
         raise ValueError('max_scan_bytes must be 1..2GiB')
-    if type(seconds) not in (int, float) or not 0 < seconds <= 120:
-        raise ValueError('max_scan_seconds must be 0..120')
+    if type(seconds) not in (int, float) or not 0 < seconds <= 900:
+        raise ValueError('max_scan_seconds must be 0..900')
     if type(reservoir) is not int or not 1 <= reservoir <= 2000 or type(requested_sample) is not int or not 1 <= requested_sample <= 1000000:
         raise ValueError('reservoir_size and max_rows exceed bounded profile budget')
     threshold = plan.get('time_reversal_threshold', 0.05)
@@ -148,11 +149,11 @@ def _stream_csv(path, plan, spec, io):
                 pass
         if not encoding: raise UnicodeError('Cannot detect CSV encoding')
     rng = random.Random(2941)
-    sample, periods, cats, numeric_cols, counts = [], {}, {}, set(), {}
-    adjacent, last_time, chronological = {}, None, True
+    sample, periods, cats, numeric_cols, counts, source_periods = [], {}, {}, set(), {}, {}
+    adjacent, group_adjacent, last_time, chronological = {}, {}, None, True
     pair_compared = pair_reversed = 0
     cache_cap = 2000000  # maximum floats in all reservoirs combined
-    used = [0]; analysis_limited = [False]; scan_bytes = rows_scanned = sample_bytes = 0; complete = True; reason = None
+    used = {'period':0, 'source':0, 'source_period':0}; limits = {}; scan_bytes = rows_scanned = sample_bytes = 0; complete = True; reason = None
     start_clock = time.monotonic()
     hash_value = hashlib.sha256()
     # Hash the entire original byte stream only if it fits the per-file budget.
@@ -168,27 +169,39 @@ def _stream_csv(path, plan, spec, io):
                 if time.monotonic()-start_clock > seconds:
                     complete=False; reason='time budget exceeded during hashing'; break
         if complete: full_hash = hash_value.hexdigest()
-    def keep(group, key, value):
+    def limited(check, reason, column, dropped=1):
+        key=(check,reason,column);limits[key]=limits.get(key,0)+dropped
+    def keep(group, key, value, check, column):
         bucket = group.get(key)
         if bucket is None:
             if len(group) >= 4096:
-                analysis_limited[0] = True
+                limited(check,'group budget exceeded',column)
                 return
-            bucket = group[key] = [0, []]
+            bucket = group[key] = [0, [], None, None]
         bucket[0] += 1
-        if len(bucket[1]) < reservoir and used[0] < cache_cap:
-            bucket[1].append(value); used[0] += 1
+        if len(bucket[1]) < reservoir and used[check] < cache_cap:
+            bucket[1].append(value); used[check] += 1
+            if len(bucket[1]) == reservoir:
+                weight=math.exp(math.log(max(rng.random(),1e-300))/reservoir)
+                weight=min(weight,1-1e-15)
+                skip=int(math.log(max(rng.random(),1e-300))/math.log1p(-weight))
+                bucket[2]=bucket[0]+skip+1;bucket[3]=weight
         else:
-            if len(bucket[1]) < reservoir and used[0] >= cache_cap:
-                analysis_limited[0] = True
-            n = rng.randrange(bucket[0])
-            if n < len(bucket[1]): bucket[1][n] = value
+            if len(bucket[1]) < reservoir and used[check] >= cache_cap:
+                limited(check,'sample budget exceeded',column)
+                return
+            if bucket[2] is not None and bucket[0]>=bucket[2]:
+                bucket[1][rng.randrange(reservoir)]=value
+                weight=bucket[3]*math.exp(math.log(max(rng.random(),1e-300))/reservoir)
+                weight=min(weight,1-1e-15)
+                skip=int(math.log(max(rng.random(),1e-300))/math.log1p(-weight))
+                bucket[2]=bucket[0]+skip+1;bucket[3]=weight
     def parsed(v):
         try: return datetime.fromisoformat(str(v).replace('Z','+00:00'))
         except (ValueError, TypeError, OverflowError): return None
     hints = {'id':['lot_id','wafer_id','lot','wafer','carrier'], 'sequence':['step_seq','step','seq','oper','operation','route_step'],
              'start':['track_in','start','begin','in_time','start_time'], 'end':['track_out','end','finish','out_time','end_time'],
-             'source':['eqp_id','tool','equipment','chamber']}
+             'source':['eqp_id','tool','equipment','chamber','source','device','machine','equipment_id','tool_id']}
     explicit = plan.get('time_order')
     if explicit is not None and not isinstance(explicit,dict): raise ValueError('time_order must be a role mapping')
     roles = {}; groups = {}; group_heap = []; dropped_events = 0
@@ -217,10 +230,23 @@ def _stream_csv(path, plan, spec, io):
             if header is None:
                 if not complete: return {'columns':[], 'sample':[], 'rows':0, 'complete':False, 'reason':reason,'bytes':scan_bytes,'sha256':full_hash,'profile':_profile([],io,[])}
                 raise ValueError('CSV header missing')
-            header=io['_headers'](header); lookup={x.casefold():x for x in header}
-            if len(header)>512:
-                return {'columns':header[:512], 'sample':[], 'rows':0, 'complete':False, 'reason':'column budget exceeded',
-                        'bytes':scan_bytes,'sha256':full_hash,'profile':_profile([],io,header[:512])}
+            header=io['_headers'](header); column_count=len(header)
+            for column in header[512:]: limited('columns','column budget exceeded',column)
+            header=header[:512];lookup={x.casefold():x for x in header}
+            def safe_rows():
+                try:
+                    yield from reader
+                except csv.Error:
+                    if complete: raise
+            stream = safe_rows()
+            prefix=[]; prefix_bytes=0
+            while len(prefix)<min(sample_limit,2000) and prefix_bytes<8*1024*1024:
+                try: values=next(stream)
+                except StopIteration: break
+                if not values: continue
+                if len(values)!=column_count: raise ValueError('CSV line %s: wrong field count'%reader.line_num)
+                prefix.append(values);prefix_bytes+=sum(len(v) for v in values)+64*len(values)
+            positions={name:i for i,name in enumerate(header)}
             for role, opts in hints.items():
                 requested=(explicit or {}).get(role)
                 if requested is not None:
@@ -228,27 +254,58 @@ def _stream_csv(path, plan, spec, io):
                     roles[role]=requested
                 else:
                     roles[role]=next((lookup[x] for x in opts if x in lookup),None)
+            candidates=[]
+            if roles.get('sequence'):
+                seqpos=positions[roles['sequence']]
+                for hint in hints['id']:
+                    col=lookup.get(hint)
+                    if col is None: continue
+                    pos=positions[col]
+                    pairs=[(row[pos],row[seqpos]) for row in prefix if row[pos] and row[seqpos]]
+                    if not pairs: continue
+                    candidates.append({'column':col,'duplicate_ratio':1-len(set(pairs))/len(pairs),
+                                       'distinct_ids':len({x[0] for x in pairs}),'sample_pairs':len(pairs)})
+            if not (explicit or {}).get('id') and candidates:
+                chosen=min(candidates,key=lambda x:(x['duplicate_ratio'],-x['distinct_ids'],hints['id'].index(x['column'].casefold())))
+                roles['id']=chosen['column']
+            roles['id_candidates']=candidates
             if explicit and any(not roles[k] for k in ('id','sequence','start','end','source')):
                 raise ValueError('time_order needs id, sequence, start, end, source')
             period_col=plan.get('time_column') or roles.get('start') or next((x for x in header if re.search(r'(date|time|날짜|일시)',x,re.I)),None)
             if period_col and period_col not in header: raise ValueError('time_column not found')
             per=plan.get('period','week')
             if per not in ('week','month'): raise ValueError('period must be week or month')
-            metric_columns=header
+            numeric_candidates=[col for col in header if col!=roles.get('source') and any(io['as_num'](row[positions[col]]) is not None for row in prefix)]
+            category_columns=[col for col in header if col not in numeric_candidates and col not in (period_col,roles.get('id'),roles.get('start'),roles.get('end'))]
+            selected=numeric_candidates if len(numeric_candidates)<=64 else numeric_candidates[:32]
+            metric_columns=selected
+            metric_by_check={name:set(selected) for name in ('period','source','source_period')}
+            for check,applicable in (('period',bool(period_col)),('source',bool(category_columns)),('source_period',bool(period_col and category_columns))):
+                if applicable:
+                    for col in numeric_candidates:
+                        if col not in metric_by_check[check]: limited(check,'numeric column budget exceeded',col)
             integer_ids={col:True for col in header if _id_hint(col)}
             has_roles=all(roles.get(k) for k in ('id','sequence','start','end'))
-            def safe_rows():
-                try:
-                    yield from reader
-                except csv.Error:
-                    if complete: raise
-            for values in safe_rows():
+            late_numeric=set()
+            time_columns=[col for col in header if re.search(r'(date|time|timestamp|날짜|일시)',col,re.I) or col in (roles.get('start'),roles.get('end'),period_col)]
+            timezone_counts={col:[0,0] for col in time_columns}
+            def clear_category(store, check, column):
+                keys=[key for key in store if key[0]==column]
+                for key in keys:
+                    used[check]-=len(store[key][1]);del store[key]
+            for values in itertools.chain(prefix,stream):
                 if not values: continue
-                if len(values)!=len(header): raise ValueError('CSV line %s: wrong field count'%reader.line_num)
+                if len(values)!=column_count: raise ValueError('CSV line %s: wrong field count'%reader.line_num)
                 rows_scanned += 1
                 row=dict(zip(header,values))
+                parsed_times={}
+                for col in time_columns:
+                    dt=parsed(row.get(col))
+                    if dt:
+                        parsed_times[col]=dt;timezone_counts[col][0]+=1
+                        if dt.utcoffset() is not None: timezone_counts[col][1]+=1
                 if roles.get('start') and roles.get('end'):
-                    left_time,right_time=parsed(row.get(roles['start'])),parsed(row.get(roles['end']))
+                    left_time,right_time=parsed_times.get(roles['start']),parsed_times.get(roles['end'])
                     if left_time and right_time and (left_time.utcoffset() is None)==(right_time.utcoffset() is None):
                         pair_compared += 1
                         pair_reversed += right_time < left_time
@@ -262,7 +319,7 @@ def _stream_csv(path, plan, spec, io):
                     v=io['as_num'](val)
                     if col in integer_ids and v is not None and not v.is_integer(): integer_ids[col]=False
                     if v is not None and v>0: nums[col]=v;numeric_cols.add(col)
-                d=parsed(row.get(period_col)) if period_col else None
+                d=parsed_times.get(period_col) if period_col else None
                 if d:
                     if last_time is not None:
                         try:
@@ -271,20 +328,49 @@ def _stream_csv(path, plan, spec, io):
                             chronological = False
                     last_time=d
                     week=d.isocalendar(); period='%04d-W%02d'%(week[0],week[1]) if per=='week' else '%04d-%02d'%(d.year,d.month)
-                    for col,v in nums.items(): keep(periods,(col,period),v)
-                for col,v in nums.items():
-                    state=adjacent.setdefault(col,[[],[]])
-                    state[0].append(v)
-                    if len(state[0])==100:
-                        if len(state[1])<2048: state[1].append((rows_scanned,statistics.median(state[0])))
-                        state[0].clear()
-                for col,val in row.items():
-                    if col in nums or not val or len(val)>256 or col==period_col or col in (roles.get('id'), roles.get('start'), roles.get('end')): continue
-                    if io['as_num'](val) is not None or parsed(val): continue
+                    for col,v in nums.items():
+                        if col in metric_by_check['period']: keep(periods,(col,period),v,'period',col)
+                elif period_col:
+                    chronological=False
+                if period_col and d:
+                    for col,v in nums.items():
+                        state=adjacent.setdefault(col,[[],[]])
+                        state[0].append(v)
+                        if len(state[0])==100:
+                            if len(state[1])<2048: state[1].append((rows_scanned,statistics.median(state[0])))
+                            else: limited('adjacent','block budget exceeded',col)
+                            state[0].clear()
+                for col in category_columns:
+                    val=row[col]
+                    if not val or len(val)>256: continue
+                    if io['as_num'](val) is not None:
+                        if col!=roles.get('source') and col not in late_numeric:
+                            late_numeric.add(col);limited('numeric','numeric column absent from profile',col)
+                        if col!=roles.get('source'): continue
+                    if parsed(val): continue
                     bucket=cats.setdefault(col,set())
-                    if len(bucket)<=50: bucket.add(val)
+                    before=len(bucket)
+                    if before<=50: bucket.add(val)
+                    if before<=20<len(bucket): clear_category(source_periods,'source_period',col)
+                    if before<=50<len(bucket):
+                        clear_category(counts,'source',col)
+                        for group_key in [key for key in group_adjacent if key[0]==col]: del group_adjacent[group_key]
                     if len(bucket)<=50:
-                        for key,v in nums.items(): keep(counts,(col,val,key),v)
+                        for key,v in nums.items():
+                            if key in metric_by_check['source']: keep(counts,(col,val,key),v,'source',key)
+                    if d and len(bucket)<=20:
+                        for key,v in nums.items():
+                            if key in metric_by_check['source_period']: keep(source_periods,(col,val,key,period),v,'source_period',key)
+                    if d and len(bucket)<=50:
+                        for key,v in nums.items():
+                            group_key=(col,val,key)
+                            if group_key not in group_adjacent and len(group_adjacent)>=4096:
+                                limited('adjacent_group','group budget exceeded',key);continue
+                            state=group_adjacent.setdefault(group_key,[[],[]]);state[0].append(v)
+                            if len(state[0])==100:
+                                if len(state[1])<2048: state[1].append((rows_scanned,statistics.median(state[0])))
+                                else: limited('adjacent_group','block budget exceeded',key)
+                                state[0].clear()
                 if has_roles:
                     raw_seq=row.get(roles['sequence'])
                     number=io['as_num'](raw_seq)
@@ -302,42 +388,78 @@ def _stream_csv(path, plan, spec, io):
                             if len(groups)<reservoir:
                                 groups[key]=[];heapq.heappush(group_heap,(-rank,key))
                             elif rank < -group_heap[0][0]:
-                                _,old=heapq.heapreplace(group_heap,(-rank,key)); del groups[old]; groups[key]=[]
+                                _,old=heapq.heapreplace(group_heap,(-rank,key))
+                                limited('time_order','entity reservoir sample',roles['id'],len(groups[old]))
+                                del groups[old]; groups[key]=[]
                         if key in groups:
                             if len(groups[key])<128: groups[key].append((seq,start,end,source))
-                            else: dropped_events += 1;analysis_limited[0] = True
+                            else: dropped_events += 1;limited('time_order','entity step budget exceeded',roles['id'])
+                        else:
+                            limited('time_order','entity reservoir sample',roles['id'])
                     elif seq is not None and ident:
-                        dropped_events += 1;analysis_limited[0] = True
+                        dropped_events += 1;limited('time_order','entity or timestamp length budget exceeded',roles['id'])
         profile=_profile(sample,io,header)
+        for column,(parsed_count,aware_count) in timezone_counts.items():
+            entry=next((x for x in profile['time_candidates'] if x['column']==column),None)
+            if entry is None and parsed_count:
+                entry={'column':column};profile['time_candidates'].append(entry)
+            if entry is not None:
+                entry['full_parsed_count']=parsed_count;entry['full_timezone_explicit_count']=aware_count
+                if 0<aware_count<parsed_count: entry['signal']='TIMEZONE_MIXED'
         if roles.get('start') and roles.get('end'):
             profile['timestamp_pair_reversals']=[{'earlier_column':roles['start'],'later_column':roles['end'],
                 'comparable_rows':pair_compared,'reversed_rows':pair_reversed}]
+        if not has_roles and len([x for x in profile['time_candidates'] if x.get('full_parsed_count',0)>0])>=2:
+            profile['sequence_check']='NOT_RUN — time_order 역할 지정 필요'
         # Replace r2's file-order/range heuristic with period/source ratios.
         suspects=[]
         def ratio_ok(a,b):
             if not a or not b: return False
             r=b/a
             return any(.85*k <= r <= 1.15*k or .85/k <= r <= 1.15/k for k in (10,100,1000))
-        if chronological:
-            for col,(_,blocks) in adjacent.items():
-                for (row_a,a),(row_b,b) in zip(blocks,blocks[1:]):
-                    if ratio_ok(a,b): suspects.append({'signal':'SCALE_STEP','kind':'ADJACENT','column':col,'before_row':row_a,'after_row':row_b,'ratio':b/a,
-                        'limitation':'File ordering is not a confirmed time sequence.' if not period_col else 'Confirm chronology and unit definitions.'})
-        by_col={}
-        for (col,period),(_,vals) in periods.items():
-            if vals: by_col.setdefault(col,[]).append((period,statistics.median(vals)))
-        for col,seqs in by_col.items():
-            seqs.sort()
-            for (p,a),(q,b) in zip(seqs,seqs[1:]):
-                if ratio_ok(a,b): suspects.append({'signal':'SCALE_STEP','kind':'PERIOD','column':col,'before_period':p,'after_period':q,'ratio':b/a})
+        medians_by_group={}
         for category,values in cats.items():
             if not 2<=len(values)<=50: continue
             for col in sorted(numeric_cols):
                 medians={v:statistics.median(counts[(category,v,col)][1]) for v in values if (category,v,col) in counts and counts[(category,v,col)][1]}
-                if len(medians)<2: continue
-                reference=statistics.median(medians.values())
-                for val,m in sorted(medians.items()):
-                    if ratio_ok(reference,m): suspects.append({'signal':'SCALE_STEP','kind':'SOURCE','column':col,'source_column':category,'source_value':val,'ratio':m/reference})
+                if len(medians)>=2: medians_by_group[(category,col)]=medians
+        long_pairs=set()
+        for (category,col),medians in medians_by_group.items():
+            if category != roles.get('source') and category.casefold() not in hints['source'] and max(medians.values())/min(medians.values())>=3:
+                long_pairs.add((category,col))
+        long_columns={col for _,col in long_pairs}
+        if period_col and chronological:
+            for col,(_,blocks) in adjacent.items():
+                if col in long_columns: continue
+                for (row_a,a),(row_b,b) in zip(blocks,blocks[1:]):
+                    if ratio_ok(a,b): suspects.append({'signal':'SCALE_STEP','kind':'ADJACENT','column':col,'before_row':row_a,'after_row':row_b,'ratio':b/a,
+                        'limitation':'Confirm chronology and unit definitions.'})
+            for (category,val,col),(_,blocks) in group_adjacent.items():
+                if (category,col) not in long_pairs: continue
+                for (row_a,a),(row_b,b) in zip(blocks,blocks[1:]):
+                    if ratio_ok(a,b): suspects.append({'signal':'SCALE_STEP','kind':'ADJACENT','column':col,'source_column':category,'source_value':val,'before_row':row_a,'after_row':row_b,'ratio':b/a})
+        by_col={}
+        for (col,period),bucket in periods.items():
+            vals=bucket[1]
+            if vals: by_col.setdefault(col,[]).append((period,statistics.median(vals)))
+        for col,seqs in by_col.items():
+            if col in long_columns: continue
+            seqs.sort()
+            for (p,a),(q,b) in zip(seqs,seqs[1:]):
+                if ratio_ok(a,b): suspects.append({'signal':'SCALE_STEP','kind':'PERIOD','column':col,'before_period':p,'after_period':q,'ratio':b/a})
+        for (category,col),medians in medians_by_group.items():
+            if (category,col) in long_pairs: continue
+            for val,m in sorted(medians.items()):
+                reference=statistics.median([other for name,other in medians.items() if name!=val])
+                if ratio_ok(reference,m): suspects.append({'signal':'SCALE_STEP','kind':'SOURCE','column':col,'source_column':category,'source_value':val,'ratio':m/reference})
+        per_source={}
+        for (category,val,col,period),bucket in source_periods.items():
+            values=bucket[1]
+            if values: per_source.setdefault((category,val,col),[]).append((period,statistics.median(values)))
+        for (category,val,col),seqs in per_source.items():
+            seqs.sort()
+            for (p,a),(q,b) in zip(seqs,seqs[1:]):
+                if ratio_ok(a,b): suspects.append({'signal':'SCALE_STEP','kind':'SOURCE_PERIOD','column':col,'source_column':category,'source_value':val,'before_period':p,'after_period':q,'ratio':b/a})
         profile['scale_suspects']=[item for item in suspects if not integer_ids.get(item['column'],False)]
         profile['sequence_reversals']=[]
         if has_roles:
@@ -345,11 +467,11 @@ def _stream_csv(path, plan, spec, io):
             def source_bucket(source):
                 if source not in buckets:
                     if len(buckets) >= 2000:
-                        analysis_limited[0] = True
+                        limited('time_order','source budget exceeded',roles.get('source') or 'source')
                         return None
                     buckets[source]={'source':source,'comparable_pairs':0,'reversed_pairs':0,
                         'total_reversal_hours':0.0,'offset_samples':[],'outgoing_samples':[],
-                        'incoming_count':0,'outgoing_count':0}
+                        'incoming_count':0,'outgoing_count':0,'skipped_timezone_mismatch':0}
                 return buckets[source]
             ordered=((ident,seq,start,end,source) for ident in sorted(groups)
                      for seq,start,end,source in sorted(groups[ident],key=lambda x:x[0]))
@@ -358,7 +480,10 @@ def _stream_csv(path, plan, spec, io):
                     if prev[1]==seq: ambiguous+=1
                     else:
                         a,b=parsed(prev[3]),parsed(start)
-                        if a and b and (a.utcoffset() is None)==(b.utcoffset() is None):
+                        if a and b and (a.utcoffset() is None)!=(b.utcoffset() is None):
+                            rec=source_bucket(source)
+                            if rec is not None: rec['skipped_timezone_mismatch']+=1
+                        elif a and b:
                             hours=(b-a).total_seconds()/3600
                             rec=source_bucket(source)
                             if rec is None:
@@ -397,14 +522,14 @@ def _stream_csv(path, plan, spec, io):
                 'comparable_pairs':sum(x['comparable_pairs'] for x in output), 'reversed_pairs':sum(x['reversed_pairs'] for x in output),
                 'sampled_entities':len(groups),'entity_reservoir_size':reservoir,'dropped_events':dropped_events,
                 'limitation':'Pair counts use a bounded entity sample. Ordered-step hypotheses are not automatically corrected; confirm parallel/rework/timezones.'}]
-        if analysis_limited[0]:
-            complete=False; reason=reason or 'analysis group reservoir budget exceeded'
+        if rows_scanned>len(sample): limited('profile','profile sample limit','*',rows_scanned-len(sample))
         profile.update(rows_examined=len(sample),rows_scanned=rows_scanned,profile_rows=len(sample),
                        profile_complete_rows=complete and len(sample)==rows_scanned,complete_rows=complete)
         final_stat = path.stat()
         if (initial_stat.st_size, initial_stat.st_mtime_ns) != (final_stat.st_size, final_stat.st_mtime_ns):
             raise ValueError('provided file changed during audit')
-        return {'columns':header,'sample':sample,'rows':rows_scanned,'complete':complete,'reason':reason,'bytes':scan_bytes,'sha256':full_hash,'profile':profile}
+        analysis_limits=[{'check':k[0],'reason':k[1],'column':k[2],'dropped':v} for k,v in sorted(limits.items())]
+        return {'columns':header,'sample':sample,'rows':rows_scanned,'complete':complete,'reason':reason,'bytes':scan_bytes,'sha256':full_hash,'profile':profile,'analysis_limits':analysis_limits}
     finally:
         pass
 
@@ -445,6 +570,7 @@ def audit(root, plan):
                                   'kind':'table','tables':[prof], 'rows_examined':scanned['rows'],
                                   'rows_scanned':scanned['rows'], 'profile_rows':len(scanned['sample']),
                                   'complete_rows':scanned['complete'], 'partial_reason':scanned['reason'],
+                                  'analysis_limits':scanned.get('analysis_limits',[]),
                                   'scanned_bytes':scanned['bytes']})
                 total_rows += scanned['rows']
                 continue
@@ -493,7 +619,7 @@ def audit(root, plan):
     numeric_present = any(prof['numeric_ranges'] for prof in profiles)
     empty_workbook = any(item['path'].lower().endswith(('.xlsx', '.xlsm')) and item['rows_examined'] == 0 for item in artifacts)
     observations = {
-        1: [{'path': prof['path'], 'candidates': prof['time_candidates'], 'timestamp_pair_reversals': prof['timestamp_pair_reversals'], 'sequence_reversals': prof['sequence_reversals']} for prof in profiles],
+        1: [{'path': prof['path'], 'candidates': prof['time_candidates'], 'timestamp_pair_reversals': prof['timestamp_pair_reversals'], 'sequence_reversals': prof['sequence_reversals'], **({'sequence_check':prof['sequence_check']} if 'sequence_check' in prof else {})} for prof in profiles],
         2: [{'path': prof['path'], 'numeric_ranges': prof['numeric_ranges'], 'scale_suspects': prof['scale_suspects']} for prof in profiles],
         4: [{'path': prof['path'], 'sample_key_candidates': prof['key_candidates'], 'duplicate_rows': prof['duplicate_rows']} for prof in profiles],
         10: [{'path': prof['path'], 'sample_null_counts': prof['null_counts']} for prof in profiles],

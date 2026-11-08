@@ -35,6 +35,15 @@ def utf8_warning(is_windows, utf8_mode):
     return 'Windows Python UTF-8 mode is off; use PYTHONUTF8=1 and an actual Python executable' if is_windows and not utf8_mode else None
 
 
+def audit_limit_warnings(audit):
+    messages=[]
+    for artifact in audit.get('files', []):
+        for limit in artifact.get('analysis_limits', []):
+            messages.append('data_audit analysis limited: %s / %s / %s / dropped=%s' %
+                            (artifact.get('path'),limit.get('check'),limit.get('column'),limit.get('dropped')))
+    return messages
+
+
 def r3_policy(findings=(), impacts=(), gates=(), assumptions=(), keep_baseline=False,
               type_a=(), type_b=(), requests=(), comparison_verified=False):
     errors, pending, warnings = [], [], []
@@ -265,6 +274,7 @@ def _check(plan, root, kit, phase='final', source=None):
 
     audit = record('data_audit')
     if audit:
+        warnings.extend(audit_limit_warnings(audit))
         try:
             fresh = module('data_audit')['audit'](root, plan.get('data_audit_plan', {}))
             if fresh != audit:
