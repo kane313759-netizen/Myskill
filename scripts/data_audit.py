@@ -351,10 +351,8 @@ def _stream_csv(path, plan, spec, io):
                 if len(distinct)<=50: category_estimates.append(len(distinct))
             estimated_groups=max(1,len(selected)*(53*(1+sum(min(n,20) for n in category_estimates))+sum(category_estimates)))
             scale_reservoir=max(64,min(2000,cache_cap//estimated_groups))
-            for check,applicable in (('period',bool(period_col)),('source',bool(category_columns)),('source_period',bool(period_col and category_columns))):
-                if applicable:
-                    for col in numeric_candidates:
-                        if col not in metric_by_check[check]: limited(check,'numeric column budget exceeded',col)
+            for col in numeric_candidates[512:]:
+                limited('scale','numeric column budget exceeded',col)
             integer_ids={col:True for col in header if _id_hint(col)}
             has_roles=all(roles.get(k) for k in ('id','sequence','start','end'))
             late_numeric=set()

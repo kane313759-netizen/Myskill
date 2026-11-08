@@ -53,6 +53,7 @@ class RegressionR32(unittest.TestCase):
         self.assertEqual(len(table['scale_sampling']['columns']),512)
         omitted={x['column'] for x in result['analysis_limits'] if x['reason']=='numeric column budget exceeded'}
         self.assertEqual(omitted, set(fields[-8:]))
+        self.assertEqual(sum(x['reason']=='numeric column budget exceeded' for x in result['analysis_limits']),8)
         self.assertTrue(any(x['column']=='m511' for x in table['scale_suspects']))
 
     def test_integer_measurement_above_100_not_code(self):
