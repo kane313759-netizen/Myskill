@@ -64,6 +64,17 @@ class RegressionR31(unittest.TestCase):
   (self.root/'long.json').write_text(json.dumps(rows),encoding='utf8')
   s=self.scan('long.json',max_rows=1000)['files'][0]['tables'][0]['scale_suspects']
   self.assertFalse(s,s)
+ def test_dated_long_json_uses_per_item_adjacency(self):
+  start=datetime.datetime(2031,1,1)
+  rows=[{'timestamp':(start+datetime.timedelta(minutes=i)).isoformat(),'item':'a' if i<300 else 'b',
+         'value':1 if i<300 else 1000} for i in range(600)]
+  (self.root/'dated.json').write_text(json.dumps(rows),encoding='utf8')
+  r=self.scan('dated.json',max_rows=1000);self.assertFalse(r['files'][0]['tables'][0]['scale_suspects'])
+  self.assertTrue(any(x['check']=='period' for x in r['files'][0]['analysis_limits']))
+  for i in range(150,300):rows[i]['value']=10
+  (self.root/'dated.json').write_text(json.dumps(rows),encoding='utf8')
+  s=self.scan('dated.json',max_rows=1000)['files'][0]['tables'][0]['scale_suspects']
+  self.assertTrue(any(x.get('source_value')=='a' for x in s))
  def test_06_timezone_mixed_and_skipped_pairs(self):
   rows=[{'lot':str(i),'step':j,'tool':'one','start':'2031-01-01T0%d:00:00%s'%(j*2,'Z' if j==1 else ''),'end':'2031-01-01T0%d:00:00%s'%(j*2+1,'Z' if j==1 else '')} for i in range(30) for j in range(2)]
   self.write('zones.csv',list(rows[0]),rows);r=self.scan('zones.csv');p=r['files'][0]['tables'][0]

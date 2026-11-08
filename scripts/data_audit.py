@@ -65,29 +65,47 @@ def _profile(rows, io, declared_columns=()):
     for column in numeric:
         # File order alone is never evidence of time, including non-CSV
         # bounded profiles. CSV streaming performs its own full-scope check.
-        if not temporal or temporal[0].get('sample_nondecreasing') is not True:
+        if not temporal or temporal[0].get('sample_nondecreasing') is not True or temporal[0].get('parsed_iso_count') != len(rows):
             break
         if _id_hint(column) and all(value.is_integer() for value in (io['as_num'](row.get(column)) for row in rows) if value is not None):
             continue
-        series = [(idx, io['as_num'](row.get(column))) for idx, row in enumerate(rows)]
-        series = [(idx, value) for idx, value in series if value is not None and value > 0]
-        window = max(3, min(100, len(series) // 4))
-        if len(series) >= 2 * window:
-            best = None
-            for split in range(window, len(series) - window + 1, max(1, window // 2)):
-                left = statistics.median(value for _, value in series[split-window:split])
-                right = statistics.median(value for _, value in series[split:split+window])
-                if left and right and any(.85*k <= right/left <= 1.15*k or .85/k <= right/left <= 1.15/k for k in (10,100,1000)):
-                    ratio = right / left
-                    candidate = {'column': column, 'before_row': series[split-1][0] + 1,
-                                 'after_row': series[split][0] + 1, 'ratio': round(ratio, 6) if math.isfinite(ratio) else None,
-                                 'window': window, 'reason': 'adjacent window median ratio resembles a power of ten; verify units and population'}
-                    distance = abs(math.log(right) - math.log(left))
-                    if best is None or distance > best_distance:
-                        best = candidate
-                        best_distance = distance
-            if best:
-                scales.append(best)
+        groups = {None: [(idx, io['as_num'](row.get(column))) for idx, row in enumerate(rows)]}
+        for category in columns:
+            if category in numeric or category in [item['column'] for item in temporal] or category.casefold() in ('eqp_id','tool','equipment','chamber','source','device','machine','equipment_id','tool_id'):
+                continue
+            partition = {}
+            for idx,row in enumerate(rows):
+                label=row.get(category);value=io['as_num'](row.get(column))
+                if isinstance(label,str) and label and len(label)<=256 and value is not None and value>0:
+                    partition.setdefault(label,[]).append((idx,value))
+                    if len(partition)>50: break
+            if 2<=len(partition)<=50:
+                medians=[statistics.median(v for _,v in values) for values in partition.values()]
+                if max(medians)/min(medians)>=3:
+                    groups=partition
+                    break
+        for label,series in groups.items():
+            series = [(idx, value) for idx, value in series if value is not None and value > 0]
+            window = max(3, min(100, len(series) // 4))
+            if len(series) >= 2 * window:
+                best = None
+                for split in range(window, len(series) - window + 1, max(1, window // 2)):
+                    left = statistics.median(value for _, value in series[split-window:split])
+                    right = statistics.median(value for _, value in series[split:split+window])
+                    if left and right and any(.85*k <= right/left <= 1.15*k or .85/k <= right/left <= 1.15/k for k in (10,100,1000)):
+                        ratio = right / left
+                        candidate = {'signal':'SCALE_STEP','kind':'ADJACENT','column': column,
+                                     'before_row': series[split-1][0] + 1,'after_row': series[split][0] + 1,
+                                     'ratio': round(ratio, 6) if math.isfinite(ratio) else None,
+                                     'window': window, 'reason': 'adjacent window median ratio resembles a power of ten; verify units and population'}
+                        if label is not None:
+                            candidate.update(source_column=category,source_value=label)
+                        distance = abs(math.log(right) - math.log(left))
+                        if best is None or distance > best_distance:
+                            best = candidate
+                            best_distance = distance
+                if best:
+                    scales.append(best)
     # Only compare semantically paired timestamps; arbitrary row order is not a
     # process-time reversal. Report counts, never raw identifiers or values.
     reversals = []
@@ -589,7 +607,9 @@ def audit(root, plan):
             artifact = {'path': name, 'bytes': len(content), 'sha256': hashlib.sha256(content).hexdigest()}
             if path.suffix.lower() in ('.json', '.xlsx', '.xlsm'):
                 remaining = min(maximum, 10000)
-                artifact.update(kind='table', tables=[], rows_examined=0, complete_rows=True)
+                artifact.update(kind='table', tables=[], rows_examined=0, complete_rows=True,
+                    analysis_limits=[{'check':'source','reason':'non-CSV bounded source comparison not performed','column':'*','dropped':1},
+                                     {'check':'period','reason':'non-CSV bounded period comparison not performed','column':'*','dropped':1}])
                 declared_columns = []
                 tables = io['tables'](path, remaining + 1, byte_limit,
                                       encoding=spec.get('encoding'), records_key=spec.get('records_key'),
