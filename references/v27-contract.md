@@ -40,7 +40,7 @@ python -I .hackathon-kit/scripts/v27_check.py --root . --plan .hackathon-kit/run
 
 명시 입력만 `data_audit.py --root . --plan audit-plan.json`으로 조사한다. 파일 경로·바이트/행 한도를 고정하며 저장소 전체를 재귀 조사하지 않는다. 10개 항목은 적용 여부·방법·관측·조치·한계를 기록한다. 의미를 검증하지 못한 항목을 통과로 만들지 않는다. 시간형 컬럼이 있으면 시간 무관 N/A를 막는다. DATA_AUDIT 템플릿과 V27_EVIDENCE의 계획 스키마를 따른다.
 
-공식 grader가 우선이다. 없을 때만 작은 자체 채점기를 작성한다. 수치 점수를 얻을 수 없으면 `UNAVAILABLE_WITH_REASON`으로 기록한다. 자체 채점기 사용 시 요구사항에서 독립적으로 도출한 3–5개 정답 사례, 계약상 틀린 사례, 실행 결과와 실제 metric을 남긴다. 0벡터 등은 문제에 따라 정답일 수도 있으므로 자동으로 오답 취급하지 않는다. holdout을 보고 후보를 고르면 첫 사용부터 튜닝 데이터다. 4회 이상 조회 경고도 유지하되 첫 3회를 독립 검증이라고 주장하지 않는다.
+공식 grader가 우선이다. 없을 때만 작은 자체 채점기를 작성한다. 수치 점수를 얻을 수 없으면 `UNAVAILABLE_WITH_REASON`으로 기록한다. 자체 채점기 사용 시 요구사항에서 독립적으로 도출한 POSITIVE 1~3개 정답 사례, NEGATIVE 1개 이상 계약상 틀린 사례, 실행 결과와 실제 metric을 남긴다. 0벡터 등은 문제에 따라 정답일 수도 있으므로 자동으로 오답 취급하지 않는다. holdout을 보고 후보를 고르면 첫 사용부터 튜닝 데이터다. 4회 이상 조회 경고도 유지하되 첫 3회를 독립 검증이라고 주장하지 않는다.
 
 ## 제품 검사와 보관
 
@@ -79,7 +79,7 @@ P2 튜닝·변경 실험·피칭 검사 자동화는 구현하지 않았다. P1�
 
 최종 검사에는 `records.baseline_comparison`, `records.external_requests`, `records.maintenance`가 필요하다. 모든 참조는 현재 작업 폴더의 `{path,sha256}`이다. 증거 자체는 출처 진위를 보증하지 않는다.
 
-- baseline_comparison: `AVAILABLE`일 때 `metric`, `direction` (`HIGHER_IS_BETTER` 또는 `LOWER_IS_BETTER`), 유한한 `baseline_value`/`candidate_value`, `selection`, `shared_scope_evidence`, `baseline_evidence`, `candidate_evidence`를 기록한다. 두 점수 JSON은 각각 `{metric,value,scope,artifact:{path,sha256}}`를 갖고 scope는 공통 범위 JSON과 일치해야 한다. 후보 artifact는 현재 clean_run 산출물이어야 하며 현행 유지일 때 기준선 artifact와 SHA256이 같아야 한다. 더 나쁜 후보는 FAIL. 평가가 불가능하면 `UNAVAILABLE_WITH_REASON`과 이유를 남기며 최종 검사는 UNVERIFIED다. 수치만 같고 조건이 다르면 비교로 취급하지 않는다. 선택이 `CURRENT_BASELINE`이면 `alternatives`에 서로 다른 두 `name`, `assumptions`, `result`, `evidence`와 `baseline_assumptions_check`가 필요하다. 현행의 합법성·안전성은 별도로 확인한다.
+- baseline_comparison: `AVAILABLE`일 때 `metric`, `direction` (`HIGHER_IS_BETTER` 또는 `LOWER_IS_BETTER`), 유한한 `baseline_value`/`candidate_value`, `selection`, `shared_scope_evidence`, `baseline_evidence`, `candidate_evidence`를 기록한다. 두 점수 JSON은 각각 `{metric,value,scope,artifact:{path,sha256}}`를 갖고 scope는 공통 범위 JSON과 일치해야 한다. 후보 artifact는 현재 clean_run 산출물이어야 하며 현행 유지일 때 기준선 artifact와 SHA256이 같아야 한다. task_metric_ref가 있는 과제 지표의 동일 평가 악화는 오류이며 대리 지표 악화는 경고다. 평가가 불가능하면 `UNAVAILABLE_WITH_REASON`과 이유를 남기며 최종 검사는 UNVERIFIED다. 수치만 같고 조건이 다르면 비교로 취급하지 않는다. 선택이 `CURRENT_BASELINE`이면 `best_alternative`와 `rejection_basis` 및 기존 `baseline_assumptions_check`를 기록한다. 현행의 합법성·안전성은 별도로 확인한다.
 - external_requests: `{status:NONE}` 또는 `{status:TRACKED,requests:[...]}`를 기록한다. 각 요청은 `PENDING` 또는 `RECEIVED`이고 RECEIVED는 `response_evidence`를 연결한다. PENDING은 최종 검사를 UNVERIFIED로 유지한다. 단 `deadline_fallback:true`와 과제 원문의 hard_limits 및 지표 비교 및 제출 검증 통과가 모두 확인되면 경고로 낮춘다. 채팅의 발송·응답 기록을 실제 근거로 보존하며, 대기 중에는 다른 독립 작업을 계속한다.
 - maintenance: `runs`에 서로 다른 두 개 이상의 `{id,change,before_config,after_config,program,execution,observed_output,status:PASS,verification}`을 기록한다. 파일 참조는 해시를 포함하며, 두 설정의 바이트가 달라야 한다. 실제 native 실행은 `-I` Python으로 기록된 프로그램 및 변경 설정 파일을 사용하고 stdout JSON이 observed_output과 같아야 한다. 이 검사는 실행 기록과 파일 무결성만 검사하며 테스트 자체의 품질·OS 격리·인간 판단을 인증하지 않는다. 서로 다른 두 변화와 기대 관계를 요구하고 적절한 검토자가 내용을 검증한다.
 - `decisions.type_b_cards`는 설명 기록이며 `selection_by:AI`를 명시한다. `selection_by:PARTICIPANT` 또는 `participant_approval_required:true`는 기술 결정을 참가자에게 전가하므로 FAIL이다. Type A 업무·위험 판단은 이 제한과 구별한다.
