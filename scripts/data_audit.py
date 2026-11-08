@@ -29,6 +29,10 @@ NAMES = ['time_timezone_order_delay', 'units_scale', 'code_definition_versions',
 def _id_hint(name):
     return bool(re.search(r'(^|[_\W])(id|no)($|[_\W])|seq|step|index', name, re.I))
 
+def _integer_code(column, values):
+    return bool(values) and len(values) <= 50 and all(v.is_integer() for v in values) and (
+        max(values) <= 100 or bool(re.search(r'code|bin|item|flag|type|class|status|grade|level', column, re.I)))
+
 
 def _profile(rows, io, declared_columns=()):
     columns = sorted(set(declared_columns) | {str(key) for row in rows for key in row})
@@ -45,7 +49,8 @@ def _profile(rows, io, declared_columns=()):
         numbers = [io['as_num'](value) for value in present]
         numbers = [value for value in numbers if value is not None]
         if numbers:
-            numeric[column] = {'count': len(numbers), 'min': min(numbers), 'max': max(numbers)}
+            numeric[column] = {'count': len(numbers), 'min': min(numbers), 'max': max(numbers),
+                               'treated_as_code': _integer_code(column, set(numbers))}
         time_name = re.search(r'(?:^|[_\s-])(?:date|time|timestamp|datetime)(?:$|[_\s-])|[a-z](?:Time|Date)|timestamp|날짜|일시|시간', column, re.I)
         looks_iso = any(isinstance(v, str) and re.match(r'^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}|$)', v.strip()) for v in present)
         if time_name or looks_iso:
@@ -63,6 +68,8 @@ def _profile(rows, io, declared_columns=()):
     # Compare neighbouring windows, not just the global range: a 10x change
     # can be hidden by perfectly ordinary within-column magnitudes.
     for column in numeric:
+        if numeric[column]['treated_as_code']:
+            continue
         # File order alone is never evidence of time, including non-CSV
         # bounded profiles. CSV streaming performs its own full-scope check.
         if not temporal or temporal[0].get('sample_nondecreasing') is not True or temporal[0].get('parsed_iso_count') != len(rows):
@@ -174,8 +181,9 @@ def _stream_csv(path, plan, spec, io):
     sample, periods, cats, numeric_cols, counts, source_periods = [], {}, {}, set(), {}, {}
     adjacent, group_adjacent, last_time, chronological = {}, {}, None, True
     pair_compared = pair_reversed = 0
-    cache_cap = 2000000  # maximum floats in all reservoirs combined
-    used = {'period':0, 'source':0, 'source_period':0}; limits = {}; scan_bytes = rows_scanned = sample_bytes = 0; complete = True; reason = None
+    cache_cap = 2000000  # maximum floats in all scale reservoirs combined
+    scale_reservoir = 64
+    used = {'period':0, 'source':0, 'source_period':0, 'adjacent':0, 'adjacent_group':0}; limits = {}; scan_bytes = rows_scanned = sample_bytes = 0; complete = True; reason = None
     start_clock = time.monotonic()
     hash_value = hashlib.sha256()
     # Hash the entire original byte stream only if it fits the per-file budget.
@@ -194,30 +202,56 @@ def _stream_csv(path, plan, spec, io):
     def limited(check, reason, column, dropped=1):
         key=(check,reason,column);limits[key]=limits.get(key,0)+dropped
     def keep(group, key, value, check, column):
+        nonlocal scale_reservoir
         bucket = group.get(key)
         if bucket is None:
-            if len(group) >= 4096:
+            group_count = len(periods) + len(counts) + len(source_periods) + 1
+            available = cache_cap - used['adjacent'] - used['adjacent_group']
+            if group_count * scale_reservoir > available and scale_reservoir > 64:
+                scale_reservoir = max(64, available // group_count)
+                for store, name in ((periods,'period'),(counts,'source'),(source_periods,'source_period')):
+                    for old in store.values():
+                        if len(old[1]) > scale_reservoir:
+                            removed = len(old[1]) - scale_reservoir
+                            old[1] = rng.sample(old[1], scale_reservoir)
+                            used[name] -= removed
+                        if len(old[1]) == scale_reservoir:
+                            weight=math.exp(math.log(max(rng.random(),1e-300))/scale_reservoir)
+                            weight=min(weight,1-1e-15)
+                            old[2]=old[0]+int(math.log(max(rng.random(),1e-300))/math.log1p(-weight))+1
+                            old[3]=weight
+            if group_count * scale_reservoir > available:
                 limited(check,'group budget exceeded',column)
                 return
             bucket = group[key] = [0, [], None, None]
         bucket[0] += 1
-        if len(bucket[1]) < reservoir and used[check] < cache_cap:
+        if len(bucket[1]) < scale_reservoir and sum(used.values()) < cache_cap:
             bucket[1].append(value); used[check] += 1
-            if len(bucket[1]) == reservoir:
-                weight=math.exp(math.log(max(rng.random(),1e-300))/reservoir)
+            if len(bucket[1]) == scale_reservoir:
+                weight=math.exp(math.log(max(rng.random(),1e-300))/scale_reservoir)
                 weight=min(weight,1-1e-15)
                 skip=int(math.log(max(rng.random(),1e-300))/math.log1p(-weight))
                 bucket[2]=bucket[0]+skip+1;bucket[3]=weight
         else:
-            if len(bucket[1]) < reservoir and used[check] >= cache_cap:
+            if len(bucket[1]) < scale_reservoir and sum(used.values()) >= cache_cap:
                 limited(check,'sample budget exceeded',column)
                 return
             if bucket[2] is not None and bucket[0]>=bucket[2]:
-                bucket[1][rng.randrange(reservoir)]=value
-                weight=bucket[3]*math.exp(math.log(max(rng.random(),1e-300))/reservoir)
+                bucket[1][rng.randrange(scale_reservoir)]=value
+                weight=bucket[3]*math.exp(math.log(max(rng.random(),1e-300))/scale_reservoir)
                 weight=min(weight,1-1e-15)
                 skip=int(math.log(max(rng.random(),1e-300))/math.log1p(-weight))
                 bucket[2]=bucket[0]+skip+1;bucket[3]=weight
+    def add_adjacent(state, value, check, column, row_number):
+        if sum(used.values()) >= cache_cap:
+            limited(check,'sample budget exceeded',column)
+            return
+        state[0].append(value);used[check]+=1
+        if len(state[0])==100:
+            if len(state[1])<2048:
+                state[1].append((row_number,statistics.median(state[0])));used[check]+=1
+            else: limited(check,'block budget exceeded',column)
+            used[check]-=len(state[0]);state[0].clear()
     def parsed(v):
         try: return datetime.fromisoformat(str(v).replace('Z','+00:00'))
         except (ValueError, TypeError, OverflowError): return None
@@ -253,8 +287,7 @@ def _stream_csv(path, plan, spec, io):
                 if not complete: return {'columns':[], 'sample':[], 'rows':0, 'complete':False, 'reason':reason,'bytes':scan_bytes,'sha256':full_hash,'profile':_profile([],io,[])}
                 raise ValueError('CSV header missing')
             header=io['_headers'](header); column_count=len(header)
-            for column in header[512:]: limited('columns','column budget exceeded',column)
-            header=header[:512];lookup={x.casefold():x for x in header}
+            lookup={x.casefold():x for x in header}
             def safe_rows():
                 try:
                     yield from reader
@@ -302,9 +335,22 @@ def _stream_csv(path, plan, spec, io):
             if per not in ('week','month'): raise ValueError('period must be week or month')
             numeric_candidates=[col for col in header if col!=roles.get('source') and any(io['as_num'](row[positions[col]]) is not None for row in prefix)]
             category_columns=[col for col in header if col not in numeric_candidates and col not in (period_col,roles.get('id'),roles.get('start'),roles.get('end'))]
-            selected=numeric_candidates if len(numeric_candidates)<=64 else numeric_candidates[:32]
+            specified=plan.get('scale_columns')
+            if specified is not None:
+                if not isinstance(specified,list) or any(not isinstance(x,str) for x in specified) or len(set(specified))!=len(specified):
+                    raise ValueError('scale_columns must be a list of unique column names')
+                if any(x not in header for x in specified): raise ValueError('scale_columns column not found')
+                numeric_candidates=[col for col in specified if col in numeric_candidates]
+            selected=numeric_candidates[:512]
             metric_columns=selected
             metric_by_check={name:set(selected) for name in ('period','source','source_period')}
+            code_values={col:set() for col in selected}
+            category_estimates=[]
+            for category in category_columns:
+                distinct={row[positions[category]] for row in prefix if row[positions[category]]}
+                if len(distinct)<=50: category_estimates.append(len(distinct))
+            estimated_groups=max(1,len(selected)*(53*(1+sum(min(n,20) for n in category_estimates))+sum(category_estimates)))
+            scale_reservoir=max(64,min(2000,cache_cap//estimated_groups))
             for check,applicable in (('period',bool(period_col)),('source',bool(category_columns)),('source_period',bool(period_col and category_columns))):
                 if applicable:
                     for col in numeric_candidates:
@@ -342,6 +388,12 @@ def _stream_csv(path, plan, spec, io):
                 for col in metric_columns:
                     val=row[col]
                     v=io['as_num'](val)
+                    code=code_values[col]
+                    if code is not None and v is not None:
+                        if not v.is_integer(): code_values[col]=None
+                        else:
+                            code.add(v)
+                            if len(code)>50: code_values[col]=None
                     if col in integer_ids and v is not None and not v.is_integer(): integer_ids[col]=False
                     if v is not None and v>0: nums[col]=v;numeric_cols.add(col)
                 d=parsed_times.get(period_col) if period_col else None
@@ -360,11 +412,7 @@ def _stream_csv(path, plan, spec, io):
                 if period_col and d:
                     for col,v in nums.items():
                         state=adjacent.setdefault(col,[[],[]])
-                        state[0].append(v)
-                        if len(state[0])==100:
-                            if len(state[1])<2048: state[1].append((rows_scanned,statistics.median(state[0])))
-                            else: limited('adjacent','block budget exceeded',col)
-                            state[0].clear()
+                        add_adjacent(state,v,'adjacent',col,rows_scanned)
                 for col in category_columns:
                     val=row[col]
                     if not val or len(val)>256: continue
@@ -379,23 +427,22 @@ def _stream_csv(path, plan, spec, io):
                     if before<=20<len(bucket): clear_category(source_periods,'source_period',col)
                     if before<=50<len(bucket):
                         clear_category(counts,'source',col)
-                        for group_key in [key for key in group_adjacent if key[0]==col]: del group_adjacent[group_key]
+                        for group_key in [key for key in group_adjacent if key[0]==col]:
+                            state=group_adjacent.pop(group_key)
+                            used['adjacent_group']-=len(state[0])+len(state[1])
                     if len(bucket)<=50:
                         for key,v in nums.items():
                             if key in metric_by_check['source']: keep(counts,(col,val,key),v,'source',key)
                     if d and len(bucket)<=20:
                         for key,v in nums.items():
                             if key in metric_by_check['source_period']: keep(source_periods,(col,val,key,period),v,'source_period',key)
-                    if d and len(bucket)<=50:
+                    if d and len(bucket)<=50 and col != roles.get('source') and col.casefold() not in hints['source']:
                         for key,v in nums.items():
                             group_key=(col,val,key)
                             if group_key not in group_adjacent and len(group_adjacent)>=4096:
                                 limited('adjacent_group','group budget exceeded',key);continue
-                            state=group_adjacent.setdefault(group_key,[[],[]]);state[0].append(v)
-                            if len(state[0])==100:
-                                if len(state[1])<2048: state[1].append((rows_scanned,statistics.median(state[0])))
-                                else: limited('adjacent_group','block budget exceeded',key)
-                                state[0].clear()
+                            state=group_adjacent.setdefault(group_key,[[],[]])
+                            add_adjacent(state,v,'adjacent_group',key,rows_scanned)
                 if has_roles:
                     raw_seq=row.get(roles['sequence'])
                     number=io['as_num'](raw_seq)
@@ -485,7 +532,10 @@ def _stream_csv(path, plan, spec, io):
             seqs.sort()
             for (p,a),(q,b) in zip(seqs,seqs[1:]):
                 if ratio_ok(a,b): suspects.append({'signal':'SCALE_STEP','kind':'SOURCE_PERIOD','column':col,'source_column':category,'source_value':val,'before_period':p,'after_period':q,'ratio':b/a})
-        profile['scale_suspects']=[item for item in suspects if not integer_ids.get(item['column'],False)]
+        for column, values in code_values.items():
+            if column in profile['numeric_ranges']:
+                profile['numeric_ranges'][column]['treated_as_code'] = _integer_code(column, values) if values else False
+        profile['scale_suspects']=[item for item in suspects if not integer_ids.get(item['column'],False) and not _integer_code(item['column'], code_values.get(item['column']))]
         profile['sequence_reversals']=[]
         if has_roles:
             buckets={}; prev=None; ambiguous=0
@@ -548,6 +598,7 @@ def _stream_csv(path, plan, spec, io):
                 'sampled_entities':len(groups),'entity_reservoir_size':reservoir,'dropped_events':dropped_events,
                 'limitation':'Pair counts use a bounded entity sample. Ordered-step hypotheses are not automatically corrected; confirm parallel/rework/timezones.'}]
         if rows_scanned>len(sample): limited('profile','profile sample limit','*',rows_scanned-len(sample))
+        profile['scale_sampling']={'reservoir_per_group':scale_reservoir,'float_budget':cache_cap,'groups':len(periods)+len(counts)+len(source_periods),'floats_retained':sum(used.values()),'columns':metric_columns}
         profile.update(rows_examined=len(sample),rows_scanned=rows_scanned,profile_rows=len(sample),
                        profile_complete_rows=complete and len(sample)==rows_scanned,complete_rows=complete)
         final_stat = path.stat()

@@ -67,13 +67,13 @@ class SyntheticStreamingTests(unittest.TestCase):
   rows=[]
   for day in range(1,25):
    for machine in ['A','B','C']:
-    rows.append({'date':'2031-01-%02d'%day,'tool':machine,'measurement':10 if machine=='B' else 100,'step_seq':day})
+    rows.append({'date':'2031-01-%02d'%day,'tool':machine,'measurement':10.05 if machine=='B' else 100.5,'step_seq':day})
   self.write('mixed.csv',list(rows[0]),rows)
   p=AUDIT(self.root,{'files':['mixed.csv']})['files'][0]['tables'][0]
   suspects=p['scale_suspects']
   self.assertTrue(any(x.get('kind')=='SOURCE' and x.get('source_value')=='B' and x.get('column')=='measurement' for x in suspects))
   self.assertFalse(any(x.get('column')=='step_seq' for x in suspects))
-  ordered=[{'date':'2031-01-%02d'%d,'tool':t,'value':10 if d>=15 else 100} for t in ['A','B'] for d in range(1,29)]
+  ordered=[{'date':'2031-01-%02d'%d,'tool':t,'value':10.05 if d>=15 else 100.5} for t in ['A','B'] for d in range(1,29)]
   self.write('ordered.csv',list(ordered[0]),ordered)
   s=AUDIT(self.root,{'files':['ordered.csv'],'period':'week'})['files'][0]['tables'][0]['scale_suspects']
   self.assertTrue(any(x.get('kind')=='PERIOD' and x.get('column')=='value' for x in s))

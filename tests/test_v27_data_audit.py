@@ -103,7 +103,7 @@ class DataAuditChecks(unittest.TestCase):
         with gzip.open(self.root / 'full.csv.gz', 'wt', encoding='utf-8', newline='') as f:
             f.write('id,start_time,end_time,value\n')
             for n in range(12020):
-                value = 10 if n < 11000 else 100
+                value = 1.5 if n < 11000 else 15
                 end = '2026-01-01T00:00:00Z' if n == 11500 else '2026-01-01T02:00:00Z'
                 f.write(f'{n},2026-01-01T01:00:00Z,{end},{value}\n')
         result = AUDIT(self.root, {'files': ['full.csv.gz']})

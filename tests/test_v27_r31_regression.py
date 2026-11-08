@@ -41,7 +41,7 @@ class RegressionR31(unittest.TestCase):
   odd=next(x for x in event['sources'] if x['source']=='odd');self.assertGreaterEqual(odd['reversal_rate'],.05);self.assertAlmostEqual(odd['suggested_offset_hours'],9,delta=.5)
   self.assertTrue(event['roles']['id_candidates'])
  def test_03_two_source_leave_one_out(self):
-  rows=[{'tool':x,'value':v} for _ in range(40) for x,v in [('A',10),('B',100)]]
+  rows=[{'tool':x,'value':v} for _ in range(40) for x,v in [('A',10.05),('B',100.5)]]
   self.write('two.csv',list(rows[0]),rows);s=self.scan('two.csv')['files'][0]['tables'][0]['scale_suspects']
   self.assertTrue(any(x['kind']=='SOURCE' and x['source_value']=='A' for x in s))
   renamed=[{'source':x['tool'],'value':x['value']} for x in rows]
@@ -52,7 +52,7 @@ class RegressionR31(unittest.TestCase):
   for month in range(1,7):
    for day in range(1,6):
     for tool in ('A','B','C','D'):
-     rows.append({'date':'2031-%02d-%02d'%(month,day),'tool':tool,'value':10 if tool=='A' and month>=4 else 100})
+     rows.append({'date':'2031-%02d-%02d'%(month,day),'tool':tool,'value':10.05 if tool=='A' and month>=4 else 100.5})
   self.write('source_period.csv',list(rows[0]),rows);s=self.scan('source_period.csv',period='month')['files'][0]['tables'][0]['scale_suspects']
   self.assertTrue(any(x['kind']=='SOURCE_PERIOD' and x.get('source_value')=='A' and x.get('after_period')=='2031-04' for x in s))
  def test_05_timeless_long_format_no_step(self):
@@ -67,11 +67,11 @@ class RegressionR31(unittest.TestCase):
  def test_dated_long_json_uses_per_item_adjacency(self):
   start=datetime.datetime(2031,1,1)
   rows=[{'timestamp':(start+datetime.timedelta(minutes=i)).isoformat(),'item':'a' if i<300 else 'b',
-         'value':1 if i<300 else 1000} for i in range(600)]
+         'value':1.1 if i<300 else 1100} for i in range(600)]
   (self.root/'dated.json').write_text(json.dumps(rows),encoding='utf8')
   r=self.scan('dated.json',max_rows=1000);self.assertFalse(r['files'][0]['tables'][0]['scale_suspects'])
   self.assertTrue(any(x['check']=='period' for x in r['files'][0]['analysis_limits']))
-  for i in range(150,300):rows[i]['value']=10
+  for i in range(150,300):rows[i]['value']=11
   (self.root/'dated.json').write_text(json.dumps(rows),encoding='utf8')
   s=self.scan('dated.json',max_rows=1000)['files'][0]['tables'][0]['scale_suspects']
   self.assertTrue(any(x.get('source_value')=='a' for x in s))
@@ -117,11 +117,11 @@ class ExistingBehaviorR31(unittest.TestCase):
  write=RegressionR31.write
  scan=RegressionR31.scan
  def test_existing_01_ordered_scale_step(self):
-  rows=[{'date':'2032-01-%02d'%(1+n//20),'v':1 if n<100 else 10} for n in range(200)]
+  rows=[{'date':'2032-01-%02d'%(1+n//20),'v':1.1 if n<100 else 11} for n in range(200)]
   self.write('ordered.csv',list(rows[0]),rows);s=self.scan('ordered.csv')['files'][0]['tables'][0]['scale_suspects'];self.assertTrue(any(x['column']=='v' for x in s))
  def test_existing_02_shuffled_period_step(self):
   import random
-  rows=[{'date':'2032-%02d-%02d'%(month,day),'value':100 if month<4 else 10} for month in range(1,7) for day in range(1,8)]
+  rows=[{'date':'2032-%02d-%02d'%(month,day),'value':100.5 if month<4 else 10.05} for month in range(1,7) for day in range(1,8)]
   random.Random(1).shuffle(rows);self.write('shuffled.csv',list(rows[0]),rows);s=self.scan('shuffled.csv',period='month')['files'][0]['tables'][0]['scale_suspects'];self.assertTrue(any(x['kind']=='PERIOD' for x in s))
  def test_existing_03_small_drift(self):
   rows=[{'date':'2032-01-%02d'%(1+i//10),'value':100*(1+.2*i/199)} for i in range(200)]
@@ -144,5 +144,5 @@ class ExistingBehaviorR31(unittest.TestCase):
   result=self.scan('explicit.csv',time_order=role)['files'][0]['tables'][0]['sequence_reversals'][0]
   self.assertAlmostEqual(next(x for x in result['sources'] if x['source']=='shifted')['suggested_offset_hours'],9,delta=.5)
  def test_existing_07_midweek_scale_step(self):
-  rows=[{'date':'2032-02-%02d'%(1+n//30),'value':10 if n<90 else 100} for n in range(210)]
+  rows=[{'date':'2032-02-%02d'%(1+n//30),'value':10.05 if n<90 else 100.5} for n in range(210)]
   self.write('week.csv',list(rows[0]),rows);s=self.scan('week.csv')['files'][0]['tables'][0]['scale_suspects'];self.assertTrue(any(x['column']=='value' for x in s))
