@@ -1,5 +1,20 @@
 # Changes
 
+## 2026-11-08-finals-r8.2-candidate
+
+- Add separate ALGORITHM_RED, DATA_EVAL_RED and SUBMISSION_RED skills alongside
+  existing constraint/code/edge responsibilities; preserve one product writer.
+- Add SECURITY_RED only for source-backed actual auth, external-route, secrets,
+  privileged-tool or sensitive-data boundaries. Track unknown and non-trigger
+  decisions explicitly; capabilities or an AI label alone do not trigger it.
+- Schedule six core roles across intake, first output and current final candidate;
+  use clean final reviewers sequentially when needed, not an always-on roster.
+- Add a read-only aggregate checker for current scope, distinct role workers,
+  actual execution receipts, verified blocker dispositions and security activation.
+  This is quality-evidence validation, not authenticated execution or official score.
+- Keep preliminary policy/gate semantics and the nondeveloper explanation rules;
+  the separate universal v2.6 proposal is not wholesale implemented.
+
 ## 2026-11-08-finals-r8.1-candidate
 
 - Explain actual material tools/algorithms proactively at selection, consequential

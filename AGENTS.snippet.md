@@ -6,6 +6,10 @@ practice, use `hackathon-finals` and FINALS_POLICY.md: the agent owns technical
 choices, implementation, checks and plain-language delivery; only material missing
 rules/access/business choices go to the participant. Do not apply the
 second-preliminary instructions below to finals.
+Finals uses references/finals-reviews.md: six core review roles, conditional
+SECURITY_RED based on current source evidence, actual separate-worker receipts,
+and aggregate current-scope validation. Do not equate execution records with
+official score/submission or import v2.6's unconfirmed event assumptions.
 
 For the second preliminary, read EXAM_POLICY.md first. Use `hackathon-orchestrator`
 as the canonical role/checkpoint protocol. The following bullets are stage-specific.

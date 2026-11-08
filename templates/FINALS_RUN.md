@@ -54,9 +54,15 @@ status and observed result. Preserve the baseline. Mark non-comparable scopes.
 ## Review and final checks
 
 - Review basis: UNKNOWN (independent / SELF_CHECK; launch/scope evidence)
-- CODE/CONSTRAINT/EDGE review roles and separate worker IDs: UNKNOWN
+- CONSTRAINT/DATA_EVAL/ALGORITHM/CODE/EDGE/SUBMISSION review roles and separate worker IDs: UNKNOWN
+- SECURITY_RED decision, actual trigger source/excerpt or supported non-trigger reason: UNKNOWN
+- Security activation re-evaluated after relevant route/auth/privilege changes: UNKNOWN
 - Per-review launch/running/completed observations, receipt/report paths: UNKNOWN
 - Execution COMPLETE versus accepted review and findings resolved: UNKNOWN
+- Current final required_scope and aggregate FINALS_REVIEWS.json check: UNKNOWN
+- DATA_EVAL independent evaluator controls and final holdout isolation: UNKNOWN
+- ALGORITHM changed-setting recomputation/config/cache/oracle/bound checks: UNKNOWN
+- SUBMISSION actual collected versions/config/output/replay and receipt limits: UNKNOWN
 - EDGE_RED boundary/null/missing/security attacks actually run or unverified: UNKNOWN
 - Independent review unavailable/not run and reason: UNKNOWN
 - Findings, fix/disproof evidence and current dispositions: UNKNOWN

@@ -6,6 +6,8 @@ description: Lead a nondeveloper through the SK hynix finals, choosing an eviden
 Read `.hackathon-kit/FINALS_POLICY.md` first. If reading the source checkout,
 use its root `FINALS_POLICY.md`; do not install into the source checkout.
 Read `.hackathon-kit/references/finals-playbook.md` for the applicable task lane.
+Read `.hackathon-kit/references/finals-reviews.md` for the approved six core roles,
+conditional SECURITY_RED, scheduling and final aggregate evidence check.
 Use `templates/FINALS_RUN.md` from that same kit as the starting run record.
 This is the canonical finals workflow; the second-preliminary orchestrator,
 role prompts, STATE/gate receipts and six-question rehearsal are not its defaults.
@@ -58,13 +60,19 @@ Dispatch, a role label or a locally authored DONE is insufficient. Check launch
 soon and handle failure/capacity yourself; do not wait for the participant to
 discover that no worker ran. Distinguish execution COMPLETE from review ACCEPTED.
 
-Use the dedicated `edge-redteam` as a separate EDGE_RED in addition to general
-code/spec review when separate agents are permitted and available. It owns
-boundary, missing/malformed-data and applicable security attacks, not product
-edits. Give it a clean context and scoped original evidence/candidate. Do not
-rename the writer's tests or a CODE_RED session/report as separate EDGE_RED.
-If unavailable/prohibited, explicitly show EDGE_RED NOT_RUN and SELF_CHECK scope;
-do not claim the requested independent assurance or silently skip it.
+The core roles are CONSTRAINT_RED, DATA_EVAL_RED, ALGORITHM_RED, CODE_RED,
+EDGE_RED and SUBMISSION_RED. Use the dedicated skills mapped in finals-reviews;
+dispatch final Constraint/Code reviews from that finals protocol, not preliminary
+role prompts. Use distinct clean workers per role, current scope-bound receipts
+and actual report acceptance. Do not relabel one worker's report or the writer's
+tests as multiple independent roles. Stage the reviews, not six always-on agents.
+
+Inspect current task/project evidence for the SECURITY_RED conditions in that
+reference. Record TRIGGERED, NOT_TRIGGERED with inspected evidence, or UNKNOWN;
+available SDKs/tools and the word AI do not trigger it. When triggered, launch
+separate `security-redteam` before relying on its affected operations and on the
+final candidate. UNKNOWN cannot silently become a non-trigger. Missing review
+stays NOT_RUN/SELF_CHECK and is disclosed, never full independent completion.
 
 ## Intake and plan — one evidence pass
 
@@ -98,19 +106,23 @@ the comparison baseline, explicitly labeled as such.
 Review the proposed contract/approach against originals before product edits;
 check substantive constraints and unknown permissions. An unresolved unknown
 blocks only dependent work. A known official conflict is not an assumption.
+Have clean CONSTRAINT_RED inspect that actual contract and DATA_EVAL_RED inspect
+input/evaluator semantics before their numbers drive optimization or claims.
 Then implement the smallest input-to-required-output path and actually run it.
 Use provided examples and at least one relevant boundary/failure case when
 available. Avoid scaffolding, polish and model training that do not serve scoring.
 Keep temporary checks/data outside the actual collected deliverables.
 
 At first complete output, report the observed result and execution evidence.
-Test the task lane's consequential risk, then review independently if available
+Test the task lane's consequential risk, then run separate ALGORITHM_RED,
+CODE_RED and EDGE_RED at this first complete path when authorized/available,
 under the rules above. Fix real defects before adding complexity. Do not count
 file creation, a server starting, lint, or an internal note as an end-to-end pass.
-Launch EDGE_RED here and again on the current final candidate before collection,
-following the actual launch/completion protocol. A new checkpoint needs a new
-clean reviewer; a same-checkpoint reviewer may recheck its own findings. Budget
-these reviews alongside code/spec checks, sequentially when capacity is limited.
+Follow the actual launch/completion protocol. A new checkpoint needs a new clean
+reviewer; a same-checkpoint reviewer may recheck its own findings. After ordinary
+settings edits run cheap relevant regressions; material algorithm/objective,
+evaluator/split or trust-boundary changes require affected clean review rather
+than blindly refreshing receipt hashes.
 
 ## Improve against evidence
 
@@ -136,6 +148,17 @@ run path, required files and applicable performance/quality metric. Recheck afte
 any later behavior change. Separate PASS, FAIL, UNVERIFIED and NOT_APPLICABLE with
 reasons; disclose unavailable UI checks. Do not declare READY with a known official
 violation or missing required artifact. An allowed partial result must be labeled.
+
+At the current final candidate, complete the six core final reviews and triggered
+SECURITY_RED per finals-reviews.md. Sequence SUBMISSION_RED after other fixes so
+it inspects the actual collected version/config/output, not an earlier directory.
+Maintain run/FINALS_REVIEWS.json with common current required_scope hashes,
+distinct worker IDs and verified findings. Run
+`python .hackathon-kit/scripts/finals_review_check.py --checkpoint FINAL` using
+the actual Python executable before claiming full independent quality review.
+Missing/failed roles, stale configuration and unknown security activation fail
+that claim. A known review gap may be honestly disclosed in an officially allowed
+degraded/partial result; never waive an official prohibition or claim submitted.
 
 Deliver a concise Korean explanation in chat, not only in notes: problem; actual
 input-to-output flow; why this method; comparable baseline/current observations;

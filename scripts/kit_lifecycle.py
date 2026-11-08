@@ -17,7 +17,8 @@ import uuid
 
 REQUIRED = ('hackathon-orchestrator', 'hackathon-finals', 'edge-redteam', 'grader-intake', 'immutable-inventory',
             'task-router', 'problem-intake', 'constraint-discovery',
-            'verification', 'final-explain', 'followup-prep')
+            'verification', 'final-explain', 'followup-prep', 'algorithm-redteam',
+            'data-eval-redteam', 'submission-redteam', 'security-redteam')
 SUPPORT_DIRS = ('prompts', 'references', 'templates', 'scripts')
 SUPPORT_FILES = ('EXAM_POLICY.md', 'FINALS_POLICY.md', 'BOOTSTRAP_PROMPT.md', 'CALLING.md',
                  'AGENTS.snippet.md', 'VERSION')

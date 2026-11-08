@@ -45,12 +45,15 @@ class FinalsDistributionTests(unittest.TestCase):
         manifest = json.loads((kit / 'manifest.json').read_text(encoding='utf-8'))
         self.assertIn('hackathon-finals', manifest['owned_skills'])
         self.assertIn('edge-redteam', manifest['owned_skills'])
+        for role_skill in ('algorithm-redteam', 'data-eval-redteam', 'submission-redteam', 'security-redteam'):
+            self.assertIn(role_skill, manifest['owned_skills'])
         self.assertEqual((self.target / '.agents/skills/hackathon-finals/SKILL.md').read_bytes(),
                          (ROOT / '.agents/skills/hackathon-finals/SKILL.md').read_bytes())
         for rel in ('FINALS_POLICY.md', 'references/finals-playbook.md',
                     'templates/FINALS_RUN.md', 'templates/REVIEW_EXECUTION.json',
                     'references/review-execution.md', 'references/participant-understanding.md',
-                    'scripts/review_execution.py'):
+                    'scripts/review_execution.py', 'scripts/finals_review_check.py',
+                    'references/finals-reviews.md', 'templates/FINALS_REVIEWS.json'):
             self.assertEqual((kit / rel).read_bytes(), (ROOT / rel).read_bytes())
             self.assertEqual(manifest['managed_files'][rel],
                              hashlib.sha256((kit / rel).read_bytes()).hexdigest())

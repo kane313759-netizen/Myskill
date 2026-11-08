@@ -21,6 +21,11 @@ It explains the actual material tools/algorithms, choices and limits at selectio
 and final delivery. Separate EDGE_RED attacks boundary/missing-data/security paths.
 Actual launch/running/completion observations and scope-bound reports are required
 before claiming independent reviews; see references/review-execution.md.
+Core final roles are CONSTRAINT/DATA_EVAL/ALGORITHM/CODE/EDGE/SUBMISSION_RED.
+Follow references/finals-reviews.md for their actual scheduling and conditional
+SECURITY_RED. Maintain FINALS_REVIEWS.json and run finals_review_check.py
+--checkpoint FINAL before claiming complete independent quality review. This does
+not establish official score, true optimality, authenticated workers or submission.
 
 ## Second-preliminary start
 
