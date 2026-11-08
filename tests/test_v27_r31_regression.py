@@ -79,6 +79,13 @@ class RegressionR31(unittest.TestCase):
   self.write('entity.csv',list(rows[0]),rows);r=self.scan('entity.csv')
   self.assertEqual(r['status'],'RECORDED');self.assertTrue(r['files'][0]['complete_rows'])
   self.assertTrue(any(x['check']=='time_order' for x in r['files'][0]['analysis_limits']))
+ def test_time_budget_default_and_upper_boundary(self):
+  template=json.loads((ROOT/'templates/V27_EVIDENCE.json').read_text(encoding='utf8'))
+  self.assertEqual(template['data_audit_plan']['max_scan_seconds'],300)
+  self.write('time_limit.csv',['x'],[{'x':1}])
+  self.assertEqual(self.scan('time_limit.csv',max_scan_seconds=900)['status'],'RECORDED')
+  rejected=self.scan('time_limit.csv',max_scan_seconds=901)
+  self.assertEqual(rejected['status'],'FAIL');self.assertTrue(any('max_scan_seconds' in x['error'] for x in rejected['errors']))
 
 class ExistingBehaviorR31(unittest.TestCase):
  setUp=RegressionR31.setUp
