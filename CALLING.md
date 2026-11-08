@@ -17,6 +17,10 @@ delivers actual baseline/current observations and a real case, and gives human-o
 submission steps when necessary. Normal doctor checks installation integrity;
 `--pre-submit` and `gate_check.py` are preliminary-only, not finals approval.
 No mandatory six-question preparation, model roster, slide deck or external API.
+It explains the actual material tools/algorithms, choices and limits at selection
+and final delivery. Separate EDGE_RED attacks boundary/missing-data/security paths.
+Actual launch/running/completion observations and scope-bound reports are required
+before claiming independent reviews; see references/review-execution.md.
 
 ## Second-preliminary start
 
@@ -57,6 +61,8 @@ Treat GRADER, IMMUTABLES and SPEC as claims to verify against originals.
 Have MAIN preserve installed template headings and pass gate_check.py --preflight first.
 The preflight checks document format only; it is not review approval.
 Persist the actual report as CP1_RED.md and structured receipt as CP1_REVIEW.json.
+Include execution with actual launch/running/completion observations and report
+hashes; a dispatch request or DONE marker cannot close CP1.
 Fix/disprove blocking findings with evidence and reviewer rechecks.
 ORCHESTRATOR writes candidate CLOSED, runs the evidence gate, and restores OPEN on failure.
 Only a passing check against current evidence authorizes implementation.
@@ -74,6 +80,7 @@ reopen on material changes and obtain a targeted independent recheck.
 
 ```text
 Run clean Code Red using prompts/CODE_RED.md, then Recorder.
+Run a separate clean EDGE_RED using edge-redteam and record its actual execution.
 Update verification evidence and start six-axis FOLLOWUP_CHEATSHEET coverage.
 Run Constraint Red again only for a material task/assumption/objective risk.
 ```
@@ -90,6 +97,7 @@ Preserve useful failed-command evidence before a retry overwrites it.
 ```text
 Budget time for review, repair, checks, submission and preparation before the real deadline.
 Stop features; run final clean Code Red and Constraint Red and resolve/recheck blockers.
+Also run separate final EDGE_RED and verify all actual execution receipts/reports.
 Run verification; Recorder finalizes actual evidence.
 Use final-explain for factual explanation, then followup-prep once for the six-question
 FOLLOWUP_CHEATSHEET and a short rehearsal within the reserved time.

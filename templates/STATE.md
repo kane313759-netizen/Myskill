@@ -11,6 +11,8 @@ ORCHESTRATOR alone writes this file. Keep one line per status key.
 - cp1_constraint_red: NOT_RUN
 - cp3_code_red: NOT_RUN
 - cp3_constraint_red: NOT_RUN
+- cp2_edge_red: NOT_RUN
+- cp3_edge_red: NOT_RUN
 - verification: NOT_RUN
 - checkpoint: 0/3
 - current_main: ACTIVE
@@ -30,6 +32,7 @@ ORCHESTRATOR alone writes this file. Keep one line per status key.
 - five phase-0 artifacts contain substantive evidence and required sections
 - original task sources are recorded; UI/chat-only evidence has provenance
 - independent CP1 report exists and its receipt binds all five reviewed artifact hashes
+- actual CP1 worker launch, running acknowledgement and completion observations are retained; CP1_REVIEW.execution binds them and CP1_RED.md
 - P0/P1 findings are FIXED or DISPROVED with evidence and verification
 - cp1_constraint_red = DONE; only then set constraint_gate = CLOSED and run gate_check.py
 - freeze those artifacts after CP1; routine verification belongs in VERIFY.md

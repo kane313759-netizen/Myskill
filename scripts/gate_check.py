@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import runpy
 import stat
 from pathlib import Path
 
@@ -119,8 +120,10 @@ def nonempty(value):
 
 def review_errors(kit):
     try:
-        report = json.loads(read_text(kit / 'run' / 'CP1_REVIEW.json'))
-    except (OSError, UnicodeError, ValueError, RecursionError) as error:
+        validator = runpy.run_path(str(Path(__file__).with_name('review_execution.py')),
+                                  run_name='kit_review_execution')
+        report = validator['load_json'](read_text(kit / 'run' / 'CP1_REVIEW.json'))
+    except (OSError, UnicodeError, ValueError, RecursionError, SyntaxError, KeyError) as error:
         return ['CP1_REVIEW.json: %s' % error]
     if not isinstance(report, dict):
         return ['CP1_REVIEW.json must be an object']
@@ -133,6 +136,14 @@ def review_errors(kit):
         errors.append('CP1 CONSTRAINT_RED reviewer and actual model must be recorded honestly')
     if reviewer.get('context_mode') not in ('NO_HISTORY', 'CLEAN_SESSION'):
         errors.append('CP1 reviewer must record NO_HISTORY or CLEAN_SESSION')
+    try:
+        scope = {kit.name + '/run/' + name: digest
+                 for name, digest in artifact_hashes(kit).items()}
+        errors.extend(validator['execution_errors'](
+            report.get('execution'), kit, 'CONSTRAINT_RED', 'CP1',
+            kit.name + '/run/CP1_RED.md', scope))
+    except (OSError, UnicodeError, ValueError, SyntaxError, KeyError) as error:
+        errors.append('CP1 review execution validation: %s' % error)
     sources = report.get('source_paths')
     if not isinstance(sources, list) or not sources:
         errors.append('CP1 needs original source_paths or provenance-marked TASK_EVIDENCE.md')

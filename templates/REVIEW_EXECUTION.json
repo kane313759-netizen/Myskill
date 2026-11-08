@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "status": "NOT_RUN",
+  "worker_id": "",
+  "role": "",
+  "checkpoint": "",
+  "context_mode": "",
+  "observations": {
+    "LAUNCHED": {"path": "", "sha256": ""},
+    "RUNNING": {"path": "", "sha256": ""},
+    "COMPLETED": {"path": "", "sha256": ""}
+  },
+  "report": {"path": "", "sha256": ""},
+  "reviewed_files": {}
+}

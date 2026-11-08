@@ -15,7 +15,7 @@ import sys
 import tempfile
 import uuid
 
-REQUIRED = ('hackathon-orchestrator', 'hackathon-finals', 'grader-intake', 'immutable-inventory',
+REQUIRED = ('hackathon-orchestrator', 'hackathon-finals', 'edge-redteam', 'grader-intake', 'immutable-inventory',
             'task-router', 'problem-intake', 'constraint-discovery',
             'verification', 'final-explain', 'followup-prep')
 SUPPORT_DIRS = ('prompts', 'references', 'templates', 'scripts')

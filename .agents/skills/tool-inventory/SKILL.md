@@ -19,6 +19,11 @@ For each unfamiliar technology/tool explain:
 - what breaks if it fails
 - actual files/config that use it
 
+Use the active kit's `references/participant-understanding.md` for material
+algorithms as well as tools: actual algorithm/solver versus library, reason chosen,
+one alternative, observed case and honest limitations. Explain as introduced and
+refresh after consequential changes; do not wait for the participant to ask.
+
 Then map it onto:
 input → processing → storage(if any) → output → external connections(if any)
 

@@ -23,6 +23,12 @@ input → processing → storage (if any) → output → external connections (i
 
 Do not force web/backend/DB/Docker concepts onto tasks that do not have them.
 
+When MAIN selects a material tool/algorithm, follow the active kit's
+`references/participant-understanding.md` and explain its actual role, input/output,
+selection reason, alternative and limits in plain Korean alongside implementation.
+Do not wait for the nondeveloper to ask what an optimizer is or postpone all
+method understanding until final submission; do not ask them to design it.
+
 For unclear rules:
 - mark OPEN QUESTION
 - cite task/test/config evidence already checked

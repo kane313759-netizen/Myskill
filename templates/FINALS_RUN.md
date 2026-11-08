@@ -22,6 +22,15 @@ required/allowed. The preliminary STATE/CP1 receipts do not apply to this run.
 - Chosen task lane, smallest complete solution and rationale: UNKNOWN
 - Assumptions and unresolved requirements: UNKNOWN
 
+## Participant method understanding
+
+- Actual material tools/libraries and algorithm/solver, with source/config: UNKNOWN
+- Planned versus implemented versus actually executed method: UNKNOWN
+- Goal/constraints, reason chosen and one meaningful alternative: UNKNOWN
+- Real case, relevant settings, observed termination and limits/guarantee: UNKNOWN
+- Concise Korean explanation actually delivered at selection/change/final: UNKNOWN
+- Genuine participant questions/answers; comprehension not inferred: UNKNOWN
+
 ## Clock and budget
 
 - Actual clock observation/timezone: UNKNOWN
@@ -45,6 +54,10 @@ status and observed result. Preserve the baseline. Mark non-comparable scopes.
 ## Review and final checks
 
 - Review basis: UNKNOWN (independent / SELF_CHECK; launch/scope evidence)
+- CODE/CONSTRAINT/EDGE review roles and separate worker IDs: UNKNOWN
+- Per-review launch/running/completed observations, receipt/report paths: UNKNOWN
+- Execution COMPLETE versus accepted review and findings resolved: UNKNOWN
+- EDGE_RED boundary/null/missing/security attacks actually run or unverified: UNKNOWN
 - Independent review unavailable/not run and reason: UNKNOWN
 - Findings, fix/disproof evidence and current dispositions: UNKNOWN
 - Required behavior/schema/hard constraints: UNKNOWN

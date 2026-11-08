@@ -1,5 +1,20 @@
 # Changes
 
+## 2026-11-08-finals-r8.1-candidate
+
+- Explain actual material tools/algorithms proactively at selection, consequential
+  changes and final delivery: role, rationale, alternative, observed example and
+  limits. Distinguish solver/library/search/training optimizer and actual guarantees.
+- Add separate clean EDGE_RED for task-grounded boundary, missing/malformed-data
+  and applicable security attacks; keep it distinct from Code/Constraint reviews.
+- Require retained launch, running and completion observations, actual worker ID,
+  scope and report hashes. CP1 rejects absent execution evidence even with DONE
+  markers; old receipts are preserved but cannot authorize a current gate.
+- Add a read-only execution-record checker. It validates supplied lifecycle/hash
+  consistency, not authenticated platform responses or guaranteed agent execution.
+- Preserve the preliminary policy bytes, stage scopes and honest unavailable
+  review/SELF_CHECK labels. No forced extra quiz or human engineering approval.
+
 ## 2026-11-08-finals-r8-candidate
 
 - Add a nondeveloper finals workflow that owns technical selection, implementation,

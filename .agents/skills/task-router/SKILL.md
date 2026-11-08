@@ -30,6 +30,7 @@ Return classification to ORCHESTRATOR for STATE.md and to MAIN for SPEC_DRAFT:
 - relevant playbooks
 - explicitly **not applicable** playbooks
 - highest-risk boundaries
+- material chosen tools/algorithms to explain proactively via the active kit's participant-understanding.md reference; the participant need not design them
 
 Use the task toolchain only by default: original supplied/declared/required tools,
 kit helpers and the standard library. Optional additions are NONE, even when a

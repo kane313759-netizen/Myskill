@@ -18,6 +18,14 @@ Use:
 
 Follow citations back to original evidence. A note or MAIN's summary alone does not establish a fact. Distinguish CONFIRMED / ASSUMPTION / UNVERIFIED; missing evidence is not a passing check.
 
+Use `references/participant-understanding.md` in the active kit. Explain the actual
+material tools and algorithms, why selected over an applicable alternative, their
+input/output and limits, with one observed case and source/config/run evidence.
+For an optimizer, distinguish the library, actual solver/search/training method,
+objective, constraints and observed termination/guarantee. A name or a lower loss
+is not proof of global optimality. Explain proactively; do not certify human
+understanding or add a mandatory extra quiz.
+
 Explain only components that exist:
 1. problem solved
 2. input

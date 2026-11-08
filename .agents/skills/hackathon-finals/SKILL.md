@@ -25,7 +25,12 @@ decision not answerable from task sources. State why the answer matters and
 continue independent useful work. Routine technical choices, reversible fixes,
 test selection and local record updates require no participant approval loop.
 Show Korean plain-language progress: what works, what remains uncertain, what
-you are doing next. Explain unfamiliar terms only when needed for their decision.
+you are doing next. Read `references/participant-understanding.md` in the same
+kit and proactively explain each material actual tool/algorithm at selection,
+after a consequential change, and in the final delivery. Include what it does,
+input/output, why it fits, one alternative, an actual case and its limits.
+Distinguish tool/library from algorithm and planned from actually executed use.
+The participant should understand the choice without taking over engineering.
 Never fabricate participant judgment, manual checks, failures or claimed learning.
 
 ## Select the stage and rules before execution
@@ -39,7 +44,7 @@ UNKNOWN. Research articles and predicted problem domains are background only.
 Use the profile's operation-specific uncertainty rule; do not infer network,
 AI/model, prepared-file or multi-agent permission from this kit or a personal PC.
 
-Delegate only if agents are available and current rules plus the user/task
+Read `references/review-execution.md` in the same kit. Delegate only if agents are available and current rules plus the user/task
 instructions authorize it. Use one product writer. Clean reviewers receive
 original task evidence and the scoped candidate, without author conversation;
 record actual launch method/model if verified. Never claim a requested model
@@ -47,6 +52,19 @@ was selected. If clean review is unavailable, perform a separate self-check,
 label it SELF_CHECK / independent review NOT_RUN and state the limitation.
 Do not wait indefinitely, fake independence or block all progress just to fill
 the preliminary's role roster. Required official checks still cannot be waived.
+For each actual review, observe launch return/worker ID, running acknowledgement
+and completed report tied to the current scope; keep the execution receipt.
+Dispatch, a role label or a locally authored DONE is insufficient. Check launch
+soon and handle failure/capacity yourself; do not wait for the participant to
+discover that no worker ran. Distinguish execution COMPLETE from review ACCEPTED.
+
+Use the dedicated `edge-redteam` as a separate EDGE_RED in addition to general
+code/spec review when separate agents are permitted and available. It owns
+boundary, missing/malformed-data and applicable security attacks, not product
+edits. Give it a clean context and scoped original evidence/candidate. Do not
+rename the writer's tests or a CODE_RED session/report as separate EDGE_RED.
+If unavailable/prohibited, explicitly show EDGE_RED NOT_RUN and SELF_CHECK scope;
+do not claim the requested independent assurance or silently skip it.
 
 ## Intake and plan — one evidence pass
 
@@ -89,6 +107,10 @@ At first complete output, report the observed result and execution evidence.
 Test the task lane's consequential risk, then review independently if available
 under the rules above. Fix real defects before adding complexity. Do not count
 file creation, a server starting, lint, or an internal note as an end-to-end pass.
+Launch EDGE_RED here and again on the current final candidate before collection,
+following the actual launch/completion protocol. A new checkpoint needs a new
+clean reviewer; a same-checkpoint reviewer may recheck its own findings. Budget
+these reviews alongside code/spec checks, sequentially when capacity is limited.
 
 ## Improve against evidence
 
@@ -119,6 +141,10 @@ Deliver a concise Korean explanation in chat, not only in notes: problem; actual
 input-to-output flow; why this method; comparable baseline/current observations;
 one actually observed rule-applied or boundary case; limits; exact run/demo and
 submission steps. State missing baseline/case evidence rather than invent it.
+Include the actual tools/algorithms and why they were chosen. For an optimizer,
+identify a real solver, heuristic, enumeration or training optimizer correctly;
+explain objective/constraints, relevant settings and observed termination/result.
+Do not claim optimality from the tool name or certify participant comprehension.
 Prepare a brief pitch or answers only if official requirements or the participant
 request them; no mandatory six-question quiz or teach-back. Stop for any official
 no-AI phase. Details and code may be linked without making the participant read
