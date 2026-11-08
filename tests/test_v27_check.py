@@ -404,10 +404,11 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         data = json.loads((self.root / ref['path']).read_text())
         scope = json.loads((self.root / data['shared_scope_evidence']['path']).read_text())
         data['candidate_value'] = 9
+        data['task_metric_ref'] = 'Maximize score.'
         data['candidate_evidence'] = self.write('worse.json', json.dumps({'metric': 'score', 'value': 9, 'scope': scope,
             'artifact': {'path': 'result.txt', 'sha256': digest(self.root / 'result.txt')}}))
         self.record('baseline_comparison', data)
-        self.assertTrue(any('worse than' in x for x in self.result('final')['errors']))
+        self.assertTrue(any('candidate scores lower on the task metric' in x for x in self.result('final')['errors']))
         self.record('baseline_comparison', {'status': 'UNAVAILABLE_WITH_REASON', 'reason': 'No comparable score exists.'})
         self.assertTrue(any('no comparable score' in x for x in self.result('final')['unverified']))
 
@@ -420,7 +421,8 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         data['candidate_evidence'] = self.write('baseline_selected_score.json', json.dumps({'metric': 'score', 'value': 10, 'scope': scope,
             'artifact': {'path': 'result.txt', 'sha256': digest(self.root / 'result.txt')}}))
         self.record('baseline_comparison', data)
-        self.assertTrue(any('two distinct alternatives' in x for x in self.result('final')['unverified']))
+        self.assertTrue(any('best_alternative' in x for x in self.result('final')['unverified']))
+        data['best_alternative'] = {'name':'A','metric_values':{'score':9},'rejection_reason':'synthetic task limit','rejection_basis':'HARD_LIMIT'}
         data['alternatives'] = [{'name': name, 'assumptions': 'same data', 'result': 'not better', 'evidence': data['baseline_evidence']} for name in ('A', 'B')]
         data['baseline_assumptions_check'] = [{'check': n, 'method': 'review', 'result': 'verified'} for n in ('response_shape', 'progress_variable', 'operating_shift')]
         self.record('baseline_comparison', data)

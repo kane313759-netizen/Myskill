@@ -28,7 +28,7 @@ python -I .hackathon-kit/scripts/v27_check.py --root . --plan .hackathon-kit/run
 python -I .hackathon-kit/scripts/v27_check.py --root . --plan .hackathon-kit/run/V27_EVIDENCE.json --phase final
 ```
 
-인수 검사는 환경과 별도 상태를 확인한다. CP1은 데이터 감사·채점·결정·안전 및 CONSTRAINT_RED/DATA_EVAL_RED의 실제 실행을 확인한다. 최종 논리 단계 CP3에서는 기존 `checkpoint: FINAL` 계획·영수증을 그대로 두 검사에서 쓴다. 여섯 핵심 RED와 조건부 SECURITY_RED의 FINAL 집계, 최신 제출·보안·복사 재실행·학습 기록을 추가 확인한다. CP1·이전 CP2 기록의 이름은 그대로다. M1/M2/M3는 보관 시점이며 추가 리뷰 관문이 아니다. 본선에 예선 CP1의 고정 문서 게이트를 강요하지 않는다.
+인수 검사는 환경과 별도 상태를 확인한다. CP1은 데이터 감사·채점·결정·안전 및 CONSTRAINT_RED/DATA_EVAL_RED의 실제 실행을 확인한다. 최종 논리 단계 CP3에서는 기존 `checkpoint: FINAL` 계획·영수증을 그대로 두 검사에서 쓴다. 여섯 핵심 RED와 조건부 SECURITY_RED의 FINAL 집계, 최신 제출·보안·복사 재실행·학습 기록을 추가 확인한다. CP1·이전 CP2 기록의 이름은 그대로다. 스냅샷은 M1과 FINAL에만 보관하며 추가 리뷰 관문이 아니다. 본선에 예선 CP1의 고정 문서 게이트를 강요하지 않는다.
 
 독립 리뷰는 기존 `review_execution.py`와 `finals_review_check.py` 계약을 재사용한다. 깨끗한 별도 작업자 컨텍스트와 실제 LAUNCHED/RUNNING/COMPLETED 관측·보고서·검토 파일 해시가 필요하다. 생성 계획, 본체의 셀프 체크, 완료 문구만으로 대체하지 않는다. 실행 불가 때 미실행이라고 보고한다. SECURITY_RED는 실제 인증·권한·비밀·외부 데이터/서비스 경로·특권 도구·민감 자료 경계가 있을 때 발동한다. P1/P0 발견은 수정 검증 또는 근거 있는 반증으로 닫는다.
 
@@ -49,7 +49,7 @@ python -I .hackathon-kit/scripts/v27_check.py --root . --plan .hackathon-kit/run
 - `submit_check.py --root . --rules rules.json`: 명시한 파일의 JSON/CSV/text 형식, 필드, 열, 행 수, 허용 값·범위·유일 키·합계 제약과 총 용량을 검사한다. 공식 규칙을 자동 추측하지 않는다.
 - `clean_run.py --root . --plan plan.json --scratch 새임시폴더`: 명시한 후보·허용 자료를 복사하고 `execution_authorized:true`인 명령만 실행한다. 출력의 기준 해시 또는 JSON 수치 허용오차를 비교한다. 의존성 설치·셸·Git·외부 전송을 자동 수행하지 않는다. 실행 허용은 sandbox를 뜻하지 않으며 파일 권한이나 네트워크를 OS 수준에서 격리하지 못한다.
 - `security_check.py --root . --plan plan.json`: 명시 파일만 크기 제한으로 검사한다. 비밀/개인정보 패턴과 위험 호출 후보를 값 노출 없이 보고하고 근거 있는 disposition을 기록한다. 동적 공격·권한 전체·누출 부재를 보증하지 않는다.
-- `snapshot.py create --help` 및 `verify --help`: 명시 파일을 로컬 보관하고 원자료는 해시만 기록한다. M1과 FINAL 및 최근 5개를 유지한다. 복사본은 읽기 전용이고 원본 권한은 바꾸지 않는다. 읽기 전용은 사용자나 프로세스가 해제할 수 있으며 장치 장애를 대비한 독립 백업이 아니다.
+- `snapshot.py create --help` 및 `verify --help`: 명시 파일을 로컬 보관하고 원자료는 해시만 기록한다. M1과 FINAL 두 번만 남긴다. 복사본은 읽기 전용이고 원본 권한은 바꾸지 않는다. 읽기 전용은 사용자나 프로세스가 해제할 수 있으며 장치 장애를 대비한 독립 백업이 아니다.
 
 작업 폴더 통째 수집에 대비한 정리 순서는 **최종 수집 준비·모든 검증 완료 → purge 미리보기 → purge --apply → 기존 clean --apply**다.
 
@@ -80,7 +80,7 @@ P2 튜닝·변경 실험·피칭 검사 자동화는 구현하지 않았다. P1�
 최종 검사에는 `records.baseline_comparison`, `records.external_requests`, `records.maintenance`가 필요하다. 모든 참조는 현재 작업 폴더의 `{path,sha256}`이다. 증거 자체는 출처 진위를 보증하지 않는다.
 
 - baseline_comparison: `AVAILABLE`일 때 `metric`, `direction` (`HIGHER_IS_BETTER` 또는 `LOWER_IS_BETTER`), 유한한 `baseline_value`/`candidate_value`, `selection`, `shared_scope_evidence`, `baseline_evidence`, `candidate_evidence`를 기록한다. 두 점수 JSON은 각각 `{metric,value,scope,artifact:{path,sha256}}`를 갖고 scope는 공통 범위 JSON과 일치해야 한다. 후보 artifact는 현재 clean_run 산출물이어야 하며 현행 유지일 때 기준선 artifact와 SHA256이 같아야 한다. 더 나쁜 후보는 FAIL. 평가가 불가능하면 `UNAVAILABLE_WITH_REASON`과 이유를 남기며 최종 검사는 UNVERIFIED다. 수치만 같고 조건이 다르면 비교로 취급하지 않는다. 선택이 `CURRENT_BASELINE`이면 `alternatives`에 서로 다른 두 `name`, `assumptions`, `result`, `evidence`와 `baseline_assumptions_check`가 필요하다. 현행의 합법성·안전성은 별도로 확인한다.
-- external_requests: `{status:NONE}` 또는 `{status:TRACKED,requests:[...]}`를 기록한다. 각 요청은 `PENDING` 또는 `RECEIVED`이고 RECEIVED는 `response_evidence`를 연결한다. PENDING은 최종 검사를 UNVERIFIED로 유지한다. 단 `deadline_fallback:true`와 기준선·관문 지표 및 제출 검증 통과가 모두 확인되면 경고로 낮춘다. 채팅의 발송·응답 기록을 실제 근거로 보존하며, 대기 중에는 다른 독립 작업을 계속한다.
+- external_requests: `{status:NONE}` 또는 `{status:TRACKED,requests:[...]}`를 기록한다. 각 요청은 `PENDING` 또는 `RECEIVED`이고 RECEIVED는 `response_evidence`를 연결한다. PENDING은 최종 검사를 UNVERIFIED로 유지한다. 단 `deadline_fallback:true`와 과제 원문의 hard_limits 및 지표 비교 및 제출 검증 통과가 모두 확인되면 경고로 낮춘다. 채팅의 발송·응답 기록을 실제 근거로 보존하며, 대기 중에는 다른 독립 작업을 계속한다.
 - maintenance: `runs`에 서로 다른 두 개 이상의 `{id,change,before_config,after_config,program,execution,observed_output,status:PASS,verification}`을 기록한다. 파일 참조는 해시를 포함하며, 두 설정의 바이트가 달라야 한다. 실제 native 실행은 `-I` Python으로 기록된 프로그램 및 변경 설정 파일을 사용하고 stdout JSON이 observed_output과 같아야 한다. 이 검사는 실행 기록과 파일 무결성만 검사하며 테스트 자체의 품질·OS 격리·인간 판단을 인증하지 않는다. 서로 다른 두 변화와 기대 관계를 요구하고 적절한 검토자가 내용을 검증한다.
 - `decisions.type_b_cards`는 설명 기록이며 `selection_by:AI`를 명시한다. `selection_by:PARTICIPANT` 또는 `participant_approval_required:true`는 기술 결정을 참가자에게 전가하므로 FAIL이다. Type A 업무·위험 판단은 이 제한과 구별한다.
 - 전체 데이터 감사는 명시된 CSV와 gzip CSV를 파일별 스트리밍한다. `max_rows`는 앞부분 프로파일 표본만 제한한다(실제 상한 10,000행). 전체 스캔은 `max_scan_bytes` 기본 2GiB, `max_scan_seconds` 기본 300초(최대 900초)를 각 파일에 적용하고, 초과 파일만 UNVERIFIED로 기록한 뒤 나머지를 계속 검사한다. 기간·출처·개체별 샘플은 기본 최대 2,000개이며 무작위 표본의 누락 가능성이 있다. CSV 외 기존 형식은 bounded 프로파일로 제한되며 전체를 읽지 못하면 UNVERIFIED다. 시각 역행·단위 계단은 후보 경보일 뿐, 이름·행 순서·누락·혼합 시간대·제품 구성에 따라 거짓 양성 또는 누락이 가능하다. 데이터의 실제 공정 순서·동일 개체·단위 개정 근거는 별도 확인한다.
@@ -90,10 +90,9 @@ P2 튜닝·변경 실험·피칭 검사 자동화는 구현하지 않았다. P1�
 ## r3: 발견·관문·판단·요청 근거
 
 - 독립 의미 검토에서 상태가 `FINDING`인 항목마다 `grading.finding_impacts`에 `{item_id,finding_ref,action,metric,before,after,split,grader_sha256}` 또는 `{item_id,unmeasurable_reason}`을 기록한다. 수치 근거의 grader 해시는 현재 평가기 해시와 연결한다. 미측정 사유는 경고이며 성능 개선의 증거가 아니다.
-- `baseline_comparison.gates`는 명시 목록이다. 각 관문은 `{metric,direction,baseline_value,candidate_value,evidence}`이고 evidence JSON은 동일한 공통 `scope`, 주 지표와 같은 `baseline_artifact` 및 `candidate_artifact`와 지표 수치를 담는다. 어느 관문이든 나빠지면 FAIL이다.
 - 현행 유지의 `baseline_assumptions_check`는 `{check,method,result}` 목록이다. `response_shape`, `missing_reference_join`, `progress_variable`, `operating_shift` 중 중복 없는 세 가지 이상을 점검한다.
 - `decisions.type_a_choices`는 허용된 업무 주제 `problem_choice`, `miss_vs_overkill`, `speed_vs_precision`, `risk_tolerance`, `final_study_minutes`, `emergency_no_review`와 해시가 연결된 `question_ref`, `answer_ref`를 기록한다. Type B는 AI 선택을 유지하며 `evidence_score:{metric,score,alternative_difference}`에 실제 튜닝 기준과 대안 차이를 남긴다. 점수가 없으면 만들어내지 않는다.
-- `external_requests.requests` 각 항목에 hypothesis, target, expected_if_true, expected_if_false, budget_left, layer_check가 필요하다. 회신 전 fallback은 검증된 기준선 및 모든 관문과 현재 제출·clean_run 증거가 있을 때만 경고다.
+- `external_requests.requests` 각 항목에 hypothesis, target, expected_if_true, expected_if_false, budget_left, layer_check가 필요하다. 회신 전 fallback은 검증된 과제 hard_limits 및 지표 비교과 현재 제출·clean_run 증거가 있을 때만 경고다.
 - 기간·출처의 중앙값 비가 10, 100, 1000배 또는 역수의 ±15%에 해당하면 `SCALE_STEP` 후보로 기록한다. 명시된 시간 열이나 첫 시간 열로 주·월을 구분한다. ID·순번 이름 힌트는 숫자 단위 비교에서 제외한다. 표본 근거는 사실·교정의 증명이 아니다.
 
 개체 표본은 최대 2,000개, 개체별 단계는 최대 128개이며 초과 단계는 누락 수를 기록한다. 기간·출처·출처×기간의 축소는 검사별 `analysis_limits` 경고로 남기며 표본 float 예산은 공유한다. 분석 축소는 행 읽기 완료 여부를 바꾸지 않는다. 긴 범주 값은 생략한다. 출처 비교의 범주 값은 보고서에 포함될 수 있으므로 해당 파일의 민감도를 확인한다.
@@ -109,3 +108,13 @@ P2 튜닝·변경 실험·피칭 검사 자동화는 구현하지 않았다. P1�
 자동 ID는 표본의 (ID, 순서) 중복률이 가장 낮고 동률이면 서로 다른 ID가 더 많은 열을 선택하며 후보와 수치를 남긴다. 시간대 표시가 한 열에 섞이면 TIMEZONE_MIXED, 시간대 차이로 비교하지 못한 공정 쌍은 출처별 skipped_timezone_mismatch로 기록한다. 순서 역할을 유추하지 못한 시간 열 2개 이상의 입력에는 NOT_RUN과 역할 지정 필요를 표시한다. 모든 경보 및 시차 제안은 실제 현장 판단의 대체가 아니다.
 
 비CSV 표는 제한된 프로파일 범위에서 시간순 확인과 긴 형식의 범주별 인접 비교를 수행한다. 기간·출처 비교는 수행하지 않으며 해당 분석 한계를 경고한다.
+
+## r4-1
+
+hard_limits는 과제 원문 한도만 담는다: {metric, limit, direction, candidate_value, evidence, source_quote}. source_quote는 원문 인용이며 빈 인용은 무효다. 위반은 오류, 계산 불가는 UNVERIFIED 경고다. proxy_metrics는 {metric, direction, baseline_value, candidate_value, relation_to_task_metric, uncertainty}이며 악화는 경고다. 기존 gates는 proxy로 읽고 legacy gate treated as proxy 경고를 낸다.
+
+primary의 task_metric_ref가 있으면 같은 평가 범위에서 과제 지표 악화는 오류다. 없으면 대리 지표로 경고한다. CURRENT_BASELINE은 best_alternative {name, metric_values, rejection_reason, rejection_basis}가 필요하며 rejection_basis는 HARD_LIMIT | TASK_METRIC | SAFETY | OTHER다. OTHER 또는 대리 지표만으로 기각하면 NO_OP 경고다.
+
+해석·독립 리뷰는 통합 스킬의 교체 문장을 따른다. grader controls는 POSITIVE 1~3개와 NEGATIVE 1개 이상이며 독립 지문과 음성 악화 검증은 유지한다. 스냅샷은 첫 E2E(M1)와 최종 두 번만 남기고 후보 비교는 run/CANDIDATES.md만 갱신한다.
+
+.jsonl·.jsonl.gz는 줄 단위로 읽고 키 합집합을 열로, 중첩 값은 JSON 문자열로 둔다. 깨진 줄은 세고 건너뛰며 complete_rows=False다. 미지원 파일은 그 파일만 UNSUPPORTED로 기록하고 나머지 파일과 전체 RECORDED 상태를 유지하며 경고한다.

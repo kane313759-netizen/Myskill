@@ -678,13 +678,18 @@ def audit(root, plan):
             if str(path.resolve()) in seen:
                 raise ValueError('duplicate provided file')
             seen.add(str(path.resolve()))
-            if path.suffix.lower() == '.csv' or path.name.lower().endswith('.csv.gz'):
-                scanned = _stream_csv(path, plan, spec, io)
-                prof = scanned['profile']
+            jsonl=path.name.lower().endswith(('.jsonl','.jsonl.gz'))
+            if not jsonl and path.suffix.lower() not in ('.csv','.json','.xlsx','.xlsm','.txt','.md','.rst','.pdf','.docx','.html') and not path.name.lower().endswith('.csv.gz'):
+                artifacts.append({'path':name,'status':'UNSUPPORTED','reason':'unsupported input type','kind':'unsupported','tables':[], 'rows_examined':0,'complete_rows':None})
+                continue
+            if jsonl or path.suffix.lower() == '.csv' or path.name.lower().endswith('.csv.gz'):
+                scanned = runpy.run_path(str(Path(__file__).with_name('v27_jsonl.py')))['scan_jsonl'](path,plan,spec,io,_stream_csv) if jsonl else _stream_csv(path, plan, spec, io)
+                prof = scanned['profile'] or _profile([],io,[])
                 prof.update(path=name, sheet=None)
                 profiles.append(prof)
                 artifacts.append({'path':name, 'bytes':path.stat().st_size, 'sha256':scanned['sha256'],
-                                  'kind':'table','tables':[prof], 'rows_examined':scanned['rows'],
+                                  'kind':'table','status':'RECORDED' if scanned['complete'] else 'UNVERIFIED','tables':[prof], 'rows_examined':scanned['rows'],
+                                  **({'broken_lines':scanned['broken_lines']} if jsonl else {}),
                                   'rows_scanned':scanned['rows'], 'profile_rows':len(scanned['sample']),
                                   'complete_rows':scanned['complete'], 'partial_reason':scanned['reason'],
                                   'analysis_limits':scanned.get('analysis_limits',[]),
@@ -729,6 +734,7 @@ def audit(root, plan):
                                 complete_rows=None, instruction_and_revision_review='UNVERIFIED')
             else:
                 raise ValueError('unsupported input type; provide explicit CSV/JSON/workbook or document')
+            artifact['status']='UNVERIFIED' if artifact.get('complete_rows') is False else 'RECORDED'
             artifacts.append(artifact)
         except (OSError, EOFError, UnicodeError, ValueError, TypeError, ImportError, RuntimeError, KeyError, csv.Error, zlib.error) as error:
             errors.append({'path': name, 'error': str(error)})
@@ -774,6 +780,7 @@ def audit(root, plan):
                       'findings': findings, 'actions': [actions[index]],
                       'limitations': ['Observations do not validate business definitions, causal truth, hidden evaluation or unprovided files.']})
     return {'status': 'FAIL' if errors else 'RECORDED' if complete else 'UNVERIFIED', 'items': items, 'files': artifacts, 'errors': errors,
+            'warnings':['UNSUPPORTED: '+item['path']+' / '+item['reason'] for item in artifacts if item.get('status')=='UNSUPPORTED'],
             'scope': {'provided_files_only': True, 'max_rows_per_profile': min(maximum,10000), 'requested_profile_rows':maximum, 'rows_examined': total_rows,
                       'max_file_bytes': byte_limit, 'all_provided_rows_examined': complete,
                       'raw_values_in_report': True, 'source_categories_in_report': True},

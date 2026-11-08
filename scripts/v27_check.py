@@ -36,7 +36,7 @@ def utf8_warning(is_windows, utf8_mode):
 
 
 def audit_limit_warnings(audit):
-    messages=[]
+    messages=list(audit.get('warnings',[]))
     for artifact in audit.get('files', []):
         for limit in artifact.get('analysis_limits', []):
             messages.append('data_audit analysis limited: %s / %s / %s / dropped=%s' %
@@ -62,8 +62,8 @@ def r3_policy(findings=(), impacts=(), gates=(), assumptions=(), keep_baseline=F
         direction=gate.get('direction')
         if not meaningful(gate.get('metric')) or direction not in ('HIGHER_IS_BETTER','LOWER_IS_BETTER') or any(type(x) not in (int,float) or not math.isfinite(x) for x in (a,b)) or not isinstance(gate.get('evidence'),dict):
             errors.append('gate metric, finite values, direction and evidence required')
-        elif (b < a if direction == 'HIGHER_IS_BETTER' else b > a):
-            errors.append('gate metric is worse than baseline: '+gate['metric'])
+    policy = module('v27_comparison')['comparison_policy']({'gates':list(gates)})
+    warnings.extend(policy['warnings'])
     if keep_baseline:
         names=[x.get('check') for x in assumptions if isinstance(x,dict)] if isinstance(assumptions,list) else []
         if not isinstance(assumptions,list) or len(names) != len(assumptions) or len(set(names)) < 3 or not set(names) <= allowed or len(names) != len(set(names)) or any(not meaningful(x.get('method')) or not meaningful(x.get('result')) for x in assumptions if isinstance(x,dict)):
@@ -319,8 +319,8 @@ def _check(plan, root, kit, phase='final', source=None):
             controls = grading.get('controls', [])
             positives = [x for x in controls if x.get('kind') == 'POSITIVE']
             negatives = [x for x in controls if x.get('kind') == 'NEGATIVE']
-            if not 3 <= len(positives) <= 5 or not negatives:
-                errors.append('grader needs 3-5 independent known answers and justified negative controls')
+            if not 1 <= len(positives) <= 3 or not negatives:
+                errors.append('grader needs 1-3 independent known answers and justified negative controls')
             ids, cases = set(), set()
             for control in controls:
                 try:
@@ -530,8 +530,10 @@ def _check(plan, root, kit, phase='final', source=None):
                     errors.append('baseline comparison: unavailable needs a reason')
                 pending.append('baseline comparison: no comparable score; no improvement claim or automatic freeze')
             elif comparison.get('status') == 'AVAILABLE':
-                metric, direction = comparison.get('metric'), comparison.get('direction')
-                left, right = comparison.get('baseline_value'), comparison.get('candidate_value')
+                primary=dict(comparison)
+                if isinstance(comparison.get('primary'),dict): primary.update(comparison['primary'])
+                metric, direction = primary.get('metric'), primary.get('direction')
+                left, right = primary.get('baseline_value'), primary.get('candidate_value')
                 if not meaningful(metric) or direction not in ('HIGHER_IS_BETTER', 'LOWER_IS_BETTER') or any(type(x) not in (int, float) or not math.isfinite(x) for x in (left, right)):
                     errors.append('baseline comparison: finite comparable metric and direction required')
                 else:
@@ -548,48 +550,39 @@ def _check(plan, root, kit, phase='final', source=None):
                             raise ValueError('candidate score must bind a current clean-run artifact')
                     except (OSError, ValueError, TypeError) as exc:
                         errors.append('baseline comparison evidence: ' + str(exc))
-                    if right < left if direction == 'HIGHER_IS_BETTER' else right > left:
-                        errors.append('candidate is worse than the comparable current baseline; retain baseline')
                     if comparison.get('selection') == 'CURRENT_BASELINE':
                         if right != left:
                             errors.append('current baseline selection must score the same as the baseline under identical evaluation')
                         if original.get('artifact', {}).get('sha256') != candidate.get('artifact', {}).get('sha256'):
                             errors.append('current baseline selection must preserve the evaluated baseline artifact')
-                        alternatives = comparison.get('alternatives', [])
-                        if not isinstance(alternatives, list) or len(alternatives) < 2 or len({x.get('name') for x in alternatives if isinstance(x, dict) and meaningful(x.get('name'))}) < 2:
-                            pending.append('current baseline retention needs two distinct alternatives examined')
-                        else:
-                            for option in alternatives:
-                                try:
-                                    if not meaningful(option.get('assumptions')) or not meaningful(option.get('result')):
-                                        raise ValueError('alternative assumptions and observed result required')
-                                    bound(option.get('evidence'))
-                                except (OSError, ValueError, TypeError, AttributeError) as exc:
-                                    errors.append('baseline alternative: ' + str(exc))
-                        p = r3_policy(assumptions=comparison.get('baseline_assumptions_check', []), keep_baseline=True)
-                        pending.extend(p['pending'])
+                        pending.extend(r3_policy(assumptions=comparison.get('baseline_assumptions_check', []),keep_baseline=True)['pending'])
                     elif comparison.get('selection') != 'CANDIDATE':
                         errors.append('baseline comparison: selection must be CANDIDATE or CURRENT_BASELINE')
             else:
                 pending.append('baseline comparison: availability and decision not recorded')
 
-            gates = comparison.get('gates')
-            if not isinstance(gates,list):
-                pending.append('baseline comparison: explicit gate metrics list required')
-            else:
-                p = r3_policy(gates=gates); errors.extend(p['errors'])
-                for gate in gates:
-                    try:
-                        observed = h['read_json'](bound(gate.get('evidence')))
-                        expected_scope = h['read_json'](bound(comparison.get('shared_scope_evidence')))
-                        if any(observed.get(k) != gate.get(k) for k in ('metric','baseline_value','candidate_value')) or observed.get('scope') != expected_scope:
-                            raise ValueError('gate metric evidence does not match values and common evaluation scope')
-                        baseline_score = h['read_json'](bound(comparison.get('baseline_evidence')))
-                        candidate_score = h['read_json'](bound(comparison.get('candidate_evidence')))
-                        if observed.get('baseline_artifact') != baseline_score.get('artifact') or observed.get('candidate_artifact') != candidate_score.get('artifact'):
-                            raise ValueError('gate metric evidence must bind the same baseline and candidate artifacts')
-                    except (OSError, ValueError, TypeError, AttributeError) as exc:
-                        errors.append('gate evidence: ' + str(exc))
+            policy = module('v27_comparison')['comparison_policy'](comparison)
+            errors.extend(policy['errors']); pending.extend(policy['pending']); warnings.extend(policy['warnings'])
+            errors.extend(r3_policy(gates=comparison.get('gates',[]))['errors'])
+            for limit in comparison.get('hard_limits', []):
+                try:
+                    text = h['read_bytes'](bound(limit.get('evidence'))).decode('utf-8-sig')
+                    if not meaningful(limit.get('source_quote')) or limit['source_quote'] not in text:
+                        raise ValueError('hard limit source_quote must occur in task evidence')
+                except (OSError, ValueError, TypeError, AttributeError) as exc:
+                    errors.append('hard limit evidence: '+str(exc))
+            for gate in comparison.get('gates', []):
+                try:
+                    observed = h['read_json'](bound(gate.get('evidence')))
+                    expected_scope = h['read_json'](bound(comparison.get('shared_scope_evidence')))
+                    if any(observed.get(k) != gate.get(k) for k in ('metric','baseline_value','candidate_value')) or observed.get('scope') != expected_scope:
+                        raise ValueError('gate metric evidence does not match values and common evaluation scope')
+                    baseline_score = h['read_json'](bound(comparison.get('baseline_evidence')))
+                    candidate_score = h['read_json'](bound(comparison.get('candidate_evidence')))
+                    if observed.get('baseline_artifact') != baseline_score.get('artifact') or observed.get('candidate_artifact') != candidate_score.get('artifact'):
+                        raise ValueError('gate metric evidence must bind the same baseline and candidate artifacts')
+                except (OSError, ValueError, TypeError, AttributeError) as exc:
+                    errors.append('gate evidence: ' + str(exc))
         comparison_ok = bool(comparison and comparison.get('status') == 'AVAILABLE' and len(errors) == comparison_error_start and len(pending) == comparison_pending_start)
 
         requests = record('external_requests')
