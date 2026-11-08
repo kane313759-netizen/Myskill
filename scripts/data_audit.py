@@ -354,6 +354,8 @@ def _stream_csv(path, plan, spec, io):
             for col in numeric_candidates[512:]:
                 limited('scale','numeric column budget exceeded',col)
             integer_ids={col:True for col in header if _id_hint(col)}
+            metric_positions=tuple(positions[col] for col in metric_columns)
+            numeric_cache={}
             has_roles=all(roles.get(k) for k in ('id','sequence','start','end'))
             late_numeric=set()
             time_columns=[col for col in header if col in inferred_times or col==period_col]
@@ -382,20 +384,24 @@ def _stream_csv(path, plan, spec, io):
                     row_size=sum(len(value) for value in values)+64*len(values)
                     if sample_bytes+row_size<=8*1024*1024:
                         sample.append(row);sample_bytes+=row_size
-                nums={}
-                for col in metric_columns:
-                    val=row[col]
-                    v=io['as_num'](val)
-                    code=code_values[col]
-                    if code is not None:
-                        if v is None:
-                            if not io['is_blank'](val): code_values[col]=None
-                        elif not v.is_integer(): code_values[col]=None
-                        else:
-                            code.add(v)
-                            if len(code)>50: code_values[col]=None
-                    if col in integer_ids and v is not None and not v.is_integer(): integer_ids[col]=False
-                    if v is not None and v>0: nums[col]=v;numeric_cols.add(col)
+                signature=tuple(values[pos] for pos in metric_positions)
+                nums=numeric_cache.get(signature)
+                if nums is None:
+                    nums={}
+                    for col,val in zip(metric_columns,signature):
+                        v=io['as_num'](val)
+                        code=code_values[col]
+                        if code is not None:
+                            if v is None:
+                                if not io['is_blank'](val): code_values[col]=None
+                            elif not v.is_integer(): code_values[col]=None
+                            else:
+                                code.add(v)
+                                if len(code)>50: code_values[col]=None
+                        if col in integer_ids and v is not None and not v.is_integer(): integer_ids[col]=False
+                        if v is not None and v>0: nums[col]=v;numeric_cols.add(col)
+                    if len(numeric_cache)>=16: numeric_cache.clear()
+                    numeric_cache[signature]=nums
                 d=parsed_times.get(period_col) if period_col else None
                 if d:
                     if last_time is not None:
