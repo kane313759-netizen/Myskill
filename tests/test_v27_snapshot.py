@@ -22,6 +22,20 @@ OBSERVED = datetime(2026, 11, 8, 9, 0, tzinfo=timezone.utc)
 
 def remove_test_tree(path):
     """Clear attributes only inside this independently created temporary test root."""
+    path = Path(path).absolute()
+    if snapshot._linked(path):
+        raise ValueError('temporary cleanup root must not be a link/reparse path')
+    root = path.resolve()
+    # Make parent directories writable before rmtree attempts any child unlink.
+    # Do not follow an unexpected link out of this private test fixture.
+    for directory, names, files in os.walk(str(path), topdown=True, followlinks=False):
+        current = Path(directory)
+        if snapshot._linked(current) or (current.resolve() != root and root not in current.resolve().parents):
+            raise ValueError('temporary cleanup escaped its own root')
+        os.chmod(str(current), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        for name in names + files:
+            if snapshot._linked(current / name):
+                raise ValueError('unexpected link/reparse path in temporary fixture')
     def writable_retry(function, target, error):
         os.chmod(target, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         function(target)
@@ -123,6 +137,52 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual((tampered / 'foreign.txt').read_text(encoding='utf-8'), 'preserve unknown addition')
         self.assertIn('foreign', records[-1]['retention']['preserved_unverified'])
         self.assertIn(tampered.name, records[-1]['retention']['preserved_unverified'])
+
+    def test_retention_unlinks_only_after_owned_parents_are_writable(self):
+        path = Path(self.create()['path'])
+        files, directories = snapshot._walk(path)
+        self.assertTrue(all(snapshot._readonly(item) for item in files + directories))
+        parent = path.parent
+        foreign = parent / 'unverified-foreign'
+        foreign.mkdir()
+        unknown = foreign / 'keep.txt'
+        unknown.write_bytes(b'preserve foreign fixture')
+        snapshot._set_readonly(unknown)
+        source = self.root / 'src/code.py'
+        unchanged = {item: (item.stat().st_mode, item.read_bytes() if item.is_file() else None)
+                     for item in (parent, foreign, unknown, source)}
+        original_unlink, removed = Path.unlink, []
+
+        def posix_unlink(target, *args, **kwargs):
+            # Enforce POSIX's parent-write requirement even on Windows or a
+            # privileged POSIX runner, so the original order fails everywhere.
+            if not target.parent.stat().st_mode & stat.S_IWUSR:
+                raise PermissionError('cannot unlink from a readonly parent directory')
+            self.assertIn(path, target.parents)
+            removed.append(target)
+            return original_unlink(target, *args, **kwargs)
+
+        with mock.patch.object(Path, 'unlink', new=posix_unlink):
+            snapshot._remove_owned_snapshot(parent, path)
+        self.assertFalse(path.exists())
+        self.assertEqual(len(removed), len(files))
+        for item, (mode, content) in unchanged.items():
+            self.assertEqual(item.stat().st_mode, mode)
+            if content is not None:
+                self.assertEqual(item.read_bytes(), content)
+
+    def test_fixture_cleanup_handles_readonly_parent_directories(self):
+        fixture = self.root / 'cleanup-fixture'
+        nested = fixture / 'nested'
+        nested.mkdir(parents=True)
+        leaf = nested / 'readonly.txt'
+        leaf.write_bytes(b'owned test fixture')
+        snapshot._set_readonly(leaf)
+        snapshot._set_readonly(nested, directory=True)
+        snapshot._set_readonly(fixture, directory=True)
+        self.assertTrue(all(snapshot._readonly(item) for item in (fixture, nested, leaf)))
+        remove_test_tree(fixture)
+        self.assertFalse(fixture.exists())
 
     def test_traversal_metadata_directories_and_duplicate_paths_are_rejected(self):
         for relative in ('../outside.py', '..\\outside.py', str(self.root / 'config.json'),

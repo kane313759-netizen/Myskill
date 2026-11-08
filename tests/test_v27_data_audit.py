@@ -58,6 +58,19 @@ class DataAuditChecks(unittest.TestCase):
         self.assertEqual(report['status'], 'FAIL')
         self.assertEqual(report['items'][0]['status'], 'UNVERIFIED')
 
+    def test_date_only_values_block_time_na_even_without_time_header(self):
+        (self.root / 'days.csv').write_text('event_day,cost\n2026-01-02,1\n2026-01-01,2\n')
+        report = AUDIT(self.root, {'files': ['days.csv'], 'na': [1], 'na_reasons': {'1': 'no time data'}})
+        self.assertEqual(report['status'], 'FAIL')
+        profile = report['files'][0]['tables'][0]
+        self.assertFalse(profile['time_candidates'][0]['sample_nondecreasing'])
+        self.assertEqual(report['items'][0]['status'], 'UNVERIFIED')
+
+    def test_distributed_default_plan_uses_supported_byte_budget(self):
+        plan = json.loads((SCRIPT.parents[1] / 'templates/V27_EVIDENCE.json').read_text(encoding='utf-8'))['data_audit_plan']
+        plan['files'] = ['data.csv']
+        self.assertEqual(AUDIT(self.root, plan)['status'], 'RECORDED')
+
     def test_explicit_scope_path_and_budget(self):
         (self.root / 'broken.json').write_text('{')
         report = AUDIT(self.root, {'files': ['data.csv']})
@@ -65,6 +78,17 @@ class DataAuditChecks(unittest.TestCase):
         self.assertEqual(len(report['files']), 1)
         self.assertEqual(AUDIT(self.root, {'files': ['../outside.csv']})['status'], 'FAIL')
         self.assertEqual(AUDIT(self.root, {'files': ['data.csv'], 'max_file_bytes': 2})['status'], 'FAIL')
+
+    def test_malformed_csv_returns_structured_failure_through_api_and_cli(self):
+        (self.root / 'bad.csv').write_text('id,value\n1,"unterminated\n', encoding='utf-8')
+        plan = {'files': ['bad.csv']}
+        self.assertEqual(AUDIT(self.root, plan)['status'], 'FAIL')
+        path = self.root / 'bad-plan.json'
+        path.write_text(json.dumps(plan), encoding='utf-8')
+        result = subprocess.run([sys.executable, '-I', str(SCRIPT), '--root', str(self.root), '--plan', str(path)], capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(json.loads(result.stdout)['status'], 'FAIL')
+        self.assertNotIn('Traceback', result.stderr)
 
     def test_isolated_cli(self):
         plan = self.root / 'plan.json'

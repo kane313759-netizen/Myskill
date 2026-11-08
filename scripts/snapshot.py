@@ -215,15 +215,24 @@ def _remove_owned_snapshot(parent, path):
         raise ValueError('retention target escapes the intended snapshots directory')
     verify_snapshot(path)
     files, directories = _walk(path)
+    for item in files + directories:
+        if parent.resolve() not in item.resolve().parents or _linked(item):
+            raise ValueError('retention path escaped or changed')
+    # POSIX unlink requires a writable parent directory, even when the file
+    # itself is writable. Change only this verified snapshot's owned directories
+    # before removing files; never change the snapshots parent or task originals.
+    for item in sorted(directories, key=lambda item: len(item.parts)):
+        if parent.resolve() not in item.resolve().parents or _linked(item):
+            raise ValueError('retention directory escaped or changed')
+        os.chmod(str(item), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
     for item in files:
         if parent.resolve() not in item.resolve().parents or _linked(item):
             raise ValueError('retention file escaped or changed')
         os.chmod(str(item), stat.S_IRUSR | stat.S_IWUSR)
         item.unlink()
     for item in sorted(directories, key=lambda item: len(item.parts), reverse=True):
-        if item != path and parent.resolve() not in item.resolve().parents:
+        if parent.resolve() not in item.resolve().parents or _linked(item):
             raise ValueError('retention directory escaped')
-        os.chmod(str(item), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         # Nonempty/changed directories fail and survive; never delete unknown additions.
         item.rmdir()
 

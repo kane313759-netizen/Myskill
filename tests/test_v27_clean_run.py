@@ -64,6 +64,18 @@ class CleanReplayChecks(unittest.TestCase):
             with self.assertRaises((ValueError, OSError)):
                 RUN(self.root, dict(self.plan, **change), self.scratch)
 
+    def test_malformed_csv_submission_returns_failed_replay(self):
+        content = 'id,value\n1,"unterminated\n'
+        (self.root / 'main.py').write_text('from pathlib import Path\nPath("answer.csv").write_bytes(%r)\n' % content.encode('utf-8'), encoding='utf-8')
+        plan = copy.deepcopy(self.plan)
+        plan.pop('json_tolerances')
+        plan['outputs'] = ['answer.csv']
+        plan['expected_hashes'] = {'answer.csv': hashlib.sha256(content.encode('utf-8')).hexdigest()}
+        plan['submission_rules'] = {'files': [{'path': 'answer.csv', 'format': 'csv'}]}
+        report = RUN(self.root, plan, self.scratch)
+        self.assertEqual(report['status'], 'FAIL')
+        self.assertEqual(report['submission_check']['status'], 'FAIL')
+
     def test_timeout_and_bounded_logs(self):
         (self.root / 'main.py').write_text('import time\ntime.sleep(2)\n')
         changed = dict(self.plan, timeout_seconds=0.05)

@@ -2,6 +2,7 @@
 """Read-only v2.7 evidence checks. Never advances STATE, a gate or a submission."""
 import argparse
 import json
+import os
 from pathlib import Path
 import runpy
 import shlex
@@ -23,6 +24,16 @@ def module(name):
 def meaningful(value):
     return isinstance(value, str) and value.strip().upper() not in (
         '', 'UNKNOWN', 'TODO', 'NOT_RUN', 'N/A', 'NONE')
+
+
+def path_index(argv, expected):
+    """Locate the actual absolute path token using host filesystem semantics."""
+    normalized = os.path.normcase(str(Path(expected).resolve()))
+    for index, value in enumerate(argv):
+        candidate = Path(value)
+        if candidate.is_absolute() and os.path.normcase(str(candidate.resolve())) == normalized:
+            return index
+    return None
 
 
 def _check(plan, root, kit, phase='final', source=None):
@@ -100,10 +111,10 @@ def _check(plan, root, kit, phase='final', source=None):
                 return
             proof = h['read_json'](bound(ref))
             argv, output = native(proof)
-            script_path = str(Path(__file__).with_name(script).resolve())
-            if script_path not in argv or any(flag not in ('-I', '-B', '-u') for flag in argv[1:argv.index(script_path)]):
+            script_index = path_index(argv, Path(__file__).with_name(script))
+            if script_index is None or any(flag not in ('-I', '-B', '-u') for flag in argv[1:script_index]):
                 raise ValueError('actual isolated native command/result required')
-            if argv.index('-I') > argv.index(script_path):
+            if argv.index('-I') > script_index:
                 raise ValueError('unexpected interpreter or isolation flag placement')
             def option(name):
                 if argv.count(name) != 1:
@@ -244,10 +255,10 @@ def _check(plan, root, kit, phase='final', source=None):
                     bound(control.get('input')); bound(control.get('output'))
                     observed = h['read_json'](bound(control.get('execution')))
                     argv, output = native(observed)
-                    selected = next((str((root / name).resolve()) for name in grading.get('evaluator_hashes', {}) if str((root / name).resolve()) in argv), None)
-                    if not selected or argv.index('-I') > argv.index(selected) or any(flag not in ('-I', '-B', '-u') for flag in argv[1:argv.index(selected)]):
+                    selected = next((index for index in (path_index(argv, root / name) for name in grading.get('evaluator_hashes', {})) if index is not None), None)
+                    if selected is None or argv.index('-I') > selected or any(flag not in ('-I', '-B', '-u') for flag in argv[1:selected]):
                         raise ValueError('control native command did not invoke its bound evaluator')
-                    if observed.get('input') != control.get('input') or observed.get('output') != control.get('output') or any(str((root / control[key]['path']).resolve()) not in argv for key in ('input', 'output')):
+                    if observed.get('input') != control.get('input') or observed.get('output') != control.get('output') or any(path_index(argv, root / control[key]['path']) is None for key in ('input', 'output')):
                         raise ValueError('control native invocation does not bind its input and candidate output')
                     if observed.get('evaluator_hashes') != grading.get('evaluator_hashes') or observed.get('input_scope') != grading.get('input_scope'):
                         raise ValueError('control execution evaluator/data scope differs from current grader')
@@ -307,7 +318,7 @@ def _check(plan, root, kit, phase='final', source=None):
                         required_scope.update({x['path']: x['sha256'] for x in replay.get('artifacts', [])})
                         if not required_scope or any(proof.get('scope', {}).get(path) != digest for path, digest in required_scope.items()):
                             raise ValueError('safety scope does not cover current replay inputs and final artifacts')
-                        if outcome.get('tests', {}).get(name) != 'PASS' or outcome.get('scope') != proof.get('scope') or not any(str((root / path).resolve()) in argv for path in proof.get('scope', {})):
+                        if outcome.get('tests', {}).get(name) != 'PASS' or outcome.get('scope') != proof.get('scope') or not any(path_index(argv, root / path) is not None for path in proof.get('scope', {})):
                             raise ValueError('safety verdict is not bound to an actual current test command/result')
                     except (OSError, ValueError, TypeError) as exc:
                         errors.append('safety ' + name + ': ' + str(exc))

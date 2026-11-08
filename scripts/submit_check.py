@@ -158,7 +158,7 @@ def check_submission(root, rules):
             import hashlib
             artifacts.append({'path': label, 'bytes': len(content), 'sha256': hashlib.sha256(content).hexdigest(), 'rows': None if rows is None else len(rows)})
             checks.append({'path': label, 'status': 'PASS'})
-        except (OSError, UnicodeError, ValueError, TypeError, KeyError, RecursionError) as error:
+        except (OSError, UnicodeError, ValueError, TypeError, KeyError, RecursionError, csv.Error) as error:
             errors.append('%s: %s' % (label, error))
             checks.append({'path': label, 'status': 'FAIL'})
     maximum = rules.get('max_total_bytes')

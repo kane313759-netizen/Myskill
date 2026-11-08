@@ -2,6 +2,7 @@
 import copy
 import hashlib
 import json
+import os
 from pathlib import Path
 import runpy
 import subprocess
@@ -50,6 +51,11 @@ class EvidenceTests(unittest.TestCase):
         ref = self.write('.hackathon-kit/run/' + name + '.json', json.dumps(value))
         self.plan['records'][name] = ref
         return ref
+
+    def native_argv(self, argv):
+        if getattr(self, 'mixed_native_paths', False):
+            return [value.swapcase().replace('\\', '/') if Path(value).is_absolute() else value for value in argv]
+        return argv
 
     def sync_env(self):
         self.write(self.plan['env_path'], '# Synthetic environment\n```json\n' + json.dumps(self.env) + '\n```\n')
@@ -112,6 +118,7 @@ class EvidenceTests(unittest.TestCase):
                            'result': {'exit_code': 0, 'output': json.dumps({'metrics': metrics})}}))}
             observed = json.loads((self.root / control['execution']['path']).read_text(encoding='utf-8'))
             argv = [sys.executable, '-I', str(self.root / 'evaluator.py'), '--input', str(self.root / 'input.csv'), '--output', str(self.root / control['output']['path'])]
+            argv = self.native_argv(argv)
             observed.update(argv=argv, request={'cmd': subprocess.list2cmdline(argv)}, input=control['input'], output=control['output'])
             control['execution'] = self.write(control['execution']['path'], json.dumps(observed))
             if index == 3:
@@ -270,8 +277,9 @@ class EvidenceTests(unittest.TestCase):
             argv = [sys.executable, '-I', '-B', str(ROOT / 'scripts' / script), '--root', str(self.root), flag, str(self.root / selected['path'])]
             if name == 'clean_run':
                 scratch = self.root / 'scratch'
-                scratch.mkdir()
+                scratch.mkdir(exist_ok=True)
                 argv += ['--scratch', str(scratch)]
+            argv = self.native_argv(argv)
             process = subprocess.run(argv, capture_output=True, text=True)
             self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
             value = json.loads(process.stdout)
@@ -327,6 +335,7 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         self.record('finals_reviews', reviews)
         self.write('safety_scope.json', json.dumps(scope))
         argv = [sys.executable, '-I', '-B', str(self.root / 'safety_test.py')]
+        argv = self.native_argv(argv)
         process = subprocess.run(argv, capture_output=True, text=True)
         self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
         native = self.write('safety-native.json', json.dumps({'tool': 'exec_command', 'argv': argv, 'request': {'cmd': subprocess.list2cmdline(argv)},
@@ -393,6 +402,22 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         grading['controls'][1]['id'] = 'copied'
         self.record('grading', grading)
         self.assertTrue(any('independent case' in error for error in self.result('cp1')['errors']))
+
+    def test_absolute_path_tokens_follow_host_case_semantics(self):
+        target = self.root / 'MixedCaseEvaluator.py'
+        self.write(target.name, '# fixture\n')
+        argv = [sys.executable, '-I', str(target).swapcase()]
+        self.assertEqual(CHECK['path_index'](argv, target), 2 if os.name == 'nt' else None)
+        self.assertIsNone(CHECK['path_index']([sys.executable, '-I', '-c', 'print(1)'], target))
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows native filesystem case/drive semantics')
+    def test_windows_mixed_case_drive_paths_pass_and_inline_command_still_fails(self):
+        self.mixed_native_paths = True
+        self.cp1_records()
+        self.record('grading', self.grading())
+        self.assertEqual(self.result('cp1')['errors'], [])
+        self.test_final_complete_synthetic_receipts_with_actual_native_replay_pass_read_only()
+        self.test_actual_isolated_product_executions_are_checked_not_planned_commands()
 
 
 if __name__ == '__main__':

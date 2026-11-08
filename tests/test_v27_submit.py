@@ -39,6 +39,17 @@ class SubmissionChecks(unittest.TestCase):
             (self.root / 'answer.json').write_text(content)
             self.assertEqual(CHECK(self.root, rule)['status'], 'FAIL')
 
+    def test_malformed_csv_returns_structured_failure_through_api_and_cli(self):
+        (self.root / 'answer.csv').write_text('id,value\n1,"unterminated\n', encoding='utf-8')
+        rule = {'files': [{'path': 'answer.csv', 'format': 'csv'}]}
+        self.assertEqual(CHECK(self.root, rule)['status'], 'FAIL')
+        path = self.root / 'malformed-rules.json'
+        path.write_text(json.dumps(rule), encoding='utf-8')
+        result = subprocess.run([sys.executable, '-I', str(SCRIPT), '--root', str(self.root), '--rules', str(path)], capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(json.loads(result.stdout)['status'], 'FAIL')
+        self.assertNotIn('Traceback', result.stderr)
+
     def test_path_budget_and_missing_columns(self):
         for rules in ({'files': [{'path': '../outside.json'}]},
                       dict(self.rules, max_total_bytes=2), dict(self.rules, max_file_bytes=2)):

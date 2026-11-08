@@ -42,7 +42,7 @@ def _profile(rows, io, declared_columns=()):
             if magnitude and max(magnitude) / min(magnitude) >= 1000:
                 scales.append({'column': column, 'reason': 'sample nonzero magnitudes span >=1000x; units or legitimate spread require review'})
         time_name = re.search(r'(?:^|[_\s-])(?:date|time|timestamp|datetime)(?:$|[_\s-])|[a-z](?:Time|Date)|timestamp|날짜|일시|시간', column, re.I)
-        looks_iso = any(isinstance(v, str) and re.match(r'^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}', v) for v in present)
+        looks_iso = any(isinstance(v, str) and re.match(r'^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}|$)', v.strip()) for v in present)
         if time_name or looks_iso:
             parsed = []
             for value in present:
@@ -125,7 +125,7 @@ def audit(root, plan):
             else:
                 raise ValueError('unsupported input type; provide explicit CSV/JSON/workbook or document')
             artifacts.append(artifact)
-        except (OSError, UnicodeError, ValueError, TypeError, ImportError, RuntimeError, KeyError) as error:
+        except (OSError, UnicodeError, ValueError, TypeError, ImportError, RuntimeError, KeyError, csv.Error) as error:
             errors.append({'path': name, 'error': str(error)})
     tables_present = any(item['kind'] == 'table' for item in artifacts)
     complete = not errors and all(item.get('complete_rows') is not False for item in artifacts)
