@@ -1,0 +1,399 @@
+"""Synthetic evidence validation tests. Fixtures are not actual competition receipts."""
+import copy
+import hashlib
+import json
+from pathlib import Path
+import runpy
+import subprocess
+import sys
+import tempfile
+import unittest
+
+from review_fixture import make_execution
+
+ROOT = Path(__file__).resolve().parents[1]
+CHECK = runpy.run_path(str(ROOT / 'scripts/v27_check.py'))
+COMMON = runpy.run_path(str(ROOT / 'scripts/v27_common.py'))
+DEADLINE = runpy.run_path(str(ROOT / 'scripts/deadline.py'))
+AUDIT = runpy.run_path(str(ROOT / 'scripts/data_audit.py'))
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+class EvidenceTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix='v27-evidence-fixture-')
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.kit = self.root / '.hackathon-kit'
+        (self.kit / 'run').mkdir(parents=True)
+        self.write('TASK.md', 'Synthetic rule: NONE. Submission 2026-11-11T16:00:00+09:00. Known answer score 1.\n')
+        self.env = COMMON['extract_json_document'](ROOT / 'templates/ENV.md')
+        self.env['switches']['FOLLOWUP'] = self.confirm('NONE')
+        self.env['switches']['T_SUB'] = self.confirm('2026-11-11T16:00:00+09:00')
+        self.plan = {'version': 1, 'env_path': '.hackathon-kit/run/ENV.md', 'records': {}, 'snapshots': []}
+        self.sync_env()
+
+    def write(self, name, content):
+        path = self.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding='utf-8')
+        return {'path': name, 'sha256': digest(path)}
+
+    def confirm(self, value):
+        return dict(value=value, classification='CONFIRMED', source_path='TASK.md',
+                    source_sha256=digest(self.root / 'TASK.md'), source_excerpt=(self.root / 'TASK.md').read_text(encoding='utf-8').strip())
+
+    def record(self, name, value):
+        ref = self.write('.hackathon-kit/run/' + name + '.json', json.dumps(value))
+        self.plan['records'][name] = ref
+        return ref
+
+    def sync_env(self):
+        self.write(self.plan['env_path'], '# Synthetic environment\n```json\n' + json.dumps(self.env) + '\n```\n')
+        self.record('state', {'version': 1, 'deadline': DEADLINE['calculate'](self.env)})
+
+    def result(self, phase='intake'):
+        return CHECK['check'](self.plan, self.root, self.kit, phase)
+
+    def cp1_records(self):
+        self.write('input.csv', 'id,value\n1,2\n2,3\n')
+        self.plan['data_audit_plan'] = {'files': ['input.csv'], 'max_rows': 100}
+        value = AUDIT['audit'](self.root, self.plan['data_audit_plan'])
+        ref = self.record('data_audit', value)
+        self.plan['spec_draft'] = self.write('SPEC_DRAFT.md', ref['path'] + ' ' + ref['sha256'])
+        self.record('grading', {'baseline': {'status': 'UNAVAILABLE_WITH_REASON', 'reason': 'No official numeric evaluator is provided for this synthetic document contract.'},
+                                'local_grader_used': False, 'holdout': {'applicable': False}})
+        self.record('decisions', {'type_b_cards': []})
+        self.record('safety', {'enabled_core': list(CHECK['CORE']), 'agent_or_interactive': False})
+
+    def reviews(self, checkpoint, roles, scope_extra=None):
+        value = {'version': 1, 'checkpoint': checkpoint, 'required_scope': {'input.csv': digest(self.root / 'input.csv')}, 'reviews': {}}
+        value['required_scope'].update(scope_extra or {})
+        if checkpoint == 'CP1':
+            for ref in (self.plan['records'].get('data_audit'), self.plan.get('spec_draft'), self.plan['records'].get('data_audit_resolution')):
+                if ref:
+                    value['required_scope'][ref['path']] = ref['sha256']
+        for role in roles:
+            report_path = '.hackathon-kit/run/reviews/%s-%s/report.md' % (checkpoint, role)
+            self.write(report_path, 'Synthetic current %s %s review. No actual work asserted.' % (role, checkpoint))
+            receipt = make_execution(self.root, role, checkpoint, report_path, value['required_scope'])
+            worker = '/synthetic-v27-fixture/%s/%s' % (checkpoint, role)
+            receipt['worker_id'] = worker
+            for entry in receipt['observations'].values():
+                path = self.root / entry['path']
+                event = json.loads(path.read_text(encoding='utf-8'))
+                event['worker_id'] = worker
+                event['raw']['worker_id'] = worker
+                path.write_text(json.dumps(event), encoding='utf-8')
+                entry['sha256'] = digest(path)
+            ref = self.write(report_path.replace('report.md', 'execution.json'), json.dumps(receipt))
+            value['reviews'][role] = {'status': 'ACCEPTED', 'findings': [], 'execution_receipt': ref}
+        return value
+
+    def grading(self):
+        self.write('evaluator.py', '# Synthetic evaluator fixture, not an executed test\n')
+        scope = {'input.csv': digest(self.root / 'input.csv')}
+        evaluators = {'evaluator.py': digest(self.root / 'evaluator.py')}
+        grading = {'baseline': {'status': 'UNAVAILABLE_WITH_REASON', 'reason': 'No baseline artifact exists.'},
+                   'local_grader_used': True, 'evaluator_hashes': evaluators, 'input_scope': scope,
+                   'controls': [], 'holdout': {'applicable': False}}
+        for index in range(4):
+            metrics = {'score': 1 if index < 3 else 0}
+            control = {'id': str(index), 'kind': 'POSITIVE' if index < 3 else 'NEGATIVE',
+                       'oracle': dict(self.confirm('x'), path='TASK.md', sha256=digest(self.root / 'TASK.md'), origin='REQUIREMENT_DERIVED', excerpt='Known answer score 1.'),
+                       'input': {'path': 'input.csv', 'sha256': scope['input.csv']},
+                       'output': self.write('control%d.txt' % index, 'synthetic %d' % index),
+                       'expected_metrics': {'score': 1}, 'actual_metrics': metrics,
+                       'execution': self.write('observation%d.json' % index, json.dumps({'tool': 'exec_command', 'request': {'cmd': 'synthetic fixture'},
+                           'evaluator_hashes': evaluators, 'input_scope': scope,
+                           'result': {'exit_code': 0, 'output': json.dumps({'metrics': metrics})}}))}
+            observed = json.loads((self.root / control['execution']['path']).read_text(encoding='utf-8'))
+            argv = [sys.executable, '-I', str(self.root / 'evaluator.py'), '--input', str(self.root / 'input.csv'), '--output', str(self.root / control['output']['path'])]
+            observed.update(argv=argv, request={'cmd': subprocess.list2cmdline(argv)}, input=control['input'], output=control['output'])
+            control['execution'] = self.write(control['execution']['path'], json.dumps(observed))
+            if index == 3:
+                control.update(relation='LOWER_THAN_KNOWN_ANSWER', known_answer_id='0', metric='score', direction='HIGHER_IS_BETTER', contract_reason='Fixture answer violates the declared requirement; zeros are not assumed universally wrong.')
+            grading['controls'].append(control)
+        return grading
+
+    def test_intake_known_official_cutoff_passes_without_p2_and_is_read_only(self):
+        before = {str(path): path.read_bytes() for path in self.root.rglob('*') if path.is_file()}
+        self.assertEqual(self.result()['status'], 'PASS')
+        self.assertEqual(before, {str(path): path.read_bytes() for path in self.root.rglob('*') if path.is_file()})
+
+    def test_unknown_timing_is_unverified_not_ready(self):
+        self.env['switches']['T_SUB'] = {'value': 'UNKNOWN', 'classification': 'UNKNOWN', 'reason': 'Official cutoff not supplied.'}
+        self.sync_env()
+        self.assertEqual(self.result()['status'], 'UNVERIFIED')
+
+    def test_unattributed_confirmed_source_and_stale_source_fail(self):
+        self.env['switches']['T_SUB']['source_excerpt'] = 'not present'
+        self.sync_env()
+        self.assertEqual(self.result()['status'], 'FAIL')
+        self.write('TASK.md', 'changed source')
+        self.assertEqual(self.result()['status'], 'FAIL')
+
+    def test_restricted_model_rejected_and_actual_unknown_is_reported(self):
+        self.env['assignments']['MAIN'] = 'Astra'
+        self.sync_env()
+        self.assertTrue(any('RESTRICTED' in error for error in self.result()['errors']))
+
+    def test_deadline_mismatch_fails_without_changing_original_state(self):
+        state = self.write('STATE.md', 'official original state\n')
+        self.record('state', {'deadline': {'status': 'KNOWN', 'work_lock': 'invented'}})
+        self.assertEqual(self.result()['status'], 'FAIL')
+        self.assertEqual(digest(self.root / state['path']), state['sha256'])
+
+    def test_unavailable_score_is_valid_but_missing_evidence_stays_pending(self):
+        self.cp1_records()
+        value = self.result('cp1')
+        self.assertEqual(value['errors'], [])
+        self.assertEqual(value['status'], 'UNVERIFIED')
+        self.assertTrue(any('cp1_reviews' in item for item in value['unverified']))
+
+    def test_actual_cp1_receipts_reused_and_same_context_rejected(self):
+        self.cp1_records()
+        reviews = self.reviews('CP1', ('CONSTRAINT_RED', 'DATA_EVAL_RED'))
+        self.record('cp1_reviews', reviews)
+        self.assertEqual(self.result('cp1')['errors'], [])
+        ref = reviews['reviews']['CONSTRAINT_RED']['execution_receipt']
+        receipt = json.loads((self.root / ref['path']).read_text(encoding='utf-8'))
+        receipt['context_mode'] = 'SAME_CONVERSATION'
+        reviews['reviews']['CONSTRAINT_RED']['execution_receipt'] = self.write(ref['path'], json.dumps(receipt))
+        self.record('cp1_reviews', reviews)
+        self.assertTrue(any('context' in error for error in self.result('cp1')['errors']))
+
+    def test_timestamp_na_recomputed_and_spec_hash_required(self):
+        self.cp1_records()
+        self.write('input.csv', 'timestamp,value\n2026-11-11T12:00:00+09:00,1\n')
+        self.plan['data_audit_plan'].update(na=[1], na_reasons={'1': 'Invalid attempted exemption.'})
+        self.assertTrue(any('data_audit' in error for error in self.result('cp1')['errors']))
+        self.plan['data_audit_plan'].pop('na')
+        self.plan['data_audit_plan'].pop('na_reasons')
+        self.record('data_audit', AUDIT['audit'](self.root, self.plan['data_audit_plan']))
+        self.assertTrue(any('SPEC_DRAFT' in error for error in self.result('cp1')['errors']))
+
+    def test_grader_controls_compare_actual_metrics_not_markers(self):
+        self.cp1_records()
+        grading = self.grading()
+        self.record('grading', grading)
+        self.assertEqual(self.result('cp1')['errors'], [])
+        grading['controls'][0]['actual_metrics'] = {'score': 2}
+        self.record('grading', grading)
+        self.assertTrue(any('metrics' in error for error in self.result('cp1')['errors']))
+
+    def test_candidate_oracle_and_nonworse_negative_rejected(self):
+        self.cp1_records()
+        grading = self.grading()
+        grading['controls'][0]['oracle']['origin'] = 'CANDIDATE_OUTPUT'
+        self.record('grading', grading)
+        self.assertTrue(any('oracle' in error for error in self.result('cp1')['errors']))
+        grading = self.grading()
+        negative = grading['controls'][-1]
+        negative['actual_metrics'] = {'score': 1}
+        execution = json.loads((self.root / negative['execution']['path']).read_text(encoding='utf-8'))
+        execution['result']['output'] = json.dumps({'metrics': {'score': 1}})
+        negative['execution'] = self.write(negative['execution']['path'], json.dumps(execution))
+        self.record('grading', grading)
+        self.assertTrue(any('worse' in error for error in self.result('cp1')['errors']))
+
+    def test_adaptive_first_look_and_fourth_look_are_tuning(self):
+        self.cp1_records()
+        for looks, adaptive in ((1, True), (4, False)):
+            self.record('grading', {'local_grader_used': False, 'baseline': {'status': 'UNAVAILABLE_WITH_REASON', 'reason': 'No score supplied.'},
+                                   'holdout': {'applicable': True, 'looks': looks, 'purpose': 'candidate selection', 'adaptive_selection': adaptive, 'label': 'HOLDOUT', 'independent_final_claim': True}})
+            self.assertTrue(any('TUNING' in error for error in self.result('cp1')['errors']))
+
+    def test_type_b_missing_limitations_fails_but_no_human_ack_is_needed(self):
+        self.cp1_records()
+        card = dict(decision='optimizer', chosen='greedy', why='bounded plan', alternative='search', limitations='May miss a better assignment.', change_location='choose()')
+        self.record('decisions', {'type_b_cards': [card]})
+        self.assertEqual(self.result('cp1')['errors'], [])
+        del card['limitations']
+        self.record('decisions', {'type_b_cards': [card]})
+        self.assertTrue(any('type B' in error for error in self.result('cp1')['errors']))
+
+    def test_shrink_may_not_disable_core_and_missing_final_proof_is_pending(self):
+        self.cp1_records()
+        self.record('safety', {'enabled_core': [], 'shrink': True})
+        self.assertTrue(any('safety core' in error for error in self.result('cp1')['errors']))
+        self.record('safety', {'enabled_core': list(CHECK['CORE'])})
+        result = self.result('final')
+        self.assertEqual(result['status'], 'UNVERIFIED')
+        self.assertTrue(any('clean_run' in error for error in result['unverified']))
+
+    def test_stale_and_missing_snapshot_fail(self):
+        self.plan['snapshots'] = [{'path': 'absent/MANIFEST.json', 'sha256': '0' * 64}]
+        self.cp1_records()
+        self.assertTrue(any('snapshot' in error for error in self.result('cp1')['errors']))
+
+    def test_empty_evidence_objects_cannot_bypass_final_checks(self):
+        for name in ('state', 'data_audit', 'grading', 'decisions', 'safety', 'study', 'finals_reviews', 'submission', 'security', 'clean_run'):
+            self.record(name, {})
+        self.assertEqual(self.result('final')['status'], 'FAIL')
+
+    def test_semantic_audit_resolution_and_cp1_scope_bind_current_inputs(self):
+        self.cp1_records()
+        audit = json.loads((self.root / self.plan['records']['data_audit']['path']).read_text(encoding='utf-8'))
+        source = {item['path']: item['sha256'] for item in audit['files']}
+        for ref in (self.plan['records']['data_audit'], self.plan['spec_draft']):
+            source[ref['path']] = ref['sha256']
+        resolution = {'items': [{'id': item['id'], 'status': 'RECORDED', 'method': 'Synthetic inspection fixture', 'finding': 'Synthetic bounded finding, no business claim.',
+                                'evidence': {'path': 'TASK.md', 'sha256': digest(self.root / 'TASK.md')}, 'source_hashes': source,
+                                'data_audit_sha256': self.plan['records']['data_audit']['sha256']} for item in audit['items'] if item['status'] == 'UNVERIFIED']}
+        self.record('data_audit_resolution', resolution)
+        self.record('cp1_reviews', self.reviews('CP1', ('CONSTRAINT_RED', 'DATA_EVAL_RED')))
+        self.assertEqual(self.result('cp1')['status'], 'PASS')
+        self.write('input.csv', 'id,value\n1,2000000\n2,3000000\n')
+        ref = self.record('data_audit', AUDIT['audit'](self.root, self.plan['data_audit_plan']))
+        self.plan['spec_draft'] = self.write('SPEC_DRAFT.md', ref['path'] + ' ' + ref['sha256'])
+        result = self.result('cp1')
+        self.assertEqual(result['status'], 'FAIL')
+        self.assertTrue(any('resolution' in error or 'CP1' in error for error in result['errors']))
+
+    def product_records(self):
+        self.cp1_records()
+        self.write('product.py', 'from pathlib import Path\ndef safe_decide(value):\n    return {"decision":"REVIEW","warning":"invalid input"} if type(value) is not int or value < 0 else {"decision":"PASS","value":value*2}\nif __name__ == "__main__":\n    Path("result.txt").write_text("ok", encoding="utf-8")\n')
+        self.write('result.txt', 'ok')
+        self.plan['submission_rules'] = {'files': [{'path': 'result.txt', 'format': 'text'}]}
+        self.plan['security_plan'] = {'files': ['product.py']}
+        self.plan['clean_run_plan'] = {'execution_authorized': True, 'network_allowed': False, 'timeout_seconds': 5,
+                                       'files': ['product.py'], 'data_files': [], 'outputs': ['result.txt'], 'command': ['{python}', '-I', 'product.py'],
+                                       'submission_rules': self.plan['submission_rules']}
+        for name, script, key, flag in (('submission', 'submit_check.py', 'submission_rules', '--rules'),
+                                       ('security', 'security_check.py', 'security_plan', '--plan'),
+                                       ('clean_run', 'clean_run.py', 'clean_run_plan', '--plan')):
+            selected = self.write(key + '.json', json.dumps(self.plan[key]))
+            argv = [sys.executable, '-I', '-B', str(ROOT / 'scripts' / script), '--root', str(self.root), flag, str(self.root / selected['path'])]
+            if name == 'clean_run':
+                scratch = self.root / 'scratch'
+                scratch.mkdir()
+                argv += ['--scratch', str(scratch)]
+            process = subprocess.run(argv, capture_output=True, text=True)
+            self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+            value = json.loads(process.stdout)
+            ref = self.record(name, value)
+            ref['execution'] = self.write(name + '-native.json', json.dumps({'tool': 'exec_command', 'argv': argv,
+                'request': {'cmd': subprocess.list2cmdline(argv)}, 'result': {'exit_code': process.returncode, 'output': process.stdout}}))
+
+    def test_actual_isolated_product_executions_are_checked_not_planned_commands(self):
+        self.product_records()
+        self.assertEqual(self.result('final')['errors'], [])
+        native = self.plan['records']['clean_run']['execution']
+        proof = json.loads((self.root / native['path']).read_text(encoding='utf-8'))
+        proof['request']['cmd'] = sys.executable + ' -I -c print(1) # clean_run.py'
+        self.plan['records']['clean_run']['execution'] = self.write(native['path'], json.dumps(proof))
+        self.assertTrue(any('exact retained argv' in error for error in self.result('final')['errors']))
+
+    def test_final_complete_synthetic_receipts_with_actual_native_replay_pass_read_only(self):
+        self.product_records()
+        audit_ref = self.plan['records']['data_audit']
+        audit = json.loads((self.root / audit_ref['path']).read_text(encoding='utf-8'))
+        sources = {item['path']: item['sha256'] for item in audit['files']}
+        for ref in (audit_ref, self.plan['spec_draft']):
+            sources[ref['path']] = ref['sha256']
+        self.record('data_audit_resolution', {'items': [dict(id=item['id'], status='RECORDED', method='Synthetic independent semantic review fixture',
+            finding='Bounded fixture observations; no claim about production business truth.', evidence={'path': 'TASK.md', 'sha256': digest(self.root / 'TASK.md')},
+            source_hashes=sources, data_audit_sha256=audit_ref['sha256']) for item in audit['items'] if item['status'] == 'UNVERIFIED']})
+        self.record('previous_reviews', self.reviews('CP2', ('CODE_RED',)))
+        script = '''import hashlib,json,runpy
+from pathlib import Path
+root=Path(%r)
+scripts=Path(%r)
+product=runpy.run_path(str(root/'product.py'),run_name='synthetic_product_test')
+assert product['safe_decide'](None)=={'decision':'REVIEW','warning':'invalid input'}
+assert product['safe_decide'](2)=={'decision':'PASS','value':4}
+assert not runpy.run_path(str(scripts/'finals_review_check.py'))['check_reviews'](json.loads((root/'.hackathon-kit/run/finals_reviews.json').read_text()),root/'.hackathon-kit','CP3')
+assert runpy.run_path(str(scripts/'submit_check.py'))['check_submission'](root,json.loads((root/'submission_rules.json').read_text()))['status']=='PASS'
+assert runpy.run_path(str(scripts/'security_check.py'))['check_security'](root,json.loads((root/'security_plan.json').read_text()))['status']=='PASS'
+replay=json.loads((root/'.hackathon-kit/run/clean_run.json').read_text())
+assert replay['exit_code']==0 and replay['status']=='PASS'
+for item in replay['artifacts']:
+    assert hashlib.sha256((Path(replay['replay_dir'])/item['path']).read_bytes()).hexdigest()==item['sha256']
+scope=json.loads((root/'safety_scope.json').read_text())
+print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
+''' % (str(self.root), str(ROOT / 'scripts'), sorted(CHECK['CORE']))
+        test_ref = self.write('safety_test.py', script)
+        scope = {'product.py': digest(self.root / 'product.py'), 'result.txt': digest(self.root / 'result.txt'), 'safety_test.py': test_ref['sha256']}
+        review_scope = dict(scope)
+        for ref in (audit_ref, self.plan['spec_draft'], self.plan['records']['data_audit_resolution']):
+            review_scope[ref['path']] = ref['sha256']
+        reviews = self.reviews('CP3', ('CONSTRAINT_RED', 'DATA_EVAL_RED', 'ALGORITHM_RED', 'CODE_RED', 'EDGE_RED', 'SUBMISSION_RED'), review_scope)
+        reviews['security'] = {'decision': 'NOT_TRIGGERED', 'reason': 'Synthetic local file-only task source inspected.', 'inspected_sources': {'TASK.md': digest(self.root / 'TASK.md')}, 'triggers': []}
+        reviews['reviews']['SECURITY_RED'] = {'status': 'NOT_APPLICABLE', 'reason': 'No material service/secret/privileged boundary in this fixture.'}
+        self.record('finals_reviews', reviews)
+        self.write('safety_scope.json', json.dumps(scope))
+        argv = [sys.executable, '-I', '-B', str(self.root / 'safety_test.py')]
+        process = subprocess.run(argv, capture_output=True, text=True)
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        native = self.write('safety-native.json', json.dumps({'tool': 'exec_command', 'argv': argv, 'request': {'cmd': subprocess.list2cmdline(argv)},
+                                                           'result': {'exit_code': process.returncode, 'output': process.stdout}}))
+        self.record('safety', {'agent_or_interactive': False, 'enabled_core': sorted(CHECK['CORE']), 'results': {name: {'status': 'PASS', 'evidence': native, 'scope': scope} for name in CHECK['CORE']}})
+        delivery = self.write('delivery-fixture.json', json.dumps({'synthetic': True, 'event': 'DELIVERED', 'minutes': 60, 'note': 'Validator fixture only, no actual participant delivery asserted.'}))
+        self.record('study', {'final_minutes': 60, 'delivery': 'DELIVERED', 'actual_delivery_evidence': delivery})
+        before = {str(path): path.read_bytes() for path in self.root.rglob('*') if path.is_file()}
+        result = self.result('final')
+        self.assertEqual(result['status'], 'PASS', result)
+        self.assertEqual(before, {str(path): path.read_bytes() for path in self.root.rglob('*') if path.is_file()})
+        shallow = copy.deepcopy(reviews)
+        shallow['required_scope'] = {'input.csv': digest(self.root / 'input.csv')}
+        self.record('finals_reviews', shallow)
+        self.assertTrue(any('CP3 independent scope' in error for error in self.result('final')['errors']))
+        self.record('finals_reviews', reviews)
+        original_previous = json.loads((self.root / self.plan['records']['previous_reviews']['path']).read_text(encoding='utf-8'))
+        self.record('previous_reviews', reviews)
+        self.assertTrue(any('reuse a previous' in error for error in self.result('final')['errors']))
+        self.record('previous_reviews', {'version': 1, 'checkpoint': 'CP2', 'reviews': {}})
+        self.assertTrue(any('actual CP2 CODE_RED' in error for error in self.result('final')['errors']))
+        self.record('previous_reviews', original_previous)
+        self.write('product.py', (self.root / 'product.py').read_text() + '\n# changed after native safety test\n')
+        self.assertEqual(self.result('final')['status'], 'FAIL')
+
+    def test_malformed_records_fail_safely_and_isolated_cli_runs(self):
+        self.env['switches']['MODELS']['value'] = None
+        self.sync_env()
+        self.assertEqual(self.result()['status'], 'FAIL')
+        plan = self.write('plan.json', json.dumps(self.plan))
+        result = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'scripts/v27_check.py'), '--root', str(self.root), '--kit', str(self.kit), '--phase', 'intake', '--plan', plan['path']], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(json.loads(result.stdout)['status'], 'FAIL')
+        self.assertNotIn('Traceback', result.stderr)
+
+    def test_missing_switch_values_empty_assignments_and_permission_aliases_fail(self):
+        del self.env['switches']['GIT_PUSH']['value']
+        self.env['assignments'] = {}
+        self.env['switches']['EXTERNAL_TRANSFER']['value'] = True
+        self.sync_env()
+        self.assertEqual(self.result()['status'], 'FAIL')
+
+    def test_conflicting_actual_fork_context_cannot_be_relabelled_clean(self):
+        self.cp1_records()
+        reviews = self.reviews('CP1', ('CONSTRAINT_RED', 'DATA_EVAL_RED'))
+        entry = reviews['reviews']['CONSTRAINT_RED']['execution_receipt']
+        receipt = json.loads((self.root / entry['path']).read_text(encoding='utf-8'))
+        launch_ref = receipt['observations']['LAUNCHED']
+        launch = json.loads((self.root / launch_ref['path']).read_text(encoding='utf-8'))
+        launch['request'] = {'fork_turns': 'all'}
+        receipt['observations']['LAUNCHED'] = self.write(launch_ref['path'], json.dumps(launch))
+        reviews['reviews']['CONSTRAINT_RED']['execution_receipt'] = self.write(entry['path'], json.dumps(receipt))
+        self.record('cp1_reviews', reviews)
+        self.assertTrue(any('inherited-context' in error for error in self.result('cp1')['errors']))
+
+    def test_changed_control_output_and_duplicate_cases_cannot_reuse_execution(self):
+        self.cp1_records()
+        grading = self.grading()
+        grading['controls'][0]['output'] = self.write('changed-control.txt', 'changed output')
+        self.record('grading', grading)
+        self.assertTrue(any('candidate output' in error for error in self.result('cp1')['errors']))
+        grading = self.grading()
+        grading['controls'][1] = copy.deepcopy(grading['controls'][0])
+        grading['controls'][1]['id'] = 'copied'
+        self.record('grading', grading)
+        self.assertTrue(any('independent case' in error for error in self.result('cp1')['errors']))
+
+
+if __name__ == '__main__':
+    unittest.main()

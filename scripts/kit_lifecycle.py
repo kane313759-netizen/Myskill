@@ -15,11 +15,12 @@ import sys
 import tempfile
 import uuid
 
-REQUIRED = ('hackathon-orchestrator', 'grader-intake', 'immutable-inventory',
+REQUIRED = ('hackathon-orchestrator', 'hackathon-finals', 'edge-redteam', 'grader-intake', 'immutable-inventory',
             'task-router', 'problem-intake', 'constraint-discovery',
-            'verification', 'final-explain', 'followup-prep')
+            'verification', 'final-explain', 'followup-prep', 'algorithm-redteam',
+            'data-eval-redteam', 'submission-redteam', 'security-redteam')
 SUPPORT_DIRS = ('prompts', 'references', 'templates', 'scripts')
-SUPPORT_FILES = ('EXAM_POLICY.md', 'BOOTSTRAP_PROMPT.md', 'CALLING.md',
+SUPPORT_FILES = ('EXAM_POLICY.md', 'FINALS_POLICY.md', 'BOOTSTRAP_PROMPT.md', 'CALLING.md',
                  'AGENTS.snippet.md', 'VERSION')
 MANIFEST = 'manifest.json'
 KIT_ID = 'sk-hynix-exam-kit'
@@ -516,7 +517,8 @@ def doctor(root, pre_submit):
     print('Installed source VERSION: ' + manifest['version'])
     print('Recorded source SHA256: ' + manifest['source_digest'])
     print('Local Git exclusions do not exclude helpers from directory/ZIP submission snapshots.')
-    print('Computer Use, external task-data transmission, external AI, and Git Push remain prohibited.')
+    print('Second preliminary: Computer Use, external task-data transmission, external AI, and Git Push remain prohibited.')
+    print('Finals: use FINALS_POLICY.md and current official rules; this doctor does not establish finals readiness. --pre-submit checks the preliminary gate only.')
     for message in errors:
         print('[FAIL] ' + message)
     if not errors:

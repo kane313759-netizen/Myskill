@@ -3,6 +3,10 @@ name: immutable-inventory
 description: Identify files, interfaces, schemas, tests, and contracts that should not be changed casually in an unfamiliar task.
 ---
 
+For confirmed finals or finals practice, use the corresponding section of
+`hackathon-finals` under FINALS_POLICY.md instead of the preliminary procedure below.
+Do not inherit the preliminary role, gate or six-question rules into finals.
+
 Read `.hackathon-kit/EXAM_POLICY.md` and `.hackathon-kit/run/GRADER.md` first when present.
 
 Inspect task instructions, tests, schemas, public APIs, generated files, lockfiles, fixtures, sample I/O, and submission paths.

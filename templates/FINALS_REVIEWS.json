@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "checkpoint": "FINAL",
+  "required_scope": {},
+  "security": {
+    "decision": "UNKNOWN",
+    "reason": "",
+    "inspected_sources": {},
+    "triggers": []
+  },
+  "reviews": {
+    "CONSTRAINT_RED": {"status": "NOT_RUN", "execution_receipt": null, "findings": []},
+    "DATA_EVAL_RED": {"status": "NOT_RUN", "execution_receipt": null, "findings": []},
+    "ALGORITHM_RED": {"status": "NOT_RUN", "execution_receipt": null, "findings": []},
+    "CODE_RED": {"status": "NOT_RUN", "execution_receipt": null, "findings": []},
+    "EDGE_RED": {"status": "NOT_RUN", "execution_receipt": null, "findings": []},
+    "SUBMISSION_RED": {"status": "NOT_RUN", "execution_receipt": null, "findings": []},
+    "SECURITY_RED": {"status": "NOT_RUN", "execution_receipt": null, "findings": []}
+  }
+}

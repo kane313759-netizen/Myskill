@@ -1,5 +1,16 @@
 # Independent review of a kit revision
 
+Stage scope: r8 adds a separate finals profile under FINALS_POLICY.md and
+`hackathon-finals`. For a finals change, read that profile and the supplied finals
+notice/request as the current scope. Verify nondeveloper execution, conditional
+task routing, unknown permission handling, truthful checks/delivery and installation
+compatibility. The unchanged EXAM_POLICY.md and the fixed preliminary procedure
+remain requirements for preliminary mode only. Do not impose their 180-minute,
+six-question/model/Probe rules on finals or treat industry articles as exam rules.
+In the template below, preserve the fixed format in its preliminary scope; it is
+not a prohibition on the separately requested finals workflow. Review this public
+kit in a clean context after modifications and relevant checks are complete.
+
 Kit-maintenance handoff only. This is not an additional exam checkpoint or a
 permission to transmit task files/results, use external AI, automate UI, or push
 exam work. Review this public kit in a clean context before the exam.

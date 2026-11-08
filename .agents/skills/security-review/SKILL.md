@@ -5,6 +5,11 @@ description: Use only when authentication, authorization, secrets, permissions, 
 
 Applicable only with task/grader evidence.
 
+In finals this is a domain checklist, not an independent SECURITY_RED receipt.
+Use the current kit's references/finals-reviews.md for actual activation and
+dispatch `security-redteam` only on evidenced conditions; do not relabel this
+checklist or the writer's self-check as a separate security review.
+
 Check:
 - authentication vs authorization
 - trust boundaries

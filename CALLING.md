@@ -1,9 +1,33 @@
 # Quick calling guide
 
-Read EXAM_POLICY.md first. Canonical roles/checkpoints live in hackathon-orchestrator.
+Choose the confirmed stage first. Finals and finals practice use `hackathon-finals`
+and FINALS_POLICY.md. Second preliminary uses EXAM_POLICY.md and the canonical
+roles/checkpoints in `hackathon-orchestrator`.
 Use the README installation steps with a pre-exam verified SHA or frozen flat ZIP.
 
-## Start
+## Finals start — one request
+
+```text
+Use the hackathon-finals skill. Read .hackathon-kit/FINALS_POLICY.md first.
+나는 비개발자입니다. 공식 자료를 읽고 기술 선택, 구현, 실행, 검증과 제출 준비까지 진행해 주세요. 현재 결과와 한계는 한국어로 설명하고 중요한 공식 규정·업무 판단만 질문해 주세요.
+```
+
+Agent maintains run/FINALS_RUN.md. It selects only evidence-supported task lanes,
+delivers actual baseline/current observations and a real case, and gives human-only
+submission steps when necessary. Normal doctor checks installation integrity;
+`--pre-submit` and `gate_check.py` are preliminary-only, not finals approval.
+No mandatory six-question preparation, model roster, slide deck or external API.
+It explains the actual material tools/algorithms, choices and limits at selection
+and final delivery. Separate EDGE_RED attacks boundary/missing-data/security paths.
+Actual launch/running/completion observations and scope-bound reports are required
+before claiming independent reviews; see references/review-execution.md.
+Core final roles are CONSTRAINT/DATA_EVAL/ALGORITHM/CODE/EDGE/SUBMISSION_RED.
+Follow references/finals-reviews.md for their actual scheduling and conditional
+SECURITY_RED. Maintain FINALS_REVIEWS.json and run finals_review_check.py
+--checkpoint FINAL before claiming complete independent quality review. This does
+not establish official score, true optimality, authenticated workers or submission.
+
+## Second-preliminary start
 
 ```text
 Use the hackathon-orchestrator skill.
@@ -42,6 +66,8 @@ Treat GRADER, IMMUTABLES and SPEC as claims to verify against originals.
 Have MAIN preserve installed template headings and pass gate_check.py --preflight first.
 The preflight checks document format only; it is not review approval.
 Persist the actual report as CP1_RED.md and structured receipt as CP1_REVIEW.json.
+Include execution with actual launch/running/completion observations and report
+hashes; a dispatch request or DONE marker cannot close CP1.
 Fix/disprove blocking findings with evidence and reviewer rechecks.
 ORCHESTRATOR writes candidate CLOSED, runs the evidence gate, and restores OPEN on failure.
 Only a passing check against current evidence authorizes implementation.
@@ -59,6 +85,7 @@ reopen on material changes and obtain a targeted independent recheck.
 
 ```text
 Run clean Code Red using prompts/CODE_RED.md, then Recorder.
+Run a separate clean EDGE_RED using edge-redteam and record its actual execution.
 Update verification evidence and start six-axis FOLLOWUP_CHEATSHEET coverage.
 Run Constraint Red again only for a material task/assumption/objective risk.
 ```
@@ -75,6 +102,7 @@ Preserve useful failed-command evidence before a retry overwrites it.
 ```text
 Budget time for review, repair, checks, submission and preparation before the real deadline.
 Stop features; run final clean Code Red and Constraint Red and resolve/recheck blockers.
+Also run separate final EDGE_RED and verify all actual execution receipts/reports.
 Run verification; Recorder finalizes actual evidence.
 Use final-explain for factual explanation, then followup-prep once for the six-question
 FOLLOWUP_CHEATSHEET and a short rehearsal within the reserved time.

@@ -1,4 +1,21 @@
-# 시험 시작 프롬프트
+# 시작 프롬프트 — 본선 / 2차 예선
+
+## 본선 또는 본선 연습
+
+비개발자도 다음 한 문장으로 시작합니다. 과제와 공식 안내 파일이 있으면 함께 지정합니다.
+
+```text
+Use the hackathon-finals skill. Read .hackathon-kit/FINALS_POLICY.md first.
+Follow references/finals-reviews.md: six core roles, actual source-backed
+conditional SECURITY_RED and final aggregate review-evidence validation.
+나는 비개발자입니다. 제공된 공식 과제와 안내를 읽고, 기술 선택부터 구현·실행·검증·설명·제출 준비까지 진행해 주세요. 공식 권한이나 중요한 업무 판단이 필요한 경우에만 질문하고, 나머지 기술 선택은 근거에 따라 처리해 주세요. 예선의 시간·6문항·모델·제출 규칙을 본선에 자동 적용하지 마세요.
+실제 도구·알고리즘의 역할과 선택 이유, 대안·사례·한계는 선택할 때와 중요한 변경 후 설명해 주세요. 별도 EDGE_RED를 실행하고 모든 검토는 실제 작업자 시작·완료와 보고서까지 확인해 주세요. 미실행은 완료로 표시하지 마세요.
+```
+
+사전 연습이면 합성 자료임을 표시하고 실제 대회 검증과 구분합니다. 본선의
+도구·사전 파일 사용 허용 여부는 현장 공식 안내를 확인해야 합니다.
+
+## 2차 예선 전용
 
 Codex 첫 메시지로 사용:
 
@@ -38,6 +55,10 @@ ORCHESTRATOR records CP1_RED.md and CP1_REVIEW.json with original sources,
 actual reviewer/context, exact reviewed artifact hashes, findings and attempted attacks.
 Resolve/disprove P0/P1 with evidence and recheck, then set the canonical STATE flags.
 Run gate_check.py. Product implementation begins only after this check passes.
+Observe actual reviewer launch/worker ID, running acknowledgement and completed
+report per references/review-execution.md; include execution in CP1_REVIEW.json.
+Dispatch/DONE alone never satisfies CP1. Run a separate EDGE_RED at CP2 and CP3.
+Explain actual material tools/algorithms proactively per participant-understanding.md.
 Freeze the five reviewed documents. Routine results go in VERIFY.
 Material contract changes reopen the gate and need targeted clean review before continuing.
 

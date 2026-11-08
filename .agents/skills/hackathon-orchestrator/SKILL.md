@@ -1,9 +1,15 @@
 ---
 name: hackathon-orchestrator
-description: Orchestrate the SK hynix exam through one MAIN, evidence-backed gates, independent reviews, and the official six-question follow-up preparation.
+description: Route the SK hynix competition stage; use the fixed second-preliminary MAIN, evidence gates and six-question preparation only for that stage. Hand confirmed finals and finals practice to hackathon-finals.
 ---
 
-Read `.hackathon-kit/EXAM_POLICY.md` first. Official exam/task instructions always win.
+First identify the stage from the current request and official material. For
+confirmed finals or finals practice, use `hackathon-finals` and read
+`.hackathon-kit/FINALS_POLICY.md`; stop here instead of applying the preliminary
+procedure below. Do not ask a participant who supplied a finals notice to choose
+the stage again. If unclear, inspect available sources before asking.
+
+For the second preliminary, read `.hackathon-kit/EXAM_POLICY.md` first. Official exam/task instructions always win.
 This file is the canonical checkpoint and role protocol; role prompts specialize it without adding checkpoints.
 
 # Ownership
@@ -12,6 +18,7 @@ This file is the canonical checkpoint and role protocol; role prompts specialize
 - MAIN_BUILDER: one persistent Sol 6.1 when available. Sole product-source writer. Authors Phase 0 intake/spec artifacts; sends later evidence and handoff content to Recorder. Never writes STATE/gate/checkpoint records.
 - CODE_RED: clean Terra context. Returns review evidence; no product-source or shared-note edits.
 - CONSTRAINT_RED: clean independent Sol 6.1 context. Returns spec/constraint review evidence; no product-source or shared-note edits.
+- EDGE_RED: separate clean allowed-model context, using `edge-redteam`. Owns targeted boundary, missing/malformed-data and applicable vulnerability attacks at CP2/CP3; no product or shared-note edits. Do not reuse Code/Constraint Red as this separate role.
 - RECORDER: Luna 6 when available. Sole ongoing evidence-note writer under `.hackathon-kit/run/`. Never writes STATE, checkpoint reports, CP1_REVIEW.json, or frozen intake artifacts; no product-source edits.
 - TUTOR: optional Sol 6.1 session, strictly read-only. The participant may forward an explicitly confirmed personal judgment/check to MAIN or Recorder; Tutor must not infer participant actions or write notes.
 
@@ -44,7 +51,20 @@ or a new specific request, not a routine search or participant-approval loop.
 
 MAIN reports classification and intake outcomes; ORCHESTRATOR alone updates STATE. Ask the participant only material scoring/feasibility/business-rule questions. Otherwise record a reversible non-blocking ASSUMPTION and continue safely. No mandatory per-step interaction, teach-back, or manufactured human contribution.
 
+MAIN uses `references/participant-understanding.md` to explain actual material
+tools/algorithms and their selection as they are introduced, not only at CP3.
+Give the participant their role, input/output, reason, alternative, actual case
+and honest guarantee without transferring engineering decisions or requiring a quiz.
+
 # Clean review launch — every Red checkpoint
+
+Follow `references/review-execution.md`: perform the actual launch, observe the
+returned worker ID and running acknowledgement, then receive the completed
+scope-bound report. Retain native tool observations and an execution receipt;
+REQUESTED/LAUNCHED is not DONE. Detect a failed/stalled launch yourself, preserve
+the real status, and recover within capacity/time rules. Missing CP1 execution
+keeps its gate OPEN; do not ask the participant to discover it. The checker
+validates retained records, not authenticated identity or a guaranteed real launch.
 
 Create a new reviewer with no inherited conversation. Where supported, explicitly use `fork_turns="none"`; otherwise use a genuinely clean separate session. A new agent with full inherited history is not an independent review. If neither is available, keep the gate open and report the missing review; do not relabel an inherited review as independent.
 
@@ -86,6 +106,7 @@ Before product implementation, clean CONSTRAINT_RED attacks SPEC_DRAFT against o
 - `artifacts`: SHA-256 of the exact reviewed GRADER.md, BASELINE.md, IMMUTABLES.md, SPEC_DRAFT.md, and CONSTRAINTS.md
 - `findings`: `{id, severity: P0|P1|P2|P3, status: OPEN|FIXED|DISPROVED|ACCEPTED_RISK, evidence, verification}`
 - `attempted_attacks`: evidence-backed descriptions of attacks attempted, including when no finding survives
+- `execution`: the completed CONSTRAINT_RED/CP1 lifecycle receipt defined in `references/review-execution.md`, binding the actual CP1_RED.md and the same five artifact hashes. Old receipts without observations cannot close a current gate; preserve them as historical records instead of inventing execution.
 
 Resolve every P0/P1 finding: FIXED requires verification of the fix; DISPROVED requires original evidence and verification. OPEN or ACCEPTED_RISK P0/P1 cannot close the gate. Official-rule or submission-blocking conflicts are blockers regardless of a convenient label. Non-blocking accepted risks remain explicit in LIMITATIONS. Only original evidence or an explicit participant/business-contact answer can confirm a constraint.
 
@@ -103,6 +124,11 @@ Freeze GRADER, BASELINE, IMMUTABLES, SPEC_DRAFT, and CONSTRAINTS after approval.
 MAIN builds the smallest scoring-relevant end-to-end path. Preserve contracts/tests; never hard-code samples or replace the submission wholesale with external code. Partial reuse must respect the official brief and task rules.
 
 At the first working scoring-relevant path, run clean CODE_RED and then Recorder. Repeat Constraint Red only for a material assumption/constraint/objective risk. Inspect dynamic-test side effects; isolate temporary data, processes, and ports, and avoid MAIN's live DB/process. Report necessary checks that cannot safely run as UNVERIFIED. MAIN sends factual evidence to Recorder, which maintains ongoing notes and prepares six-axis follow-up coverage early.
+
+Also run a separate clean EDGE_RED using `edge-redteam` on that actual path.
+Record its real lifecycle/report independently from CODE_RED. Sequence reviewers
+when capacity is limited; a missing edge review stays NOT_RUN, never absorbed
+into Code Red's status. MAIN alone fixes findings; reviewer rechecks the fix.
 
 Recorder retains baseline/CP2/final local coverage under unchanged rubric, evaluator
 hashes and known input/policy/options scope. Cheap affected checks may track material
@@ -129,7 +155,7 @@ the missing official time through the participant/Cofa channel.
 
 Budget CP3 from estimated review/check/repair/submission/preparation time and the actual deadline; start earlier if needed. A 15–20-minute reminder does not guarantee that all remaining work fits. Stop feature expansion, then:
 
-1. Clean final CODE_RED and CONSTRAINT_RED review the current result and original evidence; ORCHESTRATOR records findings and verified dispositions.
+1. Clean final CODE_RED, CONSTRAINT_RED and separate EDGE_RED review the current result and original evidence; ORCHESTRATOR records their actual execution receipts, findings and verified dispositions. A missing required review is NOT_RUN, not silently satisfied by another role.
 2. MAIN fixes submission-blocking defects and runs `verification`. P0/P1 cannot be waived at deadline; choose a valid smaller/partial solution if needed. Mark other unrun checks UNVERIFIED and state limitations honestly.
    Before collection/freeze, any later behavior-changing edit needs affected Code
    Red review under the launch/reuse rules above and relevant verification within
@@ -144,13 +170,13 @@ Budget CP3 from estimated review/check/repair/submission/preparation time and th
    Confirm that the delivered text contains the actual before/current observations
    and one real rule-applied case required by `final-explain`, or their explicit
    evidence gap/reason. Do not ask the participant to discover these missing facts.
-5. Before marking either CP3 Red DONE, ORCHESTRATOR checks its existing checkpoint
+5. Before marking any CP3 Red DONE (CODE/CONSTRAINT/EDGE), ORCHESTRATOR checks its existing checkpoint
    report for the actual fresh reviewer/session, creation method and
    NO_HISTORY/CLEAN_SESSION mode, current reviewed code/result scope, findings and
    dispositions. An earlier checkpoint's review or its targeted fix recheck cannot
    satisfy this final review. A context label alone does not establish a fresh
    launch; report missing evidence and leave that review NOT_RUN rather than DONE.
-   Record cp3_code_red/cp3_constraint_red as DONE, verification as RECORDED, and
+   Record cp3_code_red/cp3_constraint_red/cp3_edge_red as DONE, verification as RECORDED, and
    followup_prep as DONE only after the corresponding work and six answer outlines
    are complete. Run doctor. Cleanup is last, after preparation and preservation of
    notes, and only if the submission format requires helper removal.

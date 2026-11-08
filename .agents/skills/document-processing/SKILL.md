@@ -16,4 +16,6 @@ Check:
 - whether OCR is actually required
 - privacy/external-transmission restrictions
 
-For this exam, do not use Computer Use or send documents to external services.
+For the second preliminary, do not use Computer Use or send documents to external
+services. For finals/practice, read FINALS_POLICY.md and the current stage/task
+rules; unknown permission blocks the affected UI or external-data operation.

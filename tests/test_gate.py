@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+from review_fixture import make_execution
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('kit_gate', ROOT / 'scripts/gate_check.py')
@@ -62,6 +63,10 @@ class GateTests(unittest.TestCase):
             'source_paths': ['task.txt'], 'artifacts': gate.artifact_hashes(self.kit),
             'findings': [], 'attempted_attacks': ['Required filename checked against task.txt:1; no mismatch survived.'],
         }
+        self.report['execution'] = make_execution(
+            self.task, 'CONSTRAINT_RED', 'CP1', '.hackathon-kit/run/CP1_RED.md',
+            {'.hackathon-kit/run/' + name: digest
+             for name, digest in self.report['artifacts'].items()})
         self.save_report()
 
     def save_report(self):
@@ -97,6 +102,48 @@ class GateTests(unittest.TestCase):
     def test_actual_evidence_and_no_surviving_findings_pass(self):
         self.complete()
         self.assertEqual(gate.check_gate(self.kit), [])
+
+    def test_done_markers_without_actual_execution_records_cannot_close_cp1(self):
+        self.complete()
+        del self.report['execution']
+        self.save_report()
+        self.assertTrue(any('execution receipt missing' in e for e in gate.check_gate(self.kit)))
+
+    def test_dispatch_without_running_or_completion_cannot_close_cp1(self):
+        self.complete()
+        self.report['execution']['observations'].pop('RUNNING')
+        self.report['execution']['observations'].pop('COMPLETED')
+        self.save_report()
+        errors = gate.check_gate(self.kit)
+        self.assertTrue(any('RUNNING observation' in e for e in errors))
+        self.assertTrue(any('COMPLETED observation' in e for e in errors))
+
+    def test_another_role_or_checkpoint_receipt_cannot_close_cp1(self):
+        self.complete()
+        self.report['execution']['checkpoint'] = 'CP3'
+        self.report['execution']['role'] = 'EDGE_RED'
+        self.save_report()
+        errors = gate.check_gate(self.kit)
+        self.assertTrue(any('checkpoint does not match' in e for e in errors))
+        self.assertTrue(any('role does not match' in e for e in errors))
+
+    def test_duplicate_json_cp1_status_is_rejected_before_last_wins(self):
+        self.complete()
+        path = self.kit / 'run/CP1_REVIEW.json'
+        path.write_text(path.read_text().replace('"status": "COMPLETE"',
+                                                 '"status": "NOT_RUN", "status": "COMPLETE"'))
+        self.assertTrue(any('duplicate JSON key' in e for e in gate.check_gate(self.kit)))
+
+    def test_explicit_failed_native_response_cannot_close_cp1(self):
+        self.complete()
+        for record in self.report['execution']['observations'].values():
+            path = self.task / record['path']
+            value = json.loads(path.read_text())
+            value['raw']['status'] = 'FAILED'
+            path.write_text(json.dumps(value))
+            record['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+        self.save_report()
+        self.assertTrue(any('native status failed' in e for e in gate.check_gate(self.kit)))
 
     def test_unresolved_p1_cannot_close_even_when_review_is_done(self):
         self.complete()

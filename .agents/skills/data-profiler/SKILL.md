@@ -34,4 +34,7 @@ Report:
 - observations that suggest a question, clearly separated from confirmed business rules
 
 Do not infer business constraints from a surprising statistic alone.
-Record the file, selected table/path, options, sampled row cap, and relevant output as evidence for MAIN/Recorder. A partial sample does not establish whole-file integrity or cross-file referential correctness.
+Record the file, selected table/path, options, sampled row cap, and relevant output
+as evidence for MAIN/Recorder in the second preliminary, or for the current writer
+in FINALS_RUN.md in finals. A partial sample does not establish whole-file integrity
+or cross-file referential correctness.

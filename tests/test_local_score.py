@@ -63,7 +63,9 @@ class LocalScoreTests(unittest.TestCase):
         self.save()
 
     def run_cli(self, expected, extra=(), guarded=False, evaluators=None):
-        invocation = [sys.executable, '-I', '-S', '-B']
+        # -I ignores PYTHONUTF8; match the suite's UTF-8 capture even when an
+        # error includes the deliberately Korean fixture path on Windows.
+        invocation = [sys.executable, '-I', '-S', '-B', '-X', 'utf8']
         if guarded:
             invocation += ['-c', GUARDED_RUN]
         invocation += [str(SCRIPT), '--rubric', str(self.rubric), '--results', str(self.results)]

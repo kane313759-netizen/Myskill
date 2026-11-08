@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "env_path": ".hackathon-kit/run/ENV.md",
+  "records": {},
+  "required_checks": ["environment", "deadline", "data_audit", "grading", "decisions", "safety", "independent_reviews", "submission", "clean_run", "security", "study"],
+  "data_audit_plan": {"files": [], "max_rows": 10000, "max_file_bytes": 33554432, "na": [], "na_reasons": {}},
+  "spec_draft": null,
+  "submission_rules": {},
+  "security_plan": {},
+  "clean_run_plan": {},
+  "snapshots": [],
+  "schema_notes": [
+    "records NAME is {path: task-relative retained JSON or one JSON fence markdown, sha256: current SHA256}.",
+    "intake reads state; cp1 additionally reads data_audit, grading, decisions, safety, cp1_reviews; final additionally requires study, finals_reviews, submission, security, clean_run.",
+    "state refers to V27_STATE; its deadline is the exact deadline.calculate(ENV) object. Do not overwrite official STATE with planning targets.",
+    "spec_draft is {path,sha256}; its text must contain the data_audit record path and SHA256.",
+    "grading is {baseline:{status:UNAVAILABLE_WITH_REASON,reason:...},local_grader_used:false,holdout:{applicable:false}} until an actual grader exists. No fabricated numeric score required.",
+    "A used local grader requires evaluator_hashes,input_scope,3-5 POSITIVE controls and justified NEGATIVE controls with distinct IDs and case fingerprints. Each control records oracle:{path,sha256,origin:REQUIREMENT_DERIVED,excerpt},input/output/execution:{path,sha256},expected_metrics,actual_metrics; negatives rejected:true or relation:LOWER_THAN_KNOWN_ANSWER with known_answer_id,metric,direction and contract_reason. Control execution retains native tool/argv/request/result, matching evaluator_hashes/input_scope and exact per-control input/output refs. Its argv invokes a current bound evaluator and both absolute input/output paths; actual JSON stdout is {metrics,rejected}.",
+    "data_audit_resolution optionally records semantic review as {items:[{id,status:RECORDED,method,finding,evidence:{path,sha256},data_audit_sha256,source_hashes:{path:sha256}}]}; source_hashes must cover current audit, audited files and SPEC_DRAFT. Absent semantic evidence remains UNVERIFIED. This records review, not a guarantee of business truth.",
+    "holdout applicable:true requires looks,purpose,adaptive_selection; adaptive selection at any look or >=4 looks requires label:TUNING,independent_final_claim:false.",
+    "decisions is {type_b_cards:[{decision,chosen,why,alternative,limitations,change_location}]}. Participant acknowledgement is not a gate.",
+    "study is STUDY_BRIEF JSON; DELIVERED is actual delivery, PREPARED is only preparation. Any reduced final_minutes needs participant_choice:{path,sha256} with the actual choice.",
+    "cp1_reviews reuses base execution receipts for CONSTRAINT_RED and DATA_EVAL_RED at CP1 with current audit/SPEC scope. finals_reviews is the base six core roles plus conditional SECURITY_RED plan at CP3; required_scope must cover current replay inputs/artifacts, audited sources, SPEC_DRAFT and audit evidence. previous_reviews is the retained previous checkpoint plan for worker/session reuse detection. Inherited-context launch facts cannot be relabelled clean.",
+    "submission/security/clean_run record refs also include execution:{path,sha256}; execution retains native {tool:exec_command,argv:[actual isolated Python invocation],request:{cmd:exact canonical command},result:{exit_code:0,output:actual JSON stdout}}. Accepted cmd is list2cmdline(argv) or shlex.join(argv), optionally prefixed by PowerShell '& '. Exact helper/root/current rules-plan binding is required. A planned command alone is UNVERIFIED. Native record integrity does not authenticate identity.",
+    "snapshots lists actual snapshot manifest refs {path,sha256}; original data hashes are integrity checks, not independent backup copies.",
+    "P2 modules are optional and absent from required checks. This template is intentionally incomplete and must not pass as completed evidence."
+  ]
+}

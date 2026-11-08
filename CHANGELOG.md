@@ -1,5 +1,51 @@
 # Changes
 
+## 2026-11-08-finals-r8.2-candidate
+
+- Add separate ALGORITHM_RED, DATA_EVAL_RED and SUBMISSION_RED skills alongside
+  existing constraint/code/edge responsibilities; preserve one product writer.
+- Add SECURITY_RED only for source-backed actual auth, external-route, secrets,
+  privileged-tool or sensitive-data boundaries. Track unknown and non-trigger
+  decisions explicitly; capabilities or an AI label alone do not trigger it.
+- Schedule six core roles across intake, first output and current final candidate;
+  use clean final reviewers sequentially when needed, not an always-on roster.
+- Add a read-only aggregate checker for current scope, distinct role workers,
+  actual execution receipts, verified blocker dispositions and security activation.
+  This is quality-evidence validation, not authenticated execution or official score.
+- Keep preliminary policy/gate semantics and the nondeveloper explanation rules;
+  the separate universal v2.6 proposal is not wholesale implemented.
+
+## 2026-11-08-finals-r8.1-candidate
+
+- Explain actual material tools/algorithms proactively at selection, consequential
+  changes and final delivery: role, rationale, alternative, observed example and
+  limits. Distinguish solver/library/search/training optimizer and actual guarantees.
+- Add separate clean EDGE_RED for task-grounded boundary, missing/malformed-data
+  and applicable security attacks; keep it distinct from Code/Constraint reviews.
+- Require retained launch, running and completion observations, actual worker ID,
+  scope and report hashes. CP1 rejects absent execution evidence even with DONE
+  markers; old receipts are preserved but cannot authorize a current gate.
+- Add a read-only execution-record checker. It validates supplied lifecycle/hash
+  consistency, not authenticated platform responses or guaranteed agent execution.
+- Preserve the preliminary policy bytes, stage scopes and honest unavailable
+  review/SELF_CHECK labels. No forced extra quiz or human engineering approval.
+
+## 2026-11-08-finals-r8-candidate
+
+- Add a nondeveloper finals workflow that owns technical selection, implementation,
+  execution, repair, meaningful verification and Korean explanation/submission guidance.
+- Separate the participant-supplied November 11 notice from still-unknown finals
+  tool/model/data/submission permissions. Preserve EXAM_POLICY.md byte-for-byte.
+- Route confirmed finals from the existing entry point; keep preliminary role/gate,
+  180-minute and six-question procedures scoped to their original stage.
+- Add conditional task lanes, comparable results, a real-case explanation and a
+  resumable finals record; no obligatory model, framework, slide deck or quiz.
+- Distribute/verify the finals skill and policy through the existing ownership-safe
+  installer and package contract. Doctor remains installation/preliminary validation,
+  not finals readiness. This is a local candidate, not a merged or live-tested release.
+- Set UTF-8 explicitly in isolated local-score test children; isolated Python
+  ignores the parent PYTHONUTF8 setting when reporting Korean fixture paths.
+
 ## 2026-11-04-operational-r7.2.1
 
 - Require the existing delivered explanation/outlines to include actual baseline

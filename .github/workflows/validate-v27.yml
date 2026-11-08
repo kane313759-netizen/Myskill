@@ -1,0 +1,46 @@
+name: validate-v27
+
+on:
+  push:
+    branches: ['codex/universal-v27-addon']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.12'
+          - os: ubuntu-22.04
+            python: '3.8'
+          - os: windows-latest
+            python: '3.12'
+          - os: windows-latest
+            python: '3.8'
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install openpyxl==3.1.5
+      - name: Compile baseline and additive helpers
+        run: python -c "from pathlib import Path; [compile(p.read_bytes(), str(p), 'exec') for p in Path('scripts').glob('*.py')]"
+      - name: Baseline preservation and all regressions
+        run: python -B -m unittest discover -s tests -v
+      - name: Package additive distribution
+        run: python -I scripts/package_v27.py --source . --output "${{ runner.temp }}/Myskill-universal-v27.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Myskill-v27-${{ matrix.os }}-py${{ matrix.python }}
+          path: ${{ runner.temp }}/Myskill-universal-v27.zip
+          if-no-files-found: error

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "deadline": {"status": "UNKNOWN", "reason": "공식 제출 확정 마감과 후속 평가 방식 미확인"},
+  "mode": "UNCONFIRMED",
+  "milestone": null,
+  "notice": "보조 계획 기록. 기존 STATE 키·게이트·공식 마감을 변경하지 않음"
+}
