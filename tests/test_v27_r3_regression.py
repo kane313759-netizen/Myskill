@@ -128,8 +128,6 @@ class SyntheticPolicyTests(unittest.TestCase):
  def test_f9_windows_utf8_warning(self):
   self.assertTrue(CHECK['utf8_warning'](True,0));self.assertFalse(CHECK['utf8_warning'](True,1));self.assertFalse(CHECK['utf8_warning'](False,0))
 
-if __name__=='__main__': unittest.main()
-
 class IntegrationR3Tests(unittest.TestCase):
  def fixture(self):
   import test_v27_check as fixture_module
@@ -203,3 +201,6 @@ class IntegrationR3Tests(unittest.TestCase):
    self.assertTrue(any('UTF-8 mode is off' in x for x in CHECK['check'](t.plan,t.root,t.kit,'intake')['warnings']))
   with patch.dict(glob,{'os':SimpleNamespace(name='nt',path=os.path),'sys':SimpleNamespace(flags=SimpleNamespace(utf8_mode=1),executable=sys.executable)}):
    self.assertFalse(any('UTF-8 mode is off' in x for x in CHECK['check'](t.plan,t.root,t.kit,'intake')['warnings']))
+
+if __name__=='__main__':
+ unittest.main()
