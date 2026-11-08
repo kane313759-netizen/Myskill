@@ -252,6 +252,22 @@ def _stream_csv(path, plan, spec, io):
                 state[1].append((row_number,statistics.median(state[0])));used[check]+=1
             else: limited(check,'block budget exceeded',column)
             used[check]-=len(state[0]);state[0].clear()
+    def keep_repeated(group, key, value, check, column, repetitions):
+        # Algorithm L may skip many equal observations without visiting each one.
+        bucket=group.get(key)
+        if bucket is None:
+            keep(group,key,value,check,column);repetitions-=1
+            bucket=group.get(key)
+            if bucket is None:
+                if repetitions: limited(check,'group budget exceeded',column,repetitions)
+                return
+        while repetitions and len(bucket[1]) < scale_reservoir:
+            keep(group,key,value,check,column);repetitions-=1
+        end=bucket[0]+repetitions
+        while bucket[2] is not None and bucket[2] <= end:
+            bucket[0]=bucket[2]-1
+            keep(group,key,value,check,column)
+        bucket[0]=end
     def parsed(v):
         try: return datetime.fromisoformat(str(v).replace('Z','+00:00'))
         except (ValueError, TypeError, OverflowError): return None
@@ -356,6 +372,14 @@ def _stream_csv(path, plan, spec, io):
             integer_ids={col:True for col in header if _id_hint(col)}
             metric_positions=tuple(positions[col] for col in metric_columns)
             numeric_cache={}
+            pending_sources={};pending_bytes=0
+            def flush_sources():
+                nonlocal pending_bytes
+                for (category,label,_),(repetitions,metrics) in pending_sources.items():
+                    if len(cats.get(category,()))<=50:
+                        for metric,value in metrics.items():
+                            keep_repeated(counts,(category,label,metric),value,'source',metric,repetitions)
+                pending_sources.clear();pending_bytes=0
             has_roles=all(roles.get(k) for k in ('id','sequence','start','end'))
             late_numeric=set()
             time_columns=[col for col in header if col in inferred_times or col==period_col]
@@ -437,8 +461,17 @@ def _stream_csv(path, plan, spec, io):
                             state=group_adjacent.pop(group_key)
                             used['adjacent_group']-=len(state[0])+len(state[1])
                     if len(bucket)<=50:
-                        for key,v in nums.items():
-                            if key in metric_by_check['source']: keep(counts,(col,val,key),v,'source',key)
+                        if not period_col:
+                            pending_key=(col,val,signature)
+                            pending=pending_sources.get(pending_key)
+                            if pending is None:
+                                pending_sources[pending_key]=[1,nums]
+                                pending_bytes+=sum(len(x) for x in signature)+len(val)
+                                if len(pending_sources)>=128 or pending_bytes>=8*1024*1024: flush_sources()
+                            else: pending[0]+=1
+                        else:
+                            for key,v in nums.items():
+                                if key in metric_by_check['source']: keep(counts,(col,val,key),v,'source',key)
                     if d and len(bucket)<=20:
                         for key,v in nums.items():
                             if key in metric_by_check['source_period']: keep(source_periods,(col,val,key,period),v,'source_period',key)
@@ -449,6 +482,7 @@ def _stream_csv(path, plan, spec, io):
                                 limited('adjacent_group','group budget exceeded',key);continue
                             state=group_adjacent.setdefault(group_key,[[],[]])
                             add_adjacent(state,v,'adjacent_group',key,rows_scanned)
+                if not period_col and rows_scanned%4096==0: flush_sources()
                 if has_roles:
                     raw_seq=row.get(roles['sequence'])
                     number=io['as_num'](raw_seq)
@@ -476,6 +510,7 @@ def _stream_csv(path, plan, spec, io):
                             limited('time_order','entity reservoir sample',roles['id'])
                     elif seq is not None and ident:
                         dropped_events += 1;limited('time_order','entity or timestamp length budget exceeded',roles['id'])
+        flush_sources()
         profile=_profile(sample,io,header)
         for column,(parsed_count,aware_count) in timezone_counts.items():
             entry=next((x for x in profile['time_candidates'] if x['column']==column),None)

@@ -83,4 +83,16 @@ class RegressionR32(unittest.TestCase):
         self.assertFalse(table['numeric_ranges']['measurement']['treated_as_code'])
         self.assertTrue(any(x['column']=='measurement' for x in table['scale_suspects']))
 
+    def test_batched_source_sampling_and_high_cardinality_removal(self):
+        self.write(['record','source','measurement'], (['key%d'%i, 'AB'[i%2], '10.05' if i%2==0 else '100.5'] for i in range(10000)))
+        result=self.scan(); table=result['tables'][0]
+        self.assertTrue(result['complete_rows'])
+        self.assertTrue(any(x['kind']=='SOURCE' and x['column']=='measurement' and x['source_value']=='A' for x in table['scale_suspects']))
+        self.assertFalse(any(x.get('source_column')=='record' for x in table['scale_suspects']))
+
+    def test_batched_source_sampling_with_many_distinct_values(self):
+        self.write(['source','measurement'], (['AB'[i%2], (10.05+i%151/10000 if i%2==0 else 100.5+i%151/1000)] for i in range(5000)))
+        table=self.scan()['tables'][0]
+        self.assertTrue(any(x['kind']=='SOURCE' and x['column']=='measurement' for x in table['scale_suspects']))
+
 if __name__ == '__main__': unittest.main()
