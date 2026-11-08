@@ -3,6 +3,10 @@ name: followup-prep
 description: Prepare the participant for the official 6-question no-AI written follow-up by mapping actual work evidence to broad question families and generating concise practice questions without inventing events.
 ---
 
+For confirmed finals or finals practice, use the corresponding section of
+`hackathon-finals` under FINALS_POLICY.md instead of the preliminary procedure below.
+Do not inherit the preliminary role, gate or six-question rules into finals.
+
 Read first:
 - .hackathon-kit/EXAM_POLICY.md
 - .hackathon-kit/run/GRADER.md

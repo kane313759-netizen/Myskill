@@ -1,9 +1,15 @@
 ---
 name: hackathon-orchestrator
-description: Orchestrate the SK hynix exam through one MAIN, evidence-backed gates, independent reviews, and the official six-question follow-up preparation.
+description: Route the SK hynix competition stage; use the fixed second-preliminary MAIN, evidence gates and six-question preparation only for that stage. Hand confirmed finals and finals practice to hackathon-finals.
 ---
 
-Read `.hackathon-kit/EXAM_POLICY.md` first. Official exam/task instructions always win.
+First identify the stage from the current request and official material. For
+confirmed finals or finals practice, use `hackathon-finals` and read
+`.hackathon-kit/FINALS_POLICY.md`; stop here instead of applying the preliminary
+procedure below. Do not ask a participant who supplied a finals notice to choose
+the stage again. If unclear, inspect available sources before asking.
+
+For the second preliminary, read `.hackathon-kit/EXAM_POLICY.md` first. Official exam/task instructions always win.
 This file is the canonical checkpoint and role protocol; role prompts specialize it without adding checkpoints.
 
 # Ownership

@@ -1,9 +1,24 @@
 # Quick calling guide
 
-Read EXAM_POLICY.md first. Canonical roles/checkpoints live in hackathon-orchestrator.
+Choose the confirmed stage first. Finals and finals practice use `hackathon-finals`
+and FINALS_POLICY.md. Second preliminary uses EXAM_POLICY.md and the canonical
+roles/checkpoints in `hackathon-orchestrator`.
 Use the README installation steps with a pre-exam verified SHA or frozen flat ZIP.
 
-## Start
+## Finals start — one request
+
+```text
+Use the hackathon-finals skill. Read .hackathon-kit/FINALS_POLICY.md first.
+나는 비개발자입니다. 공식 자료를 읽고 기술 선택, 구현, 실행, 검증과 제출 준비까지 진행해 주세요. 현재 결과와 한계는 한국어로 설명하고 중요한 공식 규정·업무 판단만 질문해 주세요.
+```
+
+Agent maintains run/FINALS_RUN.md. It selects only evidence-supported task lanes,
+delivers actual baseline/current observations and a real case, and gives human-only
+submission steps when necessary. Normal doctor checks installation integrity;
+`--pre-submit` and `gate_check.py` are preliminary-only, not finals approval.
+No mandatory six-question preparation, model roster, slide deck or external API.
+
+## Second-preliminary start
 
 ```text
 Use the hackathon-orchestrator skill.

@@ -3,6 +3,10 @@ name: final-explain
 description: Prepare the participant for the official no-AI written follow-up using only actual task evidence, code, tests, decisions, and directly verified behavior.
 ---
 
+For confirmed finals or finals practice, use the explanation section of
+`hackathon-finals` under FINALS_POLICY.md instead of the preliminary procedure below.
+Do not inherit the preliminary role, gate or six-question rules into finals.
+
 This skill produces the factual system explanation at CP3. It does not run a quiz or invoke `followup-prep`; the orchestrator invokes that skill once.
 
 Use:

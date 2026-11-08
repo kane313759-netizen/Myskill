@@ -3,6 +3,10 @@ name: grader-intake
 description: Discover the exam task's grading/submission contract and record a safe pre-edit baseline during the shared intake pass.
 ---
 
+For confirmed finals or finals practice, use the corresponding section of
+`hackathon-finals` under FINALS_POLICY.md instead of the preliminary procedure below.
+Do not inherit the preliminary role, gate or six-question rules into finals.
+
 Read `.hackathon-kit/EXAM_POLICY.md` first. Fill the installed templates without renaming the required section headings; MAIN runs the read-only gate `--preflight` before independent review. Follow the ownership/checkpoint protocol in `hackathon-orchestrator`; MAIN reports intake outcomes and never writes STATE/gate records.
 
 # One evidence pass

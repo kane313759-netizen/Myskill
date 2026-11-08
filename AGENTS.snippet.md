@@ -1,6 +1,14 @@
 # Optional project instruction snippet
 
-Do not merge this into a task's existing AGENTS.md unless the task allows it. Read EXAM_POLICY.md first; official exam/task instructions override the kit. Use `hackathon-orchestrator` as the canonical role/checkpoint protocol.
+Do not merge this into a task's existing AGENTS.md unless the task allows it.
+Latest official stage/task instructions override the kit. For finals or finals
+practice, use `hackathon-finals` and FINALS_POLICY.md: the agent owns technical
+choices, implementation, checks and plain-language delivery; only material missing
+rules/access/business choices go to the participant. Do not apply the
+second-preliminary instructions below to finals.
+
+For the second preliminary, read EXAM_POLICY.md first. Use `hackathon-orchestrator`
+as the canonical role/checkpoint protocol. The following bullets are stage-specific.
 
 - No Computer Use/automated UI control, external task-data transmission, external AI connection, or Git Push. Use Cofa Helper through the participant for UI/submission questions.
 - Inspect grading/submission contracts and safe command side effects/network behavior; record a bounded pre-edit baseline during one shared evidence pass.

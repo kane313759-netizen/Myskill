@@ -3,6 +3,10 @@ name: problem-intake
 description: Explain the task and user value before coding, while separating confirmed facts, unknowns, and non-goals without blocking implementation on repeated user teach-back.
 ---
 
+For confirmed finals or finals practice, use the corresponding section of
+`hackathon-finals` under FINALS_POLICY.md instead of the preliminary procedure below.
+Do not inherit the preliminary role, gate or six-question rules into finals.
+
 Read `.hackathon-kit/EXAM_POLICY.md` and `.hackathon-kit/run/GRADER.md` first when present.
 
 Explain concisely:

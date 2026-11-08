@@ -3,6 +3,10 @@ name: verification
 description: Verify the current scoring contract, constraints, regressions, and relevant boundaries against the recorded pre-edit baseline.
 ---
 
+For confirmed finals or finals practice, use the corresponding section of
+`hackathon-finals` under FINALS_POLICY.md instead of the preliminary procedure below.
+Do not inherit the preliminary role, gate or six-question rules into finals.
+
 Read `.hackathon-kit/EXAM_POLICY.md` and run/GRADER.md, BASELINE.md, IMMUTABLES.md, CONSTRAINTS.md. Use the checkpoint/ownership protocol in `hackathon-orchestrator`; MAIN verifies and reports evidence, Recorder writes VERIFY/LIMITATIONS, and ORCHESTRATOR alone writes STATE/gate/checkpoint records.
 
 Start from safe relevant existing test/build commands and compare against BASELINE. Inspect changed command behavior for side effects/network use before running it. Bound checks to the remaining deadline and isolate temporary data/services; avoid duplicate full runs unless changes or failures justify them.

@@ -22,4 +22,8 @@ For each unfamiliar technology/tool explain:
 Then map it onto:
 input → processing → storage(if any) → output → external connections(if any)
 
-Do not modify files or change implementation decisions while performing discovery. Return source-linked facts to MAIN/Recorder; a technology appearing in a dependency list does not prove it is used on the scoring path. Verify model/runtime selection from actual available evidence rather than the preferred role label.
+Do not modify files or change implementation decisions while performing discovery.
+Return source-linked facts to MAIN/Recorder in the second preliminary, or to the
+current writer for FINALS_RUN.md in finals; a technology appearing in a dependency
+list does not prove it is used on the scoring path. Verify model/runtime selection
+from actual available evidence rather than the preferred role label.

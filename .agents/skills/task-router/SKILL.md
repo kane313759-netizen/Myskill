@@ -3,6 +3,10 @@ name: task-router
 description: Classify an unfamiliar task after grader intake and select only evidence-supported playbooks; do not activate domain playbooks merely because their vocabulary appears once.
 ---
 
+For confirmed finals or finals practice, use the corresponding section of
+`hackathon-finals` under FINALS_POLICY.md instead of the preliminary procedure below.
+Do not inherit the preliminary role, gate or six-question rules into finals.
+
 Read `.hackathon-kit/run/GRADER.md` and task material.
 
 Classify one or more:

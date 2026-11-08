@@ -3,6 +3,10 @@ name: constraint-discovery
 description: Build an evidence-backed constraint register for an unfamiliar task; use before implementation and again only when a material requirement or result risk changes.
 ---
 
+For confirmed finals or finals practice, use the corresponding section of
+`hackathon-finals` under FINALS_POLICY.md instead of the preliminary procedure below.
+Do not inherit the preliminary role, gate or six-question rules into finals.
+
 Read:
 - `.hackathon-kit/EXAM_POLICY.md`
 - `.hackathon-kit/run/GRADER.md`

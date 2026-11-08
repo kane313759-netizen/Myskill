@@ -1,5 +1,21 @@
 # Changes
 
+## 2026-11-08-finals-r8-candidate
+
+- Add a nondeveloper finals workflow that owns technical selection, implementation,
+  execution, repair, meaningful verification and Korean explanation/submission guidance.
+- Separate the participant-supplied November 11 notice from still-unknown finals
+  tool/model/data/submission permissions. Preserve EXAM_POLICY.md byte-for-byte.
+- Route confirmed finals from the existing entry point; keep preliminary role/gate,
+  180-minute and six-question procedures scoped to their original stage.
+- Add conditional task lanes, comparable results, a real-case explanation and a
+  resumable finals record; no obligatory model, framework, slide deck or quiz.
+- Distribute/verify the finals skill and policy through the existing ownership-safe
+  installer and package contract. Doctor remains installation/preliminary validation,
+  not finals readiness. This is a local candidate, not a merged or live-tested release.
+- Set UTF-8 explicitly in isolated local-score test children; isolated Python
+  ignores the parent PYTHONUTF8 setting when reporting Korean fixture paths.
+
 ## 2026-11-04-operational-r7.2.1
 
 - Require the existing delivered explanation/outlines to include actual baseline

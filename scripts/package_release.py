@@ -14,18 +14,18 @@ import zipfile
 
 
 ROOT_FILES = {
-    "README.md", "EXAM_POLICY.md", "BOOTSTRAP_PROMPT.md", "CALLING.md", "AGENTS.snippet.md",
+    "README.md", "EXAM_POLICY.md", "FINALS_POLICY.md", "BOOTSTRAP_PROMPT.md", "CALLING.md", "AGENTS.snippet.md",
     "VERSION", "LICENSE", "LICENSE.md", "CHANGELOG.md", "RELEASE_NOTES.md", ".gitignore",
     "requirements-dev.txt", ".gitattributes",
 }
 # Keep the distribution contract explicit; importing source helpers would execute
 # the checkout being packaged. Tests keep this aligned with the installer contract.
 CORE_SKILLS = (
-    "hackathon-orchestrator", "grader-intake", "immutable-inventory", "task-router",
+    "hackathon-orchestrator", "hackathon-finals", "grader-intake", "immutable-inventory", "task-router",
     "problem-intake", "constraint-discovery", "verification", "final-explain", "followup-prep",
 )
 REQUIRED = {
-    "install.sh", "install.ps1", "README.md", "EXAM_POLICY.md", "VERSION",
+    "install.sh", "install.ps1", "README.md", "EXAM_POLICY.md", "FINALS_POLICY.md", "VERSION",
     "BOOTSTRAP_PROMPT.md", "CALLING.md", "AGENTS.snippet.md",
 }
 REQUIRED.update(".agents/skills/" + name + "/SKILL.md" for name in CORE_SKILLS)
@@ -37,14 +37,14 @@ REQUIRED.update("scripts/" + name for name in (
 REQUIRED.update("templates/" + name for name in (
     "AI_FAILURES.md", "BASELINE.md", "CONSTRAINTS.md", "CP1_RED.md", "CP1_REVIEW.json",
     "DECISIONS.md", "EDGE_CASES.md", "FOLLOWUP_CHEATSHEET.md", "GRADER.md", "HANDOFF.md",
-    "HUMAN_JUDGMENT.md", "IMMUTABLES.md", "LIMITATIONS.md", "LOCAL_RUBRIC.json",
+    "HUMAN_JUDGMENT.md", "IMMUTABLES.md", "LIMITATIONS.md", "LOCAL_RUBRIC.json", "FINALS_RUN.md",
     "SPEC_DRAFT.md", "STATE.md", "SYSTEM_MAP.md", "TASK_EVIDENCE.md", "VERIFY.md",
 ))
 REQUIRED.update("prompts/" + name + ".md" for name in (
     "CODE_RED", "CONSTRAINT_RED", "ESCALATE_SOL", "MAIN_SOL", "RECORDER", "TUTOR",
 ))
 REQUIRED.update("references/" + name + ".md" for name in (
-    "constraint-matrix", "followup-question-bank", "local-evaluation", "model-policy",
+    "constraint-matrix", "followup-question-bank", "local-evaluation", "model-policy", "finals-playbook",
     "optional-tools", "task-types",
 ))
 
