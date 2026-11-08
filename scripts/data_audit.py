@@ -293,7 +293,10 @@ def _stream_csv(path, plan, spec, io):
             roles['id_candidates']=candidates
             if explicit and any(not roles[k] for k in ('id','sequence','start','end','source')):
                 raise ValueError('time_order needs id, sequence, start, end, source')
-            period_col=plan.get('time_column') or roles.get('start') or next((x for x in header if re.search(r'(date|time|날짜|일시)',x,re.I)),None)
+            inferred_times=[col for col in header if re.search(r'(date|time|timestamp|날짜|일시)',col,re.I) or
+                col in (roles.get('start'),roles.get('end')) or
+                any(re.match(r'^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}|$)',row[positions[col]].strip()) for row in prefix[:20])]
+            period_col=plan.get('time_column') or roles.get('start') or next(iter(inferred_times),None)
             if period_col and period_col not in header: raise ValueError('time_column not found')
             per=plan.get('period','week')
             if per not in ('week','month'): raise ValueError('period must be week or month')
@@ -309,7 +312,7 @@ def _stream_csv(path, plan, spec, io):
             integer_ids={col:True for col in header if _id_hint(col)}
             has_roles=all(roles.get(k) for k in ('id','sequence','start','end'))
             late_numeric=set()
-            time_columns=[col for col in header if re.search(r'(date|time|timestamp|날짜|일시)',col,re.I) or col in (roles.get('start'),roles.get('end'),period_col)]
+            time_columns=[col for col in header if col in inferred_times or col==period_col]
             timezone_counts={col:[0,0] for col in time_columns}
             def clear_category(store, check, column):
                 keys=[key for key in store if key[0]==column]
@@ -431,7 +434,7 @@ def _stream_csv(path, plan, spec, io):
         if roles.get('start') and roles.get('end'):
             profile['timestamp_pair_reversals']=[{'earlier_column':roles['start'],'later_column':roles['end'],
                 'comparable_rows':pair_compared,'reversed_rows':pair_reversed}]
-        if not has_roles and len([x for x in profile['time_candidates'] if x.get('full_parsed_count',0)>0])>=2:
+        if not has_roles and len(profile['time_candidates'])>=2:
             profile['sequence_check']='NOT_RUN — time_order 역할 지정 필요'
         # Replace r2's file-order/range heuristic with period/source ratios.
         suspects=[]

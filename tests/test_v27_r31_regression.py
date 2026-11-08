@@ -84,6 +84,15 @@ class RegressionR31(unittest.TestCase):
   self.write('unknown.csv',['alpha','timestamp_a','timestamp_b'],[{'alpha':'x','timestamp_a':'2031-01-01T01:00:00','timestamp_b':'2031-01-01T02:00:00'}])
   item=self.scan('unknown.csv')['items'][0]['findings'][0]
   self.assertTrue(item['sequence_check'].startswith('NOT_RUN'))
+ def test_unparsed_time_columns_still_expose_missing_sequence_check(self):
+  self.write('empty_times.csv',['a','timestamp_a','timestamp_b'],[{'a':'x','timestamp_a':'','timestamp_b':''}])
+  item=self.scan('empty_times.csv')['items'][0]['findings'][0]
+  self.assertTrue(item['sequence_check'].startswith('NOT_RUN'))
+ def test_unfamiliar_iso_columns_still_detect_mixed_timezone(self):
+  rows=[{'alpha':'x','first':'2031-01-01T00:00:00Z' if i%2 else '2031-01-01T00:00:00',
+         'second':'2031-01-01T01:00:00'} for i in range(6)]
+  self.write('unknown_iso.csv',list(rows[0]),rows);p=self.scan('unknown_iso.csv')['files'][0]['tables'][0]
+  self.assertTrue(any(x.get('column')=='first' and x.get('signal')=='TIMEZONE_MIXED' for x in p['time_candidates']))
  def test_group_budgets_are_warnings_for_several_wide_shapes(self):
   for metrics,categories in ((120,1),(200,0),(30,6)):
    fields=['id_text']+['group_%d'%i for i in range(categories)]+['measure_%d'%i for i in range(metrics)]
