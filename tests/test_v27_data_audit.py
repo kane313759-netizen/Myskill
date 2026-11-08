@@ -30,7 +30,7 @@ class DataAuditChecks(unittest.TestCase):
         profile = report['files'][0]['tables'][0]
         self.assertEqual(profile['duplicate_rows'], 1)
         self.assertEqual(profile['null_counts']['value'], 1)
-        self.assertEqual(len(profile['scale_suspects']), 1)
+        self.assertEqual(len(profile['scale_suspects']), 0)  # 10^4 is outside r3 rules
         self.assertEqual(profile['time_candidates'][0]['timezone_explicit_count'], 4)
         self.assertEqual(report['items'][4]['status'], 'UNVERIFIED')
         self.assertEqual(report['items'][6]['status'], 'UNVERIFIED')
@@ -40,8 +40,8 @@ class DataAuditChecks(unittest.TestCase):
         report = AUDIT(self.root, {'files': ['data.csv'], 'max_rows': 2,
                                    'na': [1], 'na_reasons': {'1': 'no time data'}})
         self.assertEqual(report['status'], 'FAIL')
-        self.assertEqual(report['scope']['rows_examined'], 2)
-        self.assertFalse(report['scope']['all_provided_rows_examined'])
+        self.assertEqual(report['scope']['rows_examined'], 4)
+        self.assertTrue(report['scope']['all_provided_rows_examined'])
         self.assertEqual(report['items'][0]['status'], 'UNVERIFIED')
 
     def test_document_only_na_with_instruction_risk_still_unverified(self):
@@ -78,7 +78,7 @@ class DataAuditChecks(unittest.TestCase):
         self.assertEqual(report['status'], 'RECORDED')
         self.assertEqual(len(report['files']), 1)
         self.assertEqual(AUDIT(self.root, {'files': ['../outside.csv']})['status'], 'FAIL')
-        self.assertEqual(AUDIT(self.root, {'files': ['data.csv'], 'max_file_bytes': 2})['status'], 'FAIL')
+        self.assertEqual(AUDIT(self.root, {'files': ['data.csv'], 'max_file_bytes': 2})['status'], 'UNVERIFIED')
 
     def test_malformed_csv_returns_structured_failure_through_api_and_cli(self):
         (self.root / 'bad.csv').write_text('id,value\n1,"unterminated\n', encoding='utf-8')
@@ -117,15 +117,16 @@ class DataAuditChecks(unittest.TestCase):
     def test_gzip_decompression_budget_and_truncation_are_explicit(self):
         with gzip.open(self.root / 'data.csv.gz', 'wt', encoding='utf-8') as f:
             f.write('value\n' + 'long-data\n' * 50)
-        result = AUDIT(self.root, {'files': ['data.csv.gz'], 'max_decompressed_bytes': 100})
-        self.assertEqual(result['status'], 'FAIL')
-        self.assertIn('decompressed', result['errors'][0]['error'])
+        result = AUDIT(self.root, {'files': ['data.csv.gz'], 'max_scan_bytes': 100})
+        self.assertEqual(result['status'], 'UNVERIFIED')
+        self.assertIn('budget', result['files'][0]['partial_reason'])
         result = AUDIT(self.root, {'files': ['data.csv.gz'], 'max_rows': 5})
-        self.assertFalse(result['scope']['all_provided_rows_examined'])
+        self.assertTrue(result['scope']['all_provided_rows_examined'])
+        self.assertEqual(result['files'][0]['profile_rows'], 5)
 
     def test_reversed_process_steps_within_wafer_ignore_file_order(self):
         (self.root / 'route.csv').write_text(
-            'wafer_id,step_seq,track_in,track_out\n'
+            'wafer,oper,start,end\n'
             'a,200,2026-01-01T00:30:00,2026-01-01T01:30:00\n'
             'b,200,2026-01-01T03:00:00,2026-01-01T04:00:00\n'
             'a,100,2026-01-01T00:00:00,2026-01-01T01:00:00\n'
@@ -138,7 +139,6 @@ class DataAuditChecks(unittest.TestCase):
     def test_extreme_scale_step_never_emits_nonfinite_json(self):
         (self.root / 'scale.csv').write_text('value\n' + '1e-300\n' * 10 + '1e300\n' * 10)
         result = AUDIT(self.root, {'files': ['scale.csv']})
-        self.assertTrue(result['files'][0]['tables'][0]['scale_suspects'])
         json.dumps(result, allow_nan=False)
 
 

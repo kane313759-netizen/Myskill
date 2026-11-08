@@ -224,7 +224,7 @@ class EvidenceTests(unittest.TestCase):
 
     def test_type_b_missing_limitations_fails_but_no_human_ack_is_needed(self):
         self.cp1_records()
-        card = dict(decision='optimizer', chosen='greedy', why='bounded plan', alternative='search', limitations='May miss a better assignment.', change_location='choose()')
+        card = dict(decision='optimizer', chosen='greedy', why='bounded plan', alternative='search', limitations='May miss a better assignment.', change_location='choose()', selection_by='AI', evidence_score={'metric':'quality','score':1,'alternative_difference':0.1})
         self.record('decisions', {'type_b_cards': [card]})
         self.assertEqual(self.result('cp1')['errors'], [])
         del card['limitations']
@@ -358,7 +358,7 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         baseline_ref = self.write('baseline_score.json', json.dumps({'metric': 'score', 'value': 10, 'scope': scope, 'artifact': baseline_artifact}))
         candidate_ref = self.write('candidate_score.json', json.dumps({'metric': 'score', 'value': 11, 'scope': scope, 'artifact': candidate_artifact}))
         self.record('baseline_comparison', {'status': 'AVAILABLE', 'metric': 'score', 'direction': 'HIGHER_IS_BETTER',
-            'baseline_value': 10, 'candidate_value': 11, 'selection': 'CANDIDATE', 'baseline_evidence': baseline_ref,
+            'baseline_value': 10, 'candidate_value': 11, 'selection': 'CANDIDATE', 'gates': [], 'baseline_evidence': baseline_ref,
             'candidate_evidence': candidate_ref, 'shared_scope_evidence': scope_ref})
         self.record('external_requests', {'status': 'NONE'})
         program = self.write('maintenance_product.py', 'import json,sys\nprint(json.dumps(json.load(open(sys.argv[1]))))\n')
@@ -422,13 +422,13 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         self.record('baseline_comparison', data)
         self.assertTrue(any('two distinct alternatives' in x for x in self.result('final')['unverified']))
         data['alternatives'] = [{'name': name, 'assumptions': 'same data', 'result': 'not better', 'evidence': data['baseline_evidence']} for name in ('A', 'B')]
-        data['baseline_assumptions_check'] = 'existing policy and costs checked'
+        data['baseline_assumptions_check'] = [{'check': n, 'method': 'review', 'result': 'verified'} for n in ('response_shape', 'progress_variable', 'operating_shift')]
         self.record('baseline_comparison', data)
         self.assertEqual(self.result('final')['status'], 'PASS')
 
     def test_pending_external_reply_and_maintenance_block_final(self):
         self.complete_final_records()
-        self.record('external_requests', {'status': 'TRACKED', 'requests': [{'state': 'PENDING'}]})
+        self.record('external_requests', {'status': 'TRACKED', 'requests': [{'state': 'PENDING','hypothesis':'h','target':'t','expected_if_true':'yes','expected_if_false':'no','budget_left':1,'layer_check':'checked'}]})
         self.assertTrue(any('do not lock' in x for x in self.result('final')['unverified']))
         self.record('external_requests', {'status': 'NONE'})
         m = json.loads((self.root / self.plan['records']['maintenance']['path']).read_text())

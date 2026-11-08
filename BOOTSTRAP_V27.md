@@ -1,5 +1,7 @@
 # 본선 시작
 
+Windows PowerShell에서는 먼저 `$env:PYTHONUTF8 = "1"`을 실행한다. 실행 별칭 `python` 대신 `py -3` 또는 실제 `python.exe` 전체 경로를 쓴다. 격리 옵션 `-I`는 환경 변수를 무시하므로 해당 명령에는 `-X utf8 -I`를 함께 사용한다.
+
 새 과제 대화에는 아래 한 문장으로 시작한다. 설치된 파일은 `.hackathon-kit/BOOTSTRAP_V27.md`에서 찾을 수 있다.
 
 ```text

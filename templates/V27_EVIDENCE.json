@@ -20,11 +20,12 @@
   ],
   "data_audit_plan": {
     "files": [],
-    "max_rows": 1000000,
-    "max_file_bytes": 33554432,
+    "max_rows": 2000,
     "na": [],
     "na_reasons": {},
-    "max_decompressed_bytes": 67108864
+    "max_scan_bytes": 2147483648,
+    "max_scan_seconds": 120,
+    "reservoir_size": 2000
   },
   "spec_draft": null,
   "submission_rules": {},
@@ -49,6 +50,11 @@
     "Final baseline_comparison is AVAILABLE with comparable scoped metric evidence, or UNAVAILABLE_WITH_REASON (UNVERIFIED); a worse candidate fails. CURRENT_BASELINE requires two distinct evidenced alternatives and a baseline assumptions check.",
     "Final external_requests is NONE or TRACKED; each tracked item is PENDING (UNVERIFIED) or RECEIVED with response_evidence.",
     "Final maintenance requires two distinct real changed-config program executions, hash-bound before_config, after_config, program, native execution, observed_output and verification. See v27-contract.md.",
-    "Technical Type B cards must record selection_by:AI; never require participant A/B choice or approval."
+    "Technical Type B cards must record selection_by:AI; never require participant A/B choice or approval.",
+    "time_order explicitly maps id, sequence, start, end, source; otherwise general names are auto-detected. Offset proposals are not automatic corrections.",
+    "Baseline comparison gates list requires same-scope evidence; CURRENT_BASELINE needs three documented distinct checks from the four allowed categories.",
+    "Record each confirmed FINDING impact in grading.finding_impacts or explain why it is unmeasurable.",
+    "Type A choices require allowed topic and bound question/answer; type B evidence_score records metric, score and alternative_difference.",
+    "Each tracked external request records hypothesis, target, both outcomes, remaining budget and layer_check. Deadline fallback only lowers PENDING to warning for a verified submission."
   ]
 }

@@ -31,6 +31,54 @@ def meaningful(value):
         '', 'UNKNOWN', 'TODO', 'NOT_RUN', 'N/A', 'NONE')
 
 
+def utf8_warning(is_windows, utf8_mode):
+    return 'Windows Python UTF-8 mode is off; use PYTHONUTF8=1 and an actual Python executable' if is_windows and not utf8_mode else None
+
+
+def r3_policy(findings=(), impacts=(), gates=(), assumptions=(), keep_baseline=False,
+              type_a=(), type_b=(), requests=(), comparison_verified=False):
+    errors, pending, warnings = [], [], []
+    allowed = {'response_shape', 'missing_reference_join', 'progress_variable', 'operating_shift'}
+    for finding in findings:
+        match = next((x for x in impacts if x.get('item_id') == finding.get('item_id') and
+                      (x.get('finding_ref') == finding.get('finding_ref') or meaningful(x.get('unmeasurable_reason')))), None)
+        if match is None:
+            errors.append('audit FINDING missing impact record')
+        elif meaningful(match.get('unmeasurable_reason')):
+            warnings.append('audit FINDING impact cannot be measured: ' + match['unmeasurable_reason'])
+        elif not all(meaningful(match.get(k)) for k in ('finding_ref','action','metric','split','grader_sha256')) or any(type(match.get(k)) not in (int,float) or not math.isfinite(match[k]) for k in ('before','after')) or len(match['grader_sha256']) != 64:
+            errors.append('audit FINDING requires metric before/after split and grader hash')
+    for gate in gates:
+        a,b = gate.get('baseline_value'), gate.get('candidate_value')
+        direction=gate.get('direction')
+        if not meaningful(gate.get('metric')) or direction not in ('HIGHER_IS_BETTER','LOWER_IS_BETTER') or any(type(x) not in (int,float) or not math.isfinite(x) for x in (a,b)) or not isinstance(gate.get('evidence'),dict):
+            errors.append('gate metric, finite values, direction and evidence required')
+        elif (b < a if direction == 'HIGHER_IS_BETTER' else b > a):
+            errors.append('gate metric is worse than baseline: '+gate['metric'])
+    if keep_baseline:
+        names=[x.get('check') for x in assumptions if isinstance(x,dict)] if isinstance(assumptions,list) else []
+        if not isinstance(assumptions,list) or len(names) != len(assumptions) or len(set(names)) < 3 or not set(names) <= allowed or len(names) != len(set(names)) or any(not meaningful(x.get('method')) or not meaningful(x.get('result')) for x in assumptions if isinstance(x,dict)):
+            pending.append('baseline assumptions require three distinct documented allowed checks')
+    topics={'problem_choice','miss_vs_overkill','speed_vs_precision','risk_tolerance','final_study_minutes','emergency_no_review'}
+    for choice in type_a:
+        if choice.get('topic_key') not in topics or not isinstance(choice.get('question_ref'),dict) or not isinstance(choice.get('answer_ref'),dict):
+            errors.append('type A topic or question/answer reference invalid')
+    for card in type_b:
+        evidence=card.get('evidence_score')
+        if not isinstance(evidence,dict) or not meaningful(evidence.get('metric')) or any(type(evidence.get(k)) not in (int,float) or not math.isfinite(evidence[k]) for k in ('score','alternative_difference')):
+            errors.append('type B evidence_score needs tuning score and alternative difference')
+    for request in requests:
+        fields=('hypothesis','target','expected_if_true','expected_if_false','layer_check')
+        if any(not meaningful(request.get(k)) for k in fields) or type(request.get('budget_left')) is not int or request['budget_left'] < 0:
+            errors.append('external request requires hypothesis, target, both expected outcomes, budget and layer check')
+        if request.get('state') == 'PENDING':
+            if request.get('deadline_fallback') is True and comparison_verified:
+                warnings.append('pending external response: verified submission used deadline fallback')
+            else:
+                pending.append('external request pending: do not lock before response')
+    return {'errors':errors,'pending':pending,'warnings':warnings}
+
+
 def path_index(argv, expected):
     """Locate the actual absolute path token using host filesystem semantics."""
     normalized = os.path.normcase(str(Path(expected).resolve()))
@@ -46,6 +94,9 @@ def _check(plan, root, kit, phase='final', source=None):
     h = module('v27_common')
     root, kit = Path(root), Path(kit)
     errors, pending, warnings = [], [], []
+    window_warning = utf8_warning(os.name == 'nt', sys.flags.utf8_mode)
+    if window_warning:
+        warnings.append(window_warning)
     execution_tools = ['exec_command']
     records = plan.get('records', {}) if isinstance(plan, dict) else {}
     if not isinstance(plan, dict) or plan.get('version') != 1 or not isinstance(records, dict):
@@ -228,12 +279,12 @@ def _check(plan, root, kit, phase='final', source=None):
             for item in items:
                 if item.get('status') == 'UNVERIFIED':
                     reviewed = resolved.get(item.get('id'), {})
-                    if reviewed.get('status') != 'RECORDED' or not meaningful(reviewed.get('method')) or not meaningful(reviewed.get('finding')):
+                    if reviewed.get('status') not in ('RECORDED', 'FINDING') or not meaningful(reviewed.get('method')) or not meaningful(reviewed.get('finding')):
                         pending.append('data_audit item %s remains UNVERIFIED' % item.get('id'))
                     else:
                         bound(reviewed.get('evidence'))
                         hashes(reviewed.get('source_hashes'), 'audit resolution sources')
-                        expected = {value['path']: value['sha256'] for value in audit.get('files', [])}
+                        expected = {value['path']: value['sha256'] for value in audit.get('files', []) if value.get('sha256')}
                         expected.update({records['data_audit']['path']: records['data_audit']['sha256'], plan['spec_draft']['path']: plan['spec_draft']['sha256']})
                         if reviewed.get('data_audit_sha256') != records['data_audit']['sha256'] or any(reviewed.get('source_hashes', {}).get(path) != value for path, value in expected.items()):
                             errors.append('audit resolution is stale or does not cover current audit, inputs and SPEC_DRAFT')
@@ -315,6 +366,13 @@ def _check(plan, root, kit, phase='final', source=None):
 
     decisions = record('decisions')
     if decisions:
+        choice_policy = r3_policy(type_a=decisions.get('type_a_choices', []), type_b=decisions.get('type_b_cards', []))
+        errors.extend(choice_policy['errors'])
+        for choice in decisions.get('type_a_choices', []):
+            try:
+                bound(choice.get('question_ref')); bound(choice.get('answer_ref'))
+            except (OSError, ValueError, TypeError) as exc:
+                errors.append('type A question/answer evidence: ' + str(exc))
         for card in decisions.get('type_b_cards', []):
             if not all(meaningful(card.get(key)) for key in ('decision', 'chosen', 'why', 'alternative', 'limitations', 'change_location')):
                 errors.append('type B card needs decision, explanation, alternative, limitations and change_location')
@@ -373,7 +431,7 @@ def _check(plan, root, kit, phase='final', source=None):
                 replay = record('clean_run', required=False) or {}
                 current = dict(replay.get('input_sha256', {}))
                 current.update({x['path']: x['sha256'] for x in replay.get('artifacts', [])})
-                current.update({x['path']: x['sha256'] for x in (audit or {}).get('files', [])})
+                current.update({x['path']: x['sha256'] for x in (audit or {}).get('files', []) if x.get('sha256')})
                 for ref in (records.get('data_audit'), plan.get('spec_draft'), records.get('data_audit_resolution')):
                     if ref:
                         current[ref['path']] = ref['sha256']
@@ -442,7 +500,20 @@ def _check(plan, root, kit, phase='final', source=None):
         except (OSError, ValueError, TypeError, KeyError) as exc:
             errors.append('snapshot: ' + str(exc))
     if phase == 'final':
+        resolved_findings = [dict(x, item_id=x.get('item_id', x.get('id'))) for x in (record('data_audit_resolution', required=False) or {}).get('items', []) if x.get('status') == 'FINDING']
+        declared_findings = [dict(x, item_id=x.get('item_id', x.get('id'))) for x in (audit or {}).get('items', []) if x.get('status') == 'FINDING']
+        effect_policy = r3_policy(findings=resolved_findings + declared_findings, impacts=(grading or {}).get('finding_impacts', []))
+        errors.extend(effect_policy['errors']); warnings.extend(effect_policy['warnings'])
+        for impact in (grading or {}).get('finding_impacts', []):
+            if not meaningful(impact.get('unmeasurable_reason')):
+                known = (grading or {}).get('evaluator_hashes', {})
+                if impact.get('grader_sha256') not in known.values():
+                    errors.append('audit FINDING impact grader hash is not a retained current evaluator')
+                else:
+                    hashes(known, 'finding impact grader')
         comparison = record('baseline_comparison')
+        comparison_error_start = len(errors)
+        comparison_pending_start = len(pending)
         if comparison:
             if comparison.get('status') == 'UNAVAILABLE_WITH_REASON':
                 if not meaningful(comparison.get('reason')):
@@ -485,12 +556,31 @@ def _check(plan, root, kit, phase='final', source=None):
                                     bound(option.get('evidence'))
                                 except (OSError, ValueError, TypeError, AttributeError) as exc:
                                     errors.append('baseline alternative: ' + str(exc))
-                        if not meaningful(comparison.get('baseline_assumptions_check')):
-                            pending.append('current baseline assumptions were not checked')
+                        p = r3_policy(assumptions=comparison.get('baseline_assumptions_check', []), keep_baseline=True)
+                        pending.extend(p['pending'])
                     elif comparison.get('selection') != 'CANDIDATE':
                         errors.append('baseline comparison: selection must be CANDIDATE or CURRENT_BASELINE')
             else:
                 pending.append('baseline comparison: availability and decision not recorded')
+
+            gates = comparison.get('gates')
+            if not isinstance(gates,list):
+                pending.append('baseline comparison: explicit gate metrics list required')
+            else:
+                p = r3_policy(gates=gates); errors.extend(p['errors'])
+                for gate in gates:
+                    try:
+                        observed = h['read_json'](bound(gate.get('evidence')))
+                        expected_scope = h['read_json'](bound(comparison.get('shared_scope_evidence')))
+                        if any(observed.get(k) != gate.get(k) for k in ('metric','baseline_value','candidate_value')) or observed.get('scope') != expected_scope:
+                            raise ValueError('gate metric evidence does not match values and common evaluation scope')
+                        baseline_score = h['read_json'](bound(comparison.get('baseline_evidence')))
+                        candidate_score = h['read_json'](bound(comparison.get('candidate_evidence')))
+                        if observed.get('baseline_artifact') != baseline_score.get('artifact') or observed.get('candidate_artifact') != candidate_score.get('artifact'):
+                            raise ValueError('gate metric evidence must bind the same baseline and candidate artifacts')
+                    except (OSError, ValueError, TypeError, AttributeError) as exc:
+                        errors.append('gate evidence: ' + str(exc))
+        comparison_ok = bool(comparison and comparison.get('status') == 'AVAILABLE' and len(errors) == comparison_error_start and len(pending) == comparison_pending_start)
 
         requests = record('external_requests')
         if requests:
@@ -502,14 +592,12 @@ def _check(plan, root, kit, phase='final', source=None):
                     errors.append('external requests: tracked list required')
                 else:
                     for item in entries:
-                        if item.get('state') == 'PENDING':
-                            pending.append('external request pending: do not lock before response')
-                        elif item.get('state') == 'RECEIVED':
+                        if item.get('state') == 'RECEIVED':
                             try:
                                 bound(item.get('response_evidence'))
                             except (OSError, ValueError, TypeError) as exc:
                                 errors.append('external request response: ' + str(exc))
-                        else:
+                        elif item.get('state') != 'PENDING':
                             pending.append('external request: state unresolved')
 
         maintenance = record('maintenance')
@@ -566,6 +654,12 @@ def _check(plan, root, kit, phase='final', source=None):
             if not replay.get('artifacts'):
                 pending.append('clean_run: current final artifacts not bound')
             execution('clean_run', replay, 'clean_run.py')
+        request_items = (requests or {}).get('requests', [])
+        submission_verified = bool(comparison_ok and (records.get('submission') or {}).get('execution') and
+            (records.get('clean_run') or {}).get('execution') and
+            not any(x.startswith(('submission:', 'clean_run:')) for x in errors + pending))
+        request_policy = r3_policy(requests=request_items, comparison_verified=submission_verified)
+        errors.extend(request_policy['errors']); pending.extend(request_policy['pending']); warnings.extend(request_policy['warnings'])
     return dict(status='FAIL' if errors else 'UNVERIFIED' if pending else 'PASS', errors=errors, unverified=pending, warnings=warnings,
                 notice='Retained local evidence only; no authenticated identity, official score, gate transition or submission receipt.')
 

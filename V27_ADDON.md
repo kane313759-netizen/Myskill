@@ -68,3 +68,9 @@ python -I .hackathon-kit/scripts/kit_lifecycle.py clean --kit .hackathon-kit --a
 ### v2.7 r2 시험 개선
 
 기준선보다 나쁜 후보를 막고 현행 유지의 두 대안·가정을 확인한다. 진행자 회신 전에는 최종 잠금을 하지 않으며 최소 두 설정 변경의 실제 실행 증거를 요구한다. 감사 대상은 명시 파일로 한정한 채 gzip CSV와 규모 계단·시각 역행 후보를 검사한다. Type B 기술 선택은 AI가 수행하고 참가자 승인 카드로 바꾸지 않는다. 감사 경보와 실행 증거는 도메인 진실·공식 점수·인간 이해를 인증하지 않는다. 세부 스키마와 안전 예산은 references/v27-contract.md를 따른다.
+
+### v2.7 r3 합성 회귀 보완
+
+명시·자동 역할과 bounded 개체 표본으로 공정 순서·출처별 역행과 제안 시차를 점검한다. 파일별 gzip/CSV 스트리밍, 기간·출처별 10의 거듭제곱 규모 비교, FINDING 효과·관문·가정·실제 선택·요청 폴백 근거를 추가했다. 모든 경보·시차는 후보이며 사람의 검토가 필요하다.
+
+Windows 실행 경험: 기본 python 별칭은 실제 인터프리터가 아니어서 PowerShell 설치 테스트가 종료 9009로 실패했다. `test_internal_source`의 일부 UTF-8 manifest 읽기는 CP949 기본값에서 UnicodeDecodeError가 났고, `test_local_score`의 일부 하위 프로세스 출력도 UTF-8/CP949 충돌로 읽지 못했다. 해당 테스트는 보호 파일이므로 수정하지 않았다. 환경에서 UTF-8 모드를 설정하고, `-I` 실행에는 `-X utf8`이 별도로 필요하다. 플랫폼별 미실행 CI는 통과로 적지 않는다.

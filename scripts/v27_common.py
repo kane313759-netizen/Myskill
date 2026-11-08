@@ -85,8 +85,23 @@ def extract_json_document(path):
     return json.loads(blocks[0], object_pairs_hook=_object, parse_constant=lambda x: (_ for _ in ()).throw(V27Error('non-finite JSON is not allowed')))
 
 
-def sha256_file(path, max_bytes=FILE_LIMIT):
-    return hashlib.sha256(read_bytes(path, max_bytes)).hexdigest()
+def sha256_file(path, max_bytes=2 * 1024 * 1024 * 1024):
+    path = _no_links(path)
+    if type(max_bytes) is not int or max_bytes < 1:
+        raise V27Error('positive byte bound required')
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_size > max_bytes:
+        raise V27Error('file exceeds hash byte bound: ' + str(path))
+    flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_NOFOLLOW', 0)
+    digest = hashlib.sha256(); total = 0
+    with os.fdopen(os.open(str(path), flags), 'rb') as handle:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            raise V27Error('opened record is not regular')
+        for block in iter(lambda: handle.read(1024 * 1024), b''):
+            total += len(block)
+            if total > max_bytes: raise V27Error('file exceeds hash byte bound')
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def atomic_json(path, value):
