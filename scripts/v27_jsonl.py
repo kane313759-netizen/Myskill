@@ -3,9 +3,51 @@ import csv
 import gzip
 import hashlib
 import json
+import os
 import tempfile
 import time
 from pathlib import Path
+
+def _real(path):
+    """Real path with links and Windows junctions resolved, the Windows long-path prefix removed and case normalized."""
+    resolved=os.path.realpath(str(path))
+    if resolved.startswith('\\\\?\\UNC\\'): resolved='\\\\'+resolved[8:]
+    elif resolved.startswith('\\\\?\\'): resolved=resolved[4:]
+    return os.path.normcase(os.path.normpath(resolved))
+
+def _inside_kit(path, kit, parts):
+    """True when path resolves to exactly <real kit>/<parts...>; no relative_to, so case or prefix differences cannot raise."""
+    return _real(path)==os.path.normcase(os.path.normpath(os.path.join(_real(kit),*parts)))
+
+def _scratch():
+    """System temp first; if a sandbox denies it, fall back to the installed kit's run/.v27-tmp (inside the workspace).
+    The fallback is refused when run/ or run/.v27-tmp is a link or junction that leads outside the kit; a folder created
+    for the fallback is removed if any later check fails."""
+    try:
+        holder=tempfile.TemporaryDirectory(prefix='v27-jsonl-')
+        try:
+            (Path(holder.name)/'.probe').write_bytes(b'ok')
+            return holder
+        except OSError:
+            holder.cleanup()
+            raise
+    except OSError:
+        kit=Path(__file__).resolve().parents[1]
+        refused='JSONL scratch fallback refused: kit run/.v27-tmp is a link or junction outside the kit'
+        current=kit; parts=[]
+        for part in ('run','.v27-tmp'):
+            current=current/part; parts.append(part)
+            if os.path.lexists(str(current)) and not _inside_kit(current,kit,parts): raise OSError(refused)
+            current.mkdir(exist_ok=True)
+            if not _inside_kit(current,kit,parts): raise OSError(refused)
+        holder=tempfile.TemporaryDirectory(prefix='v27-jsonl-',dir=str(current))
+        try:
+            ok=_inside_kit(holder.name,kit,parts+[os.path.basename(holder.name)])
+        except Exception:
+            holder.cleanup(); raise
+        if not ok:
+            holder.cleanup(); raise OSError(refused)
+        return holder
 
 def scan_jsonl(path, plan, spec, io, scan_csv):
     started=time.monotonic(); budget=plan.get('max_scan_seconds',300)
@@ -23,7 +65,7 @@ def scan_jsonl(path, plan, spec, io, scan_csv):
     opener=gzip.open if path.name.lower().endswith('.gz') else open
     columns={}; broken=0; valid_rows=0; size=0; complete=True; reason=None
     def reject_constant(value): raise ValueError('nonfinite JSON value')
-    with tempfile.TemporaryDirectory(prefix='v27-jsonl-') as directory:
+    with _scratch() as directory:
         spool=Path(directory)/'rows.jsonl'; table=Path(directory)/'rows.csv'
         with opener(path,'rb') as source, spool.open('w',encoding='utf8') as target:
             while True:

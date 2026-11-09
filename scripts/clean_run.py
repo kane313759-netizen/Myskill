@@ -4,8 +4,10 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import runpy
+import stat
 import subprocess
 import sys
 import tempfile
@@ -15,6 +17,21 @@ import time
 
 def common():
     return runpy.run_path(str(Path(__file__).with_name('v27_common.py')), run_name='v27_clean_common')
+
+
+def _restore_writable(helper, replay, sources):
+    """Give copied read-only data files back owner write permission (Windows cleanup cannot delete read-only files)."""
+    failed = []
+    for name, _, readonly in sources:
+        if not readonly:
+            continue
+        try:
+            target = helper['safe_path'](replay, name, must_exist=False)
+            if target.is_file() and not target.is_symlink():
+                os.chmod(str(target), stat.S_IREAD | stat.S_IWRITE)
+        except (OSError, ValueError):
+            failed.append(name)
+    return failed
 
 
 def _equivalent(actual, expected, absolute, relative):
@@ -210,6 +227,8 @@ def clean_run(root, plan, scratch):
                         errors.append('copied input data changed: ' + name)
                 except (OSError, ValueError):
                     errors.append('copied input data missing or no longer a bounded file: ' + name)
+        for name in _restore_writable(helper, replay, sources):
+            errors.append('could not restore write permission on copied input: ' + name)
         return {'status': 'FAIL' if errors else 'PASS', 'errors': errors, 'replay_dir': str(replay),
                 'command': argv, 'exit_code': exit_code, 'elapsed_seconds': elapsed,
                 'input_sha256': source_hashes, 'artifacts': artifacts, 'submission_check': submit,
@@ -218,6 +237,9 @@ def clean_run(root, plan, scratch):
     except Exception:
         # Preserve the owned replay for diagnosis; never delete original/source state.
         raise
+    finally:
+        # Every exit path (timeout return, exception) leaves copies deletable; the replay itself is preserved.
+        _restore_writable(helper, replay, sources)
 
 
 def main():

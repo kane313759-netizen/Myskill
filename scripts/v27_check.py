@@ -697,6 +697,7 @@ def main():
     parser.add_argument('--source', type=Path)
     parser.add_argument('--phase', choices=('intake', 'cp1', 'final'), default='final')
     parser.add_argument('--plan', default='.hackathon-kit/run/V27_EVIDENCE.json')
+    parser.add_argument('--output', type=Path, help='Also write the result JSON to this new file (an existing file is not overwritten)')
     args = parser.parse_args()
     try:
         h = module('v27_common')
@@ -704,7 +705,15 @@ def main():
         result = check(h['read_json'](h['safe_path'](root, args.plan)), root, args.kit, args.phase, args.source)
     except (OSError, ValueError, TypeError, KeyError) as exc:
         result = dict(status='FAIL', errors=[str(exc)], unverified=[], warnings=[])
-    print(json.dumps(result, ensure_ascii=False, allow_nan=False, indent=2))
+    text = json.dumps(result, ensure_ascii=False, allow_nan=False, indent=2)
+    print(text)
+    if args.output:
+        try:
+            with open(str(args.output), 'x', encoding='utf-8', newline='\n') as handle:
+                handle.write(text + '\n')
+        except OSError as exc:
+            print('V27 CHECK OUTPUT NOT WRITTEN: ' + str(exc))
+            return 2
     return 0 if result['status'] == 'PASS' else 2
 
 

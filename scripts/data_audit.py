@@ -2,6 +2,7 @@
 """Record bounded observations for ten data-audit questions, without certifying domain truth."""
 import argparse
 from collections import Counter
+import ast
 import csv
 import gzip
 import itertools
@@ -711,9 +712,31 @@ def audit(root, plan):
                     analysis_limits=[{'check':'source','reason':'non-CSV bounded source comparison not performed','column':'*','dropped':1},
                                      {'check':'period','reason':'non-CSV bounded period comparison not performed','column':'*','dropped':1}])
                 declared_columns = []
-                tables = io['tables'](path, remaining + 1, byte_limit,
-                                      encoding=spec.get('encoding'), records_key=spec.get('records_key'),
-                                      sheet=spec.get('sheet'), all_sheets=False)
+                # Without an explicit sheet every sheet is audited (one plan entry per workbook);
+                # a JSON file with several record arrays is audited array by array.
+                def _collect(records_key):
+                    return list(io['tables'](path, remaining + 1, byte_limit,
+                                             encoding=spec.get('encoding'), records_key=records_key,
+                                             sheet=spec.get('sheet'), all_sheets=spec.get('sheet') is None))
+                skipped_sheets = []
+                try:
+                    if path.suffix.lower() in ('.xlsx', '.xlsm') and spec.get('sheet') is None:
+                        tables = []
+                        for sheet_name in io['list_sheets'](path):
+                            try:
+                                tables += list(io['tables'](path, remaining + 1, byte_limit, encoding=spec.get('encoding'),
+                                                            records_key=None, sheet=sheet_name, all_sheets=False))
+                            except ValueError as sheet_error:
+                                skipped_sheets.append({'sheet': sheet_name, 'reason': str(sheet_error)})
+                    else:
+                        tables = _collect(spec.get('records_key'))
+                except ValueError as ambiguous:
+                    found = re.match(r"Ambiguous JSON record arrays (\[.*\])", str(ambiguous))
+                    if not found or spec.get('records_key') is not None:
+                        raise
+                    tables = []
+                    for key in ast.literal_eval(found.group(1)):
+                        tables += [(key if label is None else label, rows) for label, rows in _collect(key)]
                 for sheet, rows in tables:
                     partial = len(rows) > remaining
                     sample = rows[:remaining]
@@ -727,6 +750,11 @@ def audit(root, plan):
                     artifact['complete_rows'] = artifact['complete_rows'] and not partial
                     total_rows += len(sample)
                     remaining -= len(sample)
+                if skipped_sheets:
+                    artifact['skipped_sheets'] = skipped_sheets
+                    artifact['complete_rows'] = False
+                    artifact['partial_reason'] = ('some sheets are not plain tables (merged cells, multi-row headers, notes); '
+                                                  'review them manually or audit an explicitly flattened copy')
                 if helper['read_bytes'](path, byte_limit) != content:
                     raise ValueError('provided file changed during audit')
             elif path.suffix.lower() in ('.txt', '.md', '.rst', '.pdf', '.docx', '.html'):
@@ -737,7 +765,11 @@ def audit(root, plan):
             artifact['status']='UNVERIFIED' if artifact.get('complete_rows') is False else 'RECORDED'
             artifacts.append(artifact)
         except (OSError, EOFError, UnicodeError, ValueError, TypeError, ImportError, RuntimeError, KeyError, csv.Error, zlib.error) as error:
-            errors.append({'path': name, 'error': str(error)})
+            message = str(error)
+            if any(token in message for token in ('sheet', 'Sheet', 'records_key', 'record arrays', '--records-key')):
+                message += (' (audit plan syntax: {"path": "<file>", "sheet": "<sheet name>"} or '
+                            '{"path": "<file>", "records_key": "/<array key>"}; without "sheet" every sheet is audited)')
+            errors.append({'path': name, 'error': message})
     tables_present = any(item['kind'] == 'table' for item in artifacts)
     complete = not errors and all(item.get('complete_rows') is not False for item in artifacts)
     time_candidates = [entry for prof in profiles for entry in prof['time_candidates']]
