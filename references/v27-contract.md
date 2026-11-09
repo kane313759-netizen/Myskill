@@ -12,7 +12,7 @@
 python -I .hackathon-kit/scripts/deadline.py --input .hackathon-kit/run/ENV.md
 ```
 
-`deadline.calculate()`는 `FOLLOWUP=FIXED_TIME|AFTER_CONFIRM|NONE`을 계산한다. S=60, R≥10은 계획 기본값이다. C를 직접 지정하면 그 값을 쓰고 `c_basis`에 명시한다. 지정하지 않으면 `FIX_BUFFER + REVIEW_MINUTES_EACH × 배치 수`로 계산한다. 기본은 여유 20분 + 10분 × 7개 순차 리뷰 = 90분이다. REVIEW_PARALLEL=YES일 때만 한 배치로 계산해 기본 30분이며 NO/UNKNOWN은 순차다. SECURITY_RED의 NOT_TRIGGERED를 확인한 경우에만 FINAL_REVIEW_ROLES를 6으로 갱신한다. 기본 7은 조건부 보안 리뷰까지 준비하는 가정이다.
+`deadline.calculate()`는 `FOLLOWUP=FIXED_TIME|AFTER_CONFIRM|NONE`을 계산한다. S=60, R≥10은 계획 기본값이다. C를 직접 지정하면 그 값을 쓰고 `c_basis`에 명시한다. 지정하지 않으면 `FIX_BUFFER + REVIEW_MINUTES_EACH × 배치 수`로 계산한다. 기본은 여유 20분 + 10분 × 7개 순차 리뷰 = 90분이다. REVIEW_PARALLEL=YES이고 실제로 동시에 도는 리뷰 작업자 수 REVIEW_CONCURRENCY를 적었을 때만 올림(FINAL_REVIEW_ROLES ÷ REVIEW_CONCURRENCY)개 배치로 계산한다(동시 7명이면 30분, 3명이면 리뷰 7개는 50분·6개는 40분). NO/UNKNOWN이거나 동시 수가 UNKNOWN이면 순차다(r4-3.12). SECURITY_RED의 NOT_TRIGGERED를 확인한 경우에만 FINAL_REVIEW_ROLES를 6으로 갱신한다. 기본 7은 조건부 보안 리뷰까지 준비하는 가정이다.
 
 학습 축소에는 실제 참가자 선택이 필요하다. NONE에서 S_pre=0은 확인된 피칭 전 학습 가능 시간도 필요하다. 템플릿의 T_SUB·WINDOW_END=16:00은 참가자가 전달한 경기 종료 시각을 쓴 PLAN_DEFAULT이며 공식 제출 확정 마감이 아니다. 그래서 계획은 KNOWN으로 계산하되 v27_check의 공식 마감 보류는 유지한다. 값 자체가 없으면 UNKNOWN이다. PAUSE 점심과 CP3 시작~작업 잠금이 겹치면 경고만 출력하고 일정을 자동 이동하지 않는다.
 

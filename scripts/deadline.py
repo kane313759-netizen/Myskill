@@ -92,14 +92,27 @@ def _review_reserve(values):
         raise ValueError('FINAL_REVIEW_ROLES must be 6 or 7; use 7 while SECURITY_RED is triggered or unknown')
     each = _minutes(values, ('REVIEW_MINUTES_EACH',), 10, 0.000001)
     repair = _minutes(values, ('FIX_BUFFER',), 20)
-    batches = 1 if parallel == 'YES' else roles
+    concurrency = values.get('REVIEW_CONCURRENCY', 'UNKNOWN')
+    if concurrency in (None, '', 'UNKNOWN'):
+        concurrency = 'UNKNOWN'
+    elif type(concurrency) is not int or not 1 <= concurrency <= 50:
+        raise ValueError('REVIEW_CONCURRENCY must be an integer 1..50 (reviewers actually running at once) or UNKNOWN')
+    # Parallel review counts only for the reviewers that actually run at once; without that number plan sequentially.
+    if parallel == 'YES' and concurrency != 'UNKNOWN':
+        batches = -(-roles // concurrency)
+    else:
+        batches = roles
     minutes = repair + each * batches
     if minutes > 1440:
         raise ValueError('calculated C exceeds 1440 minutes')
-    return minutes, {'mode': 'CALCULATED', 'formula': 'FIX_BUFFER + REVIEW_MINUTES_EACH * batches',
-                     'review_parallel': parallel, 'parallel_assumption': 'YES' if parallel == 'YES' else 'NO',
-                     'review_minutes_each': each, 'fix_buffer_minutes': repair,
-                     'final_review_roles': roles, 'batches': batches, 'minutes': minutes}
+    basis = {'mode': 'CALCULATED', 'formula': 'FIX_BUFFER + REVIEW_MINUTES_EACH * ceil(FINAL_REVIEW_ROLES / REVIEW_CONCURRENCY)',
+             'review_parallel': parallel, 'review_concurrency': concurrency,
+             'parallel_assumption': 'YES' if batches < roles else 'NO',
+             'review_minutes_each': each, 'fix_buffer_minutes': repair,
+             'final_review_roles': roles, 'batches': batches, 'minutes': minutes}
+    if parallel == 'YES' and concurrency == 'UNKNOWN':
+        basis['note'] = 'REVIEW_PARALLEL=YES without REVIEW_CONCURRENCY: planned sequentially until the number of reviewers running at once is recorded'
+    return minutes, basis
 
 
 def calculate(values):

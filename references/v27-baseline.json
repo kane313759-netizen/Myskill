@@ -3,7 +3,7 @@
   "baseline_commit": "affd3c1623f67697247c67f6d30df9e76b9bc076",
   "baseline_version": "2026-11-08-finals-r8.2-candidate",
   "post_baseline_edits": {
-    "README.md": "r4-3.10: top box for AI agents (install_v27.py and $hackathon-orchestrator-universal start); body unchanged"
+    "README.md": "r4-3.10: top box for AI agents (install_v27.py and $hackathon-orchestrator-universal start); r4-3.12: box keeps the temporary clone outside the task folder; body unchanged"
   },
   "files": {
     ".agents/skills/agent-chatbot/SKILL.md": "bd34987d6dec1ae545719f288a0508c25b679c920e82de41ca2eb840eee4f23a",
@@ -42,7 +42,7 @@
     "CHANGELOG.md": "d2fc64cfe946b911e5141f5be0c60107834cbdb6dc1b8944b25ef27deb4d0f42",
     "EXAM_POLICY.md": "b4deca2c78495bee0d19d0fbbfea797e65d49075aae461c80d21651f9b6ed558",
     "FINALS_POLICY.md": "f196dc22f0e60f36f5898e0ba7424ace49795b0b991ba78a48eb0442361021e4",
-    "README.md": "ed2b1afd2bb24948fb889b40497b6f63b1762b9fae78700705b985500b9c4720",
+    "README.md": "c9368905b163d77cc2ce179255677cef502152a8c0ce96e15b5175745806286a",
     "VERSION": "70000b576bba1948a5368c6936c85754644d68739df6e9b5788e2dabc7e76ac0",
     "install.ps1": "2d3cc156ef27a93ec62085d6276fe6eae06ef528543c52bb90e0b977f2691855",
     "install.sh": "b04458c64cd6555392ba598a385e70c05ad444a47e6b1e5959a7399c61ff9a6e",

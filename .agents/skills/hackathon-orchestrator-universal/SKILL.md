@@ -121,3 +121,30 @@ FINDING은 실제 지표 전후와 평가기 해시 또는 측정 불가 사유�
 
 - 반도체 공정·장비·품질 용어나 메커니즘이 필요할 때만 설치된 `references/semiconductor-domain-playbook.md`(1부)·`references/semiconductor-domain-playbook-2.md`(2부)에서 해당 절을 찾아 읽는다. 처음부터 전체를 읽지 않는다. 플레이북의 수치·사례는 가설의 출발점이며, 과제 데이터로 확인하기 전에는 사실이나 제약으로 쓰지 않는다.
 - DATA_EVAL_RED·ALGORITHM_RED 의뢰문에는 설치된 `references/domain-review-questions.md`를 붙인다. 리뷰어는 해당 질문마다 확인함(근거)·해당 없음(이유)·미확인으로만 답하고, 미확인이면서 과제 지표에 영향이 클 때만 P1로 올린다.
+
+## 역할별 모델·노력 (r4-3.12, 참가자 지정)
+
+이 표가 `references/model-policy.md`의 선호 모델 표보다 우선한다(그 파일은 보호 원본이라 고치지 않는다). 역할 경계, 리뷰어의 깨끗한 맥락(`fork_turns="none"`), 실제 선택 기록 규칙은 그대로다.
+
+| 역할 | 모델 | 노력 |
+|---|---|---|
+| ORCHESTRATOR (진행) | Sol 6.1 | high |
+| MAIN_BUILDER (구현) | Sol 6.1 | Ultra |
+| CODE_RED (코드 리뷰) | Sol 6.1 | high |
+| CONSTRAINT_RED (제약 리뷰) | Sol 6.1 | Max |
+| DATA_EVAL_RED (데이터·평가 리뷰) | Sol 6.1 | Max |
+| ALGORITHM_RED (알고리즘 리뷰) | Sol 6.1 | Max |
+| EDGE_RED (경계값·결측·예외 리뷰) | Sol 6.1 | high |
+| SUBMISSION_RED (제출 형식 리뷰) | Sol 6.1 | high |
+| SECURITY_RED (보안 리뷰, 조건부) | Sol 6.1 | high |
+| RECORDER (기록) | Luna 6 | Max |
+| TUTOR (설명, 선택) | Sol 6.1 | high |
+
+- 당일 모델 화면·공식 안내에서 이 모델과 노력 단계를 쓸 수 있는지 확인한다. 쓸 수 있으면 그대로 쓰고, 시간을 아끼려고 낮추지 않는다. 없거나 공식 금지면 그 역할에 허용된 가장 강한 모델과 가장 높은 노력 단계를 쓴다.
+- 실제 선택은 ENV에 적는다: 모델은 `assignments`(MODELS.AVAILABLE에 있는 이름), 노력은 `ACTUAL_EFFORT` 스위치. 확인하지 못한 값은 UNKNOWN으로 두고 바꿨다고 주장하지 않는다. 리뷰 영수증의 actual_model에도 실제 모델을 쓴다. 계획값은 ENV의 `MODEL_PLAN` 스위치에 있다.
+- Max·Ultra는 한 번에 오래 걸린다. 하위 작업자가 허용되고 실제로 뜨면 REVIEW_PARALLEL=YES로 하고, 실제로 동시에 띄운 리뷰 작업자 수를 REVIEW_CONCURRENCY에 적는다. 마감은 올림(리뷰 수 ÷ 동시 수)개 배치로 계산되며(위 "one batch"는 동시 수가 리뷰 수 이상일 때만), 동시 수를 모르면 순차로 계산된다. 차례로 돌 때는 첫 리뷰에 걸린 실제 시간으로 REVIEW_MINUTES_EACH를 고치고 `deadline.py --observe-now`로 남은 일정을 다시 계산한다. 리뷰를 줄여 시간을 맞추지 않는다.
+
+## 리뷰 범위 보강 (r4-3.12)
+
+- CONSTRAINT_RED 의뢰문에 현장 실행 가능성 점검을 붙인다. 제안이 실제 장비 능력, 정비·교체 일정, 사람이 할 조치, 안전 절차, 주어진 시간 안에서 실행되는지 묻는다. 과제 문서나 담당자 답에 근거가 있으면 제약으로 기록한다. 근거 없는 "현실적으로 어려울 것 같다"는 제약으로 만들지 않고 담당자 질문·가정·보고서 한계로 남긴다(자작 제한 규칙과 함께 적용).
+- CP1 기본 리뷰는 CONSTRAINT_RED·DATA_EVAL_RED 둘이다. 현행 최적값을 넘기거나 원인을 찾는 과제(최적화·탐색·원인 분석)면 CP1에 ALGORITHM_RED를 하나 더 띄워 계획만 본다: 정식화(목표·결정 변수·제약), 탐색 범위, 현행 기준선과 비교하는 방법, 확인 실험·추가 측정 설계. 코드와 결과 검토는 CP2에서 한다. 리뷰를 동시에 띄울 수 없고 시간이 빠듯하면 이 계획 검토만 생략하고 이유를 기록한다.
