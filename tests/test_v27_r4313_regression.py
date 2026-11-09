@@ -154,6 +154,22 @@ class RegressionR4313(unittest.TestCase):
             self.assertNotIn('동시 7명 30분', text)
             self.assertIn('40분', text)
 
+    def test_10_void_rule_terms_with_two_meanings_are_not_ruled_on(self):
+        section = SKILL.read_text(encoding='utf-8').split('## 당일 운영 보강 (r4-3.13)', 1)[1]
+        line = [text for text in section.splitlines() if text.startswith('- 0점·반려·무효 조건에 쓰인 용어가')][0]
+        for term in ('서로 다른 두 칸이나 두 정의에 맞을 수 있으면', '갈린 것으로 본다', '문서 우선순위(개정판·상위 규정)',
+                     '추론만으로 한쪽을 버리지 않는다', '질문 예산을 여기에 먼저 써서', '공식 해석이 없으면 두 뜻을 모두 지키는 안을 낸다',
+                     'CONSTRAINT_RED는 이런 조건에 판결을 내리지 않고', '뜻마다 따로 돌려, 다른 뜻에서 무효가 되는 건수가 0인지 확인'):
+            self.assertIn(term, line)
+        self.assertIn('그 조건에 쓰인 용어마다 가리킬 수 있는 자료 칸·정의 목록', section)
+
+    def test_11_spare_time_before_the_lock_is_used_for_verified_improvement(self):
+        section = SKILL.read_text(encoding='utf-8').split('## 당일 운영 보강 (r4-3.13)', 1)[1]
+        line = [text for text in section.splitlines() if text.startswith('- 첫 완성안과 CP2가 끝났는데')][0]
+        for term in ('일찍 끝내지 않는다', '검증된 현재 제출안은 그대로 보존하고', '배점이 큰데 확신이 낮은 항목부터', 'CANDIDATES.md',
+                     '같은 자체 검증으로 확인된 뒤에만 교체한다', '수치 근거가 있을 때만 참가자에게 조기 잠금을 묻는다'):
+            self.assertIn(term, line)
+
 
 if __name__ == '__main__':
     unittest.main()
