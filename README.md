@@ -4,10 +4,10 @@
 > 이 상자 아래의 본문은 기준판(r8.2) 설명이다. 설치·시작 방법은 이 상자가 우선한다.
 >
 > 1. 과제 폴더 **밖**의 새 임시 폴더에 이 저장소를 clone한다(기본 브랜치가 최신판이다).
-> 2. 설치: `python -I <clone>/scripts/install_v27.py --source <clone> --target <과제 폴더>`
+> 2. 설치: `python -X utf8 -I <clone>/scripts/install_v27.py --source <clone> --target <과제 폴더>`
 >    (install.sh·install.ps1 대신 이 명령을 쓴다. 시작 문서까지 함께 설치된다.
->    Windows에서 `python`이 실행되지 않으면 `py -3` 또는 실제 `python.exe` 전체 경로를 쓴다.)
-> 3. 점검: `python -I <과제 폴더>/.hackathon-kit/scripts/kit_lifecycle.py doctor --kit <과제 폴더>/.hackathon-kit`
+>    Windows에서 `python`이 실행되지 않으면 `py -3` 또는 실제 `python.exe` 전체 경로를 쓴다. `-X utf8`은 한국어 경로 출력이 깨지지 않게 한다.)
+> 3. 점검: `python -X utf8 -I <과제 폴더>/.hackathon-kit/scripts/kit_lifecycle.py doctor --kit <과제 폴더>/.hackathon-kit`
 > 4. 시작: `<과제 폴더>/.hackathon-kit/BOOTSTRAP_V27.md`의 시작 문장대로 **`$hackathon-orchestrator-universal`** 로 시작한다.
 >    이 스킬이 `hackathon-finals` 절차를 포함하므로, 본문에 나오는 `hackathon-finals` 시작 문장 대신 이것을 쓴다.
 >    참가자는 비개발자다. 공식 규칙 문서·과제 지시를 먼저 읽고, 당일 환경은 문서에서 찾아 적고, 문서에 없는 것만 한 번에 묻는다.

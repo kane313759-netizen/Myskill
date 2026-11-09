@@ -103,7 +103,17 @@ def install(source, target, allow_internal_source=False):
             'target': str(target), 'limits': 'Installation integrity only; no exam gate, runtime model or submission approval.'}
 
 
+def _safe_console():
+    """Korean/space paths are printed by the protected backend; a non-UTF-8 console (e.g. cp1252) must not abort the install."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors='backslashreplace')
+        except (AttributeError, ValueError):
+            pass
+
+
 def main():
+    _safe_console()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, default=ROOT)
     parser.add_argument('--target', type=Path, default=Path.cwd())

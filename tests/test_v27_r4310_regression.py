@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SKILL = ROOT / '.agents/skills/hackathon-orchestrator-universal/SKILL.md'
@@ -26,7 +27,7 @@ class RegressionR4310(unittest.TestCase):
         text = (ROOT / 'README.md').read_text(encoding='utf-8')
         head = text[:2500]
         self.assertTrue(text.startswith('# SK hynix AI Hackathon Starter Kit\n\n> **AI 에이전트에게'))
-        for term in ('scripts/install_v27.py --source <clone> --target <과제 폴더>', 'install.sh·install.ps1 대신',
+        for term in ('python -X utf8 -I <clone>/scripts/install_v27.py --source <clone> --target <과제 폴더>', 'install.sh·install.ps1 대신',
                      'kit_lifecycle.py doctor', 'BOOTSTRAP_V27.md', '$hackathon-orchestrator-universal', '기본 브랜치가 최신판'):
             self.assertIn(term, head)
         self.assertLess(head.index('$hackathon-orchestrator-universal'), text.index('Use the hackathon-finals skill'))
@@ -63,16 +64,33 @@ class RegressionR4310(unittest.TestCase):
             shutil.copytree(str(ROOT), str(clone), ignore=shutil.ignore_patterns('.git', 'run', '__pycache__'))
             task.mkdir()
             env = dict(os.environ, PYTHONUTF8='1')
-            done = subprocess.run([sys.executable, '-I', str(clone / 'scripts/install_v27.py'), '--source', str(clone), '--target', str(task)],
+            done = subprocess.run([sys.executable, '-X', 'utf8', '-I', str(clone / 'scripts/install_v27.py'), '--source', str(clone), '--target', str(task)],
                                   capture_output=True, text=True, encoding='utf-8', errors='replace', env=env)
             self.assertEqual(done.returncode, 0, done.stderr[-500:])
             self.assertTrue((task / '.hackathon-kit/BOOTSTRAP_V27.md').is_file())
             installed = (task / '.agents/skills/hackathon-orchestrator-universal/SKILL.md').read_text(encoding='utf-8')
             self.assertIn('Start here for any SK hynix AI hackathon finals', installed)
-            doctor = subprocess.run([sys.executable, '-I', str(task / '.hackathon-kit/scripts/kit_lifecycle.py'), 'doctor', '--kit', str(task / '.hackathon-kit')],
+            doctor = subprocess.run([sys.executable, '-X', 'utf8', '-I', str(task / '.hackathon-kit/scripts/kit_lifecycle.py'), 'doctor', '--kit', str(task / '.hackathon-kit')],
                                     capture_output=True, text=True, encoding='utf-8', errors='replace', env=env)
             self.assertEqual(doctor.returncode, 0, doctor.stdout[-500:] + doctor.stderr[-500:])
 
+
+    def test_08_install_survives_a_non_utf8_console(self):
+        """Windows CI (cp1252) printed Korean paths from the protected backend and aborted the install."""
+        import contextlib
+        import io
+        installer = runpy.run_path(str(ROOT / 'scripts/install_v27.py'), run_name='r4310_install')
+        with tempfile.TemporaryDirectory(prefix='r4310-cp1252-') as tmp:
+            task = pathlib.Path(tmp) / '과제 폴더 한글'
+            task.mkdir()
+            out = io.TextIOWrapper(io.BytesIO(), encoding='cp1252', errors='strict')
+            err = io.TextIOWrapper(io.BytesIO(), encoding='cp1252', errors='strict')
+            argv = ['install_v27.py', '--source', str(ROOT), '--target', str(task), '--allow-internal-source']
+            with mock.patch.object(sys, 'argv', argv), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = installer['main']()
+            err.seek(0)
+            self.assertEqual(code, 0, err.buffer.getvalue().decode('cp1252', 'replace')[-400:])
+            self.assertTrue((task / '.hackathon-kit/BOOTSTRAP_V27.md').is_file())
 
     def test_07_every_skill_frontmatter_parses(self):
         """The skill loader parses YAML frontmatter; an unquoted ': ' inside a value breaks the whole skill."""
