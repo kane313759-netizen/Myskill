@@ -138,7 +138,7 @@ class RegressionR431(unittest.TestCase):
         default = run_deadline({})
         self.assertEqual((default['cp3_start'][11:16], default['work_lock'][11:16]), ('12:45', '14:15'))
         tuned = run_deadline({'FOLLOWUP': 'NONE', 'REVIEW_PARALLEL': 'YES', 'REVIEW_CONCURRENCY': 7})
-        self.assertEqual((tuned['cp3_start'][11:16], tuned['work_lock'][11:16]), ('14:20', '14:50'))
+        self.assertEqual((tuned['cp3_start'][11:16], tuned['work_lock'][11:16]), ('14:10', '14:50'))
         self.assertEqual(tuned.get('warnings', []), [])
         # r4-3.12: parallel credit needs the number of reviewers actually running at once.
         width_unknown = run_deadline({'FOLLOWUP': 'NONE', 'REVIEW_PARALLEL': 'YES'})

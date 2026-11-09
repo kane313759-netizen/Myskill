@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Read-only v2.7 evidence checks. Never advances STATE, a gate or a submission."""
 import argparse
+from datetime import datetime, timedelta
 import json
 import math
 import os
@@ -86,6 +87,42 @@ def r3_policy(findings=(), impacts=(), gates=(), assumptions=(), keep_baseline=F
             else:
                 pending.append('external request pending: do not lock before response')
     return {'errors':errors,'pending':pending,'warnings':warnings}
+
+
+MILESTONES = ('cp3_start', 'work_lock', 'submission_start', 'confirmation_deadline')
+
+
+def exact(value):
+    """Type-strict canonical text: 1, 1.0 and true differ; key order does not."""
+    return json.dumps(value, sort_keys=True, ensure_ascii=True)
+
+
+def observed_plans(calculate, env, calculated):
+    """Every result deadline.py can print for this ENV: the plan and each --observe-now outcome.
+
+    The clock only changes which milestones are `passed` (and the matching warning/status), so
+    one observation per milestone boundary enumerates all outcomes. A recorded deadline must
+    equal one of them exactly; nothing is stripped or tolerated. --observe-now replaces any
+    NOW/now already written in ENV, so the outcomes are built without that stale value.
+    """
+    def with_now(now):
+        observed = json.loads(json.dumps(env))
+        target = observed['switches'] if isinstance(observed.get('switches'), dict) else observed
+        target.pop('NOW', None)
+        target.pop('now', None)
+        if now is not None:
+            target['NOW'] = now.isoformat()
+        return calculate(observed)
+
+    plans = [calculated]
+    try:
+        plans.append(with_now(None))
+        instants = sorted({datetime.fromisoformat(calculated[name]) for name in MILESTONES})
+    except (KeyError, TypeError, ValueError):
+        return plans
+    for now in instants[1:] + [instants[-1] + timedelta(seconds=1)]:
+        plans.append(with_now(now))
+    return plans
 
 
 def path_index(argv, expected):
@@ -263,8 +300,11 @@ def _check(plan, root, kit, phase='final', source=None):
                 required_time += ('T_FU',)
             if any(switches.get(key, {}).get('classification') != 'CONFIRMED' for key in required_time):
                 pending.append('deadline: computed planning target is not an official confirmed cutoff')
-            if state and state.get('deadline') != calculated:
+        if state and calculated.get('status') in ('KNOWN', 'PAST_CONFIRMATION'):
+            if exact(state.get('deadline')) not in {exact(item) for item in observed_plans(module('deadline')['calculate'], env, calculated)}:
                 errors.append('V27_STATE deadline differs from recalculation')
+            elif calculated['status'] == 'KNOWN' and state['deadline'].get('status') == 'PAST_CONFIRMATION':
+                pending.append('deadline: confirmation deadline has passed; submission is not established')
         if source:
             errors.extend(h['check_protected'](source))
     except (OSError, ValueError, TypeError, KeyError) as exc:

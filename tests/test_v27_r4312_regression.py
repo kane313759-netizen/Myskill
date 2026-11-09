@@ -113,9 +113,15 @@ class RegressionR4312(unittest.TestCase):
         finally:
             sys.path.pop(0)
         base = {'FOLLOWUP': 'NONE', 'T_SUB': '2026-11-11T16:00:00+09:00', 'REVIEW_MINUTES_EACH': 10, 'FIX_BUFFER': 20}
-        cases = [(dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=3, FINAL_REVIEW_ROLES=6), 40, 2),
+        # r4-3.13: SUBMISSION_RED is its own last round, so batches = ceil((roles - 1) / concurrency) + 1.
+        cases = [(dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=3, FINAL_REVIEW_ROLES=6), 50, 3),
                  (dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=3, FINAL_REVIEW_ROLES=7), 50, 3),
-                 (dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=7, FINAL_REVIEW_ROLES=7), 30, 1),
+                 (dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=7, FINAL_REVIEW_ROLES=7), 40, 2),
+                 (dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=6, FINAL_REVIEW_ROLES=7), 40, 2),
+                 (dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=50, FINAL_REVIEW_ROLES=7), 40, 2),
+                 (dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=2, FINAL_REVIEW_ROLES=7), 60, 4),
+                 (dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=1, FINAL_REVIEW_ROLES=7), 90, 7),
+                 (dict(REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=5, FINAL_REVIEW_ROLES=6), 40, 2),
                  (dict(REVIEW_PARALLEL='YES', FINAL_REVIEW_ROLES=7), 90, 7),
                  (dict(REVIEW_PARALLEL='NO', REVIEW_CONCURRENCY=7, FINAL_REVIEW_ROLES=7), 90, 7)]
         for extra, minutes, batches in cases:

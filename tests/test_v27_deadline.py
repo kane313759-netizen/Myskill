@@ -84,8 +84,8 @@ class DeadlineTests(unittest.TestCase):
         self.assertEqual(sequential['c_basis']['batches'], 7)
         self.assertEqual(sequential['c_basis']['parallel_assumption'], 'NO')
         parallel = deadline.calculate(dict(base, REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=7))
-        self.assertEqual(parallel['review_reserve_minutes'], 30)
-        self.assertEqual(parallel['c_basis']['batches'], 1)
+        self.assertEqual(parallel['review_reserve_minutes'], 40)  # six at once, then SUBMISSION_RED after their fixes
+        self.assertEqual(parallel['c_basis']['batches'], 2)
         unknown_width = deadline.calculate(dict(base, REVIEW_PARALLEL='YES'))
         self.assertEqual(unknown_width['review_reserve_minutes'], 90)
         self.assertEqual(unknown_width['c_basis']['parallel_assumption'], 'NO')

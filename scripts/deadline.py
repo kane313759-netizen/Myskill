@@ -98,14 +98,15 @@ def _review_reserve(values):
     elif type(concurrency) is not int or not 1 <= concurrency <= 50:
         raise ValueError('REVIEW_CONCURRENCY must be an integer 1..50 (reviewers actually running at once) or UNKNOWN')
     # Parallel review counts only for the reviewers that actually run at once; without that number plan sequentially.
+    # SUBMISSION_RED reviews the collected candidate after the other reviews' fixes, so it is its own last round.
     if parallel == 'YES' and concurrency != 'UNKNOWN':
-        batches = -(-roles // concurrency)
+        batches = -(-(roles - 1) // concurrency) + 1
     else:
         batches = roles
     minutes = repair + each * batches
     if minutes > 1440:
         raise ValueError('calculated C exceeds 1440 minutes')
-    basis = {'mode': 'CALCULATED', 'formula': 'FIX_BUFFER + REVIEW_MINUTES_EACH * ceil(FINAL_REVIEW_ROLES / REVIEW_CONCURRENCY)',
+    basis = {'mode': 'CALCULATED', 'formula': 'FIX_BUFFER + REVIEW_MINUTES_EACH * (ceil((FINAL_REVIEW_ROLES - 1) / REVIEW_CONCURRENCY) + 1)',
              'review_parallel': parallel, 'review_concurrency': concurrency,
              'parallel_assumption': 'YES' if batches < roles else 'NO',
              'review_minutes_each': each, 'fix_buffer_minutes': repair,

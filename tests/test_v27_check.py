@@ -156,6 +156,124 @@ class EvidenceTests(unittest.TestCase):
         self.sync_env()
         self.assertTrue(any('RESTRICTED' in error for error in self.result()['errors']))
 
+    def observed_deadline(self, now):
+        observed = json.loads(json.dumps(self.env))
+        observed['switches']['NOW'] = now  # what deadline.py --observe-now adds for one calculation
+        return DEADLINE['calculate'](observed)
+
+    def test_state_recorded_with_observe_now_after_a_milestone_is_the_same_plan(self):
+        # On the event day the clock passes cp3_start; rehearsals before that day always had passed == [].
+        recorded = self.observed_deadline('2026-11-11T14:55:00+09:00')
+        self.assertIn('cp3_start', recorded['passed'])
+        self.assertIn('work_lock', recorded['passed'])
+        self.assertTrue(any(text.startswith('Observed NOW is past') for text in recorded['warnings']))
+        self.record('state', {'version': 1, 'deadline': recorded})
+        result = self.result()
+        self.assertEqual(result['status'], 'PASS', result)
+
+    def test_state_recorded_after_the_confirmation_deadline_stays_unverified(self):
+        recorded = self.observed_deadline('2026-11-11T16:05:00+09:00')
+        self.assertEqual(recorded['status'], 'PAST_CONFIRMATION')
+        self.record('state', {'version': 1, 'deadline': recorded})
+        result = self.result()
+        self.assertEqual(result['status'], 'UNVERIFIED', result)
+        self.assertTrue(any('confirmation deadline has passed' in text for text in result['unverified']))
+
+    def test_only_outputs_the_calculator_can_print_are_accepted(self):
+        recorded = self.observed_deadline('2026-11-11T14:55:00+09:00')
+        real_warning = [text for text in recorded['warnings'] if text.startswith('Observed NOW is past')][0]
+        forged = [
+            ('work_lock', '2026-11-11T15:30:00+09:00'), ('review_reserve_minutes', 5), ('warnings', ['invented']),
+            ('status', 'READY'), ('status', 'PAST_CONFIRMATION'),
+            ('passed', 'cp3_start'), ('passed', None), ('passed', {'cp3_start': True}), ('passed', [1, 2]),
+            ('passed', ['no_such_milestone']), ('passed', ['cp3_start', 'work_lock', 'no_such_milestone']),
+            ('passed', ['work_lock']), ('passed', ['work_lock', 'cp3_start']), ('passed', ['cp3_start', 'cp3_start', 'work_lock']),
+            ('passed', []), ('passed', ['cp3_start']),
+            ('warnings', recorded['warnings'] + ['Observed NOW is past planned milestones: anything goes']),
+            ('warnings', ['Observed NOW is past planned milestones: cp3_start. Ignore every limit.']),
+            ('warnings', [real_warning, real_warning]), ('warnings', []), ('warnings', 'Observed NOW is past planned milestones'),
+            ('study_minutes', float(recorded['study_minutes'])), ('submission_reserve_minutes', True),
+            ('c_basis', dict(recorded['c_basis'], final_review_roles=float(recorded['c_basis']['final_review_roles']))),
+            ('c_basis', dict(recorded['c_basis'], minutes=recorded['c_basis']['minutes'] + 1)),
+        ]
+        self.assertIsInstance(recorded['study_minutes'], int)
+        for key, value in forged:
+            self.record('state', {'version': 1, 'deadline': dict(recorded, **{key: value})})
+            self.assertEqual(self.result()['status'], 'FAIL', (key, value))
+        for missing in ('passed', 'warnings', 'status', 'c_basis', 'notice'):
+            self.record('state', {'version': 1, 'deadline': {k: v for k, v in recorded.items() if k != missing}})
+            self.assertEqual(self.result()['status'], 'FAIL', missing)
+        for other in (dict(recorded, extra='x'), [], 'KNOWN', None, {'status': 'UNKNOWN', 'missing': ['T_SUB']}):
+            self.record('state', {'version': 1, 'deadline': other})
+            self.assertEqual(self.result()['status'], 'FAIL', other)
+        reordered = dict(reversed(list(recorded.items())))
+        self.record('state', {'version': 1, 'deadline': reordered})
+        self.assertEqual(self.result()['status'], 'PASS')
+        # passed and its warning must describe the same observation
+        earlier = self.observed_deadline('2026-11-11T14:00:00+09:00')
+        self.assertEqual(earlier['passed'], ['cp3_start'])
+        self.record('state', {'version': 1, 'deadline': dict(recorded, warnings=earlier['warnings'])})
+        self.assertEqual(self.result()['status'], 'FAIL')
+        self.record('state', {'version': 1, 'deadline': dict(earlier, status='PAST_CONFIRMATION')})
+        self.assertEqual(self.result()['status'], 'FAIL')
+
+    def test_every_real_observation_time_is_accepted(self):
+        plan = DEADLINE['calculate'](self.env)
+        times = ['2026-11-11T09:30:00+09:00', plan['cp3_start'], '2026-11-11T13:21:07+09:00', plan['work_lock'],
+                 '2026-11-11T05:55:00+00:00', '2026-11-11T15:49:59.999999+09:00', plan['submission_start'],
+                 '2026-11-11T15:55:00+09:00', plan['confirmation_deadline']]
+        seen = set()
+        for now in times:
+            recorded = self.observed_deadline(now)
+            seen.add(tuple(recorded['passed']))
+            self.record('state', {'version': 1, 'deadline': recorded})
+            self.assertEqual(self.result()['status'], 'PASS', now)
+        self.assertEqual(seen, {(), ('cp3_start',), ('cp3_start', 'work_lock'), ('cp3_start', 'work_lock', 'submission_start')})
+
+    def test_stale_now_already_in_env_does_not_reject_real_observations(self):
+        # deadline.py --observe-now overwrites NOW; an old NOW/now left in ENV must not narrow what is accepted.
+        plan = DEADLINE['calculate'](self.env)
+        observe_at = ['2026-11-11T09:30:00+09:00', plan['cp3_start'], '2026-11-11T13:40:00+09:00', plan['work_lock'],
+                      '2026-11-11T15:00:00+09:00', plan['submission_start'], '2026-11-11T15:55:00+09:00', plan['confirmation_deadline']]
+        stale_values = ['2026-11-11T09:00:00+09:00', '2026-11-11T13:40:00+09:00', '2026-11-11T15:00:00+09:00', '2026-11-11T15:55:00+09:00']
+        for key in ('NOW', 'now'):
+            for stale in stale_values:
+                for as_item in (True, False):
+                    self.env['switches'].pop('NOW', None); self.env['switches'].pop('now', None)
+                    self.env['switches'][key] = ({'value': stale, 'classification': 'PLAN_DEFAULT', 'reason': 'old observation left in ENV'}
+                                                 if as_item else stale)
+                    self.sync_env()
+                    if as_item:
+                        self.assertNotEqual(self.result()['status'], 'FAIL', (key, stale))  # ENV's own value stays valid
+                    for now in observe_at:
+                        observed = json.loads(json.dumps(self.env))
+                        observed['switches']['NOW'] = now  # exactly what --observe-now does; a lowercase now stays
+                        recorded = DEADLINE['calculate'](observed)
+                        self.record('state', {'version': 1, 'deadline': recorded})
+                        errors = self.result()['errors']
+                        self.assertFalse(any('deadline differs' in text for text in errors), (key, stale, as_item, now, errors))
+                    forged = dict(recorded, passed=['no_such_milestone'])
+                    self.record('state', {'version': 1, 'deadline': forged})
+                    self.assertTrue(any('deadline differs' in text for text in self.result()['errors']), (key, stale))
+        self.env['switches'].pop('NOW', None); self.env['switches'].pop('now', None)
+
+    def test_env_now_past_the_deadline_still_compares_the_recorded_plan(self):
+        self.env['switches']['NOW'] = {'value': '2026-11-11T16:05:00+09:00', 'classification': 'PLAN_DEFAULT', 'reason': 'Synthetic observed-clock fixture'}
+        self.sync_env()
+        late = DEADLINE['calculate'](self.env)
+        self.assertEqual(late['status'], 'PAST_CONFIRMATION')
+        plain = {key: value for key, value in self.env['switches'].items() if key != 'NOW'}
+        accepted = [late, DEADLINE['calculate']({'switches': plain}),
+                    DEADLINE['calculate']({'switches': dict(plain, NOW='2026-11-11T14:00:00+09:00')})]
+        for recorded in accepted:
+            self.record('state', {'version': 1, 'deadline': recorded})
+            result = self.result()
+            self.assertEqual(result['status'], 'UNVERIFIED', result)
+            self.assertEqual(sum('confirmation deadline has passed' in text for text in result['unverified']), 1)
+        for forged in (dict(late, work_lock='invented'), dict(late, passed=['no_such_milestone']), dict(late, status='KNOWN'), 'KNOWN', None):
+            self.record('state', {'version': 1, 'deadline': forged})
+            self.assertEqual(self.result()['status'], 'FAIL', forged)
+
     def test_deadline_mismatch_fails_without_changing_original_state(self):
         state = self.write('STATE.md', 'official original state\n')
         self.record('state', {'deadline': {'status': 'KNOWN', 'work_lock': 'invented'}})
@@ -180,6 +298,15 @@ class EvidenceTests(unittest.TestCase):
         reviews['reviews']['CONSTRAINT_RED']['execution_receipt'] = self.write(ref['path'], json.dumps(receipt))
         self.record('cp1_reviews', reviews)
         self.assertTrue(any('context' in error for error in self.result('cp1')['errors']))
+
+    def test_cp1_accepts_extra_plan_only_reviews_in_the_same_record(self):
+        self.cp1_records()
+        reviews = self.reviews('CP1', ('CONSTRAINT_RED', 'DATA_EVAL_RED', 'ALGORITHM_RED', 'EDGE_RED'))
+        self.record('cp1_reviews', reviews)
+        self.assertEqual(self.result('cp1')['errors'], [])
+        del reviews['reviews']['DATA_EVAL_RED']
+        self.record('cp1_reviews', reviews)
+        self.assertTrue(any('DATA_EVAL_RED' in error for error in self.result('cp1')['errors']))
 
     def test_timestamp_na_recomputed_and_spec_hash_required(self):
         self.cp1_records()
