@@ -1,6 +1,6 @@
 ---
 name: hackathon-orchestrator-universal
-description: Add environment and deadline planning, bounded data audit, reproducible submission checks, local snapshots and nondeveloper study to the existing SK hynix finals workflow. Use for the requested v2.7 add-on; preserve the installed baseline roles, real review execution and official stage rules.
+description: Start here for any SK hynix AI hackathon finals or finals-practice task, including short requests such as myskill 설치해서 작업 시작 or 본선 과제 시작. It runs the hackathon-finals workflow and adds environment and deadline planning, bounded data audit, limit and ambiguity rules, reproducible submission checks, local snapshots and nondeveloper study. When both are installed, use this instead of starting hackathon-finals directly.
 ---
 
 Read the installed `references/v27-contract.md`, `references/v27-r81-map.md` and

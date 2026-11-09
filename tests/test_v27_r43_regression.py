@@ -14,7 +14,7 @@ SKILL = '.agents/skills/hackathon-orchestrator-universal/SKILL.md'
 START_LINE_HASHES = (
     'cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b',
     '930627ac417b9f49b610375e511830d8a77268528c2fc16df610ca849a97d196',
-    'abe27c14b1a82a3e612f848e66c84be068d904df46ede31d1344f841ba403dad',
+    # 'abe27c14b1a82a3e612f848e66c84be068d904df46ede31d1344f841ba403dad',  # SKILL description line: replaced in r4-3.10 (entry-point description)
     'cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b',
     '99b8c61790ede3032957d09a7046cca3f61d54668c24ef2eefc319259119d6a3',
     '2fae26f95db4c26ba45129e12b09e456618b9e2474256f129cab8420820740f7',
