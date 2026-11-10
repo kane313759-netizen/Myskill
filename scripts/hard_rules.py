@@ -484,6 +484,7 @@ def _limit(rule, label, checks, keep):
     errors = []
     margin = rule.get('margin') if number(rule.get('margin')) and rule['margin'] > 0 else 0.0
     safe = limit - margin if direction == 'max' else limit + margin
+    side = 'at most' if direction == 'max' else 'at least'
     planned = set(_strings(rule.get('stress_plan'))) & set(STRESS_TYPES)
     for meaning in sorted(keep):
         mine = [c for c in checks if c.get('meaning') == meaning]
@@ -523,9 +524,9 @@ def _limit(rule, label, checks, keep):
         if not _inside_limit(value, limit, direction, inclusive):
             errors.append('%s: value %s breaks the limit %s (%s)' % (where, value, limit, 'equal allowed' if inclusive else 'equal not allowed'))
         elif margin and not _inside_limit(value, safe, direction, True):
-            errors.append('%s: value %s is inside the limit %s but not inside the CP1 margin (%s, so at most %s); hidden evaluations '
+            errors.append('%s: value %s is inside the limit %s but not inside the CP1 margin (%s, so %s %s); hidden evaluations '
                           'are often harsher than the team\'s own checks: change the plan until every check keeps the margin'
-                          % (where, value, limit, margin, safe))
+                          % (where, value, limit, margin, side, round(safe, 9)))
         if rule.get('metric_source') == 'estimated' and not item.get('estimated'):
             errors.append(where + ': metric_source is estimated, so every check is an estimate (estimated, risk_bound, estimator_validation)')
         if not item.get('estimated'):
@@ -538,7 +539,7 @@ def _limit(rule, label, checks, keep):
             errors.append('%s: the 95%% bound %s of the estimate breaks the limit %s; judge a hard limit by the bound, '
                           'not the point estimate' % (where, bound_value, limit))
         elif margin and not _inside_limit(bound_value, safe, direction, True):
-            errors.append('%s: the 95%% bound %s of the estimate is not inside the CP1 margin (at most %s)' % (where, bound_value, safe))
+            errors.append('%s: the 95%% bound %s of the estimate is not inside the CP1 margin (%s %s)' % (where, bound_value, side, round(safe, 9)))
         needed = max(MIN_CASES, rule.get('known_real_cases') if type(rule.get('known_real_cases')) is int else 0)
         if (not isinstance(check, dict) or type(check.get('explained')) is not int or type(check.get('total')) is not int
                 or not 0 <= check['explained'] <= check['total']):

@@ -51,9 +51,12 @@ class RegressionR4318b(Fixture):
         close[2] = self.check('stress', 'capacity_down', 470.0)
         self.assertTrue(any('value 470.0 is inside the limit 500 but not inside the CP1 margin' in e
                             for e in self.errors([self.limit_rule(*close)])))
+        self.assertTrue(any('so at most 450' in e for e in self.errors([self.limit_rule(*close)])))
         floor = [self.check(value=0.99), self.check('stress', 'demand_up', 0.975), self.check('stress', 'capacity_down', 0.955)]
         errors = self.errors([self.limit_rule(*floor, limit=0.95, direction='min', margin=0.01)])
         self.assertTrue(any('value 0.955' in e and 'CP1 margin' in e for e in errors), errors)
+        self.assertTrue(any('so at least 0.96);' in e for e in errors), errors)
+        self.assertFalse(any('at most' in e for e in errors), errors)
         floor[2] = self.check('stress', 'capacity_down', 0.96)
         self.assertEqual(self.errors([self.limit_rule(*floor, limit=0.95, direction='min', margin=0.01)]), [])
         est = dict(metric_source='estimated', uses_model=True, known_real_cases=7, explained_definition='predicted fail on the returned part')
