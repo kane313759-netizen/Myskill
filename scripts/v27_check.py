@@ -51,15 +51,23 @@ _BARE_PUNCT = frozenset('_-./:=+')
 _QUOTED_PUNCT = frozenset('_-./:=+,()@# ')
 
 
+def _letter(ch):
+    return (ch.isascii() and ch.isalnum()) or (not ch.isascii() and unicodedata.category(ch)[0] in 'LNM')
+
+
 def _plain(text, punct, backslash):
-    """Letters, digits and marks of any script plus an explicit punctuation set; nothing any shell treats specially."""
-    for ch in text:
+    """Letters, digits and marks of any script plus an explicit punctuation set; nothing any shell treats specially.
+
+    `~` is allowed only right after a letter or digit (Windows short names such as RUNNER~1): bash expands it
+    only at the start of a word or after `=`/`:`, and PowerShell and cmd.exe never expand it inside a word."""
+    for index, ch in enumerate(text):
         if ch == '\\':
             if not backslash:
                 return False
-        elif ch in punct or (ch.isascii() and ch.isalnum()):
-            continue
-        elif ch.isascii() or unicodedata.category(ch)[0] not in 'LNM':
+        elif ch == '~':
+            if index == 0 or not _letter(text[index - 1]):
+                return False
+        elif ch not in punct and not _letter(ch):
             return False
     return True
 

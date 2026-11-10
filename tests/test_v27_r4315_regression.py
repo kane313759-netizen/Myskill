@@ -69,6 +69,11 @@ class RegressionR4315(unittest.TestCase):
         program_files = [r'C:\Program Files\Python312\python.exe', '-I', r'C:\RnD docs\task (v2)\clean_run.py']
         self.assertTrue(match(subprocess.list2cmdline(program_files), program_files))
         self.assertTrue(match(ps(program_files), program_files))
+        short = [r'C:\hostedtoolcache\windows\Python\3.12.10\x64\python.exe', '-I', r'D:\a\Myskill\Myskill\scripts\submit_check.py',
+                 '--root', r'C:\Users\RUNNER~1\AppData\Local\Temp\tmpab12cd', '--rules', r'C:\Users\RUNNER~1\AppData\Local\Temp\tmpab12cd\rules.json']
+        self.assertTrue(match(subprocess.list2cmdline(short), short))   # Windows short (8.3) temp names hold a tilde
+        self.assertTrue(match(PS_PREFIX + ps(short), short))
+        self.assertTrue(match(' '.join(POSIX[:4] + ['/home/runner~1/task']), POSIX[:4] + ['/home/runner~1/task']))
 
     def test_03_reported_cross_shell_cases_are_rejected(self):
         bad = [
@@ -85,6 +90,10 @@ class RegressionR4315(unittest.TestCase):
             # bash expands globs, tilde and braces, and reads backslashes.
             ('/usr/bin/python3 -I /k/h.py *.probe', ['/usr/bin/python3', '-I', '/k/h.py', '*.probe']),
             ('/usr/bin/python3 -I /k/h.py ~/x', ['/usr/bin/python3', '-I', '/k/h.py', '~/x']),
+            ('/usr/bin/python3 -I /k/h.py --out=~/x', ['/usr/bin/python3', '-I', '/k/h.py', '--out=~/x']),
+            ('/usr/bin/python3 -I /k/h.py a:~/x', ['/usr/bin/python3', '-I', '/k/h.py', 'a:~/x']),
+            ('/usr/bin/python3 -I /k/h.py /x/~y', ['/usr/bin/python3', '-I', '/k/h.py', '/x/~y']),
+            ('/usr/bin/python3 -I "/k/h.py" "~/x"', ['/usr/bin/python3', '-I', '/k/h.py', '~/x']),
             ('/usr/bin/python3 -I /k/h.py {a,b}', ['/usr/bin/python3', '-I', '/k/h.py', '{a,b}']),
             ('/usr/bin/python3 -I /k/h.py a\\b', ['/usr/bin/python3', '-I', '/k/h.py', 'a\\b']),
             ('/usr/bin/python3 -I "/k/h.py" "a\\\\b"', ['/usr/bin/python3', '-I', '/k/h.py', 'a\\\\b']),
@@ -150,7 +159,7 @@ class RegressionR4315(unittest.TestCase):
             probe.write_text('import json, sys\nprint(json.dumps(sys.argv[1:], ensure_ascii=False))\n', encoding='utf-8')
             marker = pathlib.Path(tmp) / 'ran.txt'
             pathlib.Path(tmp, 'x.probe').write_text('', encoding='utf-8')
-            words = ['--root', '/t/작업 폴더 (v2)', 'a=b', '+x', 'C:x', '@at', '#hash', 'comma,word', 'ㄱㄴ']
+            words = ['--root', '/t/작업 폴더 (v2)', 'a=b', '+x', 'C:x', '@at', '#hash', 'comma,word', 'ㄱㄴ', '/home/RUNNER~1/x']
             argv = [sys.executable, '-I', str(probe)] + words
             accepted = [
                 ('OMP_NUM_THREADS=2 ' + ' '.join("'" + value + "'" for value in argv), argv),
@@ -207,6 +216,25 @@ class RegressionR4315(unittest.TestCase):
         proof['request']['cmd'] += '; Remove-Item result.txt'
         t.plan['records']['clean_run']['execution'] = t.write(ref['path'], json.dumps(proof))
         self.assertTrue(any('exact retained argv' in error for error in t.result('final')['errors']))
+
+    def test_12_end_to_end_under_a_windows_short_name_temp_folder(self):
+        from test_v27_check import EvidenceTests
+        with tempfile.TemporaryDirectory() as outer:
+            short = pathlib.Path(outer) / 'RUNNER~1'
+            short.mkdir()
+            saved = tempfile.tempdir
+            tempfile.tempdir = str(short)
+            try:
+                t = EvidenceTests('runTest')
+                t.setUp()
+                try:
+                    self.assertIn('~', str(t.root))
+                    t.product_records()
+                    self.assertEqual(t.result('final')['errors'], [])
+                finally:
+                    t.doCleanups()
+            finally:
+                tempfile.tempdir = saved
 
     def test_09_end_to_end_rejects_other_interpreter_flags(self):
         from test_v27_check import EvidenceTests
