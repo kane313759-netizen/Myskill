@@ -437,6 +437,10 @@ def _limit_plan(rule, label):
     if not number(rule.get('limit')) or rule.get('direction') not in ('max', 'min') or type(rule.get('inclusive')) is not bool:
         errors.append(label + ': limit must be a number, direction "max" or "min" and inclusive true/false (is a value equal '
                       'to the limit allowed? "0.1 이상이면 무효" means max 0.1, inclusive false)')
+    if not number(rule.get('margin')) or rule['margin'] <= 0 or not meaningful(rule.get('margin_basis')):
+        errors.append(label + ': margin (> 0, in the unit of the limit) and margin_basis required at CP1: how far inside the limit '
+                      'the team\'s own checks must stay, because hidden evaluations are often harsher (suggested: 10% of the limit, '
+                      'or at least 1 for a count)')
     for key, what in (('unit', 'the unit of the limit as the task states it (%, DPPM, count, hours)'),
                       ('statistic', 'what is compared with the limit (each unit, mean, maximum, 95th percentile, per week)')):
         if not meaningful(rule.get(key)):
@@ -478,6 +482,8 @@ def _limit(rule, label, checks, keep):
     if not number(limit) or direction not in ('max', 'min') or type(inclusive) is not bool:
         return []
     errors = []
+    margin = rule.get('margin') if number(rule.get('margin')) and rule['margin'] > 0 else 0.0
+    safe = limit - margin if direction == 'max' else limit + margin
     planned = set(_strings(rule.get('stress_plan'))) & set(STRESS_TYPES)
     for meaning in sorted(keep):
         mine = [c for c in checks if c.get('meaning') == meaning]
@@ -516,6 +522,10 @@ def _limit(rule, label, checks, keep):
             continue
         if not _inside_limit(value, limit, direction, inclusive):
             errors.append('%s: value %s breaks the limit %s (%s)' % (where, value, limit, 'equal allowed' if inclusive else 'equal not allowed'))
+        elif margin and not _inside_limit(value, safe, direction, True):
+            errors.append('%s: value %s is inside the limit %s but not inside the CP1 margin (%s, so at most %s); hidden evaluations '
+                          'are often harsher than the team\'s own checks: change the plan until every check keeps the margin'
+                          % (where, value, limit, margin, safe))
         if rule.get('metric_source') == 'estimated' and not item.get('estimated'):
             errors.append(where + ': metric_source is estimated, so every check is an estimate (estimated, risk_bound, estimator_validation)')
         if not item.get('estimated'):
@@ -527,6 +537,8 @@ def _limit(rule, label, checks, keep):
         elif not _inside_limit(bound_value, limit, direction, inclusive):
             errors.append('%s: the 95%% bound %s of the estimate breaks the limit %s; judge a hard limit by the bound, '
                           'not the point estimate' % (where, bound_value, limit))
+        elif margin and not _inside_limit(bound_value, safe, direction, True):
+            errors.append('%s: the 95%% bound %s of the estimate is not inside the CP1 margin (at most %s)' % (where, bound_value, safe))
         needed = max(MIN_CASES, rule.get('known_real_cases') if type(rule.get('known_real_cases')) is int else 0)
         if (not isinstance(check, dict) or type(check.get('explained')) is not int or type(check.get('total')) is not int
                 or not 0 <= check['explained'] <= check['total']):
@@ -863,6 +875,8 @@ def compare_freeze(cp1, final):
                           'answer received later, is allowed' % (old.get('decision'), new.get('decision')))
         if set(_strings(old.get('stress_plan'))) - set(_strings(new.get('stress_plan'))):
             errors.append(label + ': stress types dropped since CP1')
+        if number(old.get('margin')) and (not number(new.get('margin')) or new['margin'] < old['margin']):
+            errors.append(label + ': margin lowered since CP1')
         if type(old.get('known_real_cases')) is int and (type(new.get('known_real_cases')) is not int or new['known_real_cases'] < old['known_real_cases']):
             errors.append(label + ': known_real_cases lowered since CP1')
     plans = {p.get('output'): p for p in _dicts(final.get('baseline_plan')) if isinstance(p.get('output'), str)}

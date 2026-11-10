@@ -17,7 +17,8 @@ MANDATORY = ('scripts/v27_common.py', 'scripts/deadline.py', 'scripts/v27_check.
              'references/v27-baseline.json', 'references/v27-contract.md',
              'references/v27-r81-map.md', 'templates/ENV.md', 'templates/EXAM_POLICY_FINAL.md',
              'templates/DATA_AUDIT.md', 'templates/SAFETY_TESTS.md', 'templates/STUDY_BRIEF.md',
-             'templates/V27_STATE.json', 'templates/V27_EVIDENCE.json', 'templates/HARD_RULES.json', 'BOOTSTRAP_V27.md')
+             'templates/V27_STATE.json', 'templates/V27_EVIDENCE.json', 'templates/HARD_RULES.json',
+             'templates/PARTICIPANT_GUIDE.md', 'BOOTSTRAP_V27.md')
 
 
 def install(source, target, allow_internal_source=False):

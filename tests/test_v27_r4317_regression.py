@@ -59,7 +59,8 @@ class Fixture(unittest.TestCase):
                 'term': 'DPPM', 'candidates': [{'meaning': '출하 칩 기준 DPPM', 'source': 'docs/README.md:2'}],
                 'decision': 'ALL_MEANINGS', 'limit': 500, 'direction': 'max', 'inclusive': True, 'unit': 'DPPM',
                 'statistic': 'all shipped chips in the evaluation period', 'stress_plan': ['demand_up', 'capacity_down'],
-                'metric_source': 'simulator', 'uses_model': False, 'checks': list(checks)}
+                'metric_source': 'simulator', 'uses_model': False, 'margin': 50,
+                'margin_basis': '10% of the limit', 'checks': list(checks)}
         rule.update(extra)
         return rule
 
@@ -99,7 +100,10 @@ class RegressionR4317(Fixture):
         self.assertTrue(any('value 512.0 breaks the limit 500' in e for e in self.errors([self.limit_rule(*broken)])))
         at = self.good_checks()
         at[2] = self.check('stress', 'capacity_down', 500.0)
-        self.assertEqual(self.errors([self.limit_rule(*at)]), [])
+        edge = self.good_checks()
+        edge[2] = self.check('stress', 'capacity_down', 450.0)
+        self.assertEqual(self.errors([self.limit_rule(*edge)]), [])
+        self.assertTrue(any('not inside the CP1 margin' in e for e in self.errors([self.limit_rule(*at)])))
         self.assertTrue(any('equal not allowed' in e for e in self.errors([self.limit_rule(*at, inclusive=False)])))
         milder = self.good_checks()
         milder[1] = self.check('stress', 'demand_up', 100.0)
@@ -110,7 +114,7 @@ class RegressionR4317(Fixture):
         del no_param[1]['stress_param']
         self.assertTrue(any('stress_param required' in e for e in self.errors([self.limit_rule(*no_param)])))
         floor = self.limit_rule(self.check(value=0.97), self.check('stress', 'demand_up', 0.96), self.check('stress', 'capacity_down', 0.94),
-                                limit=0.95, direction='min')
+                                limit=0.95, direction='min', margin=0.01)
         self.assertTrue(any('value 0.94 breaks the limit 0.95' in e for e in self.errors([floor])))
         for key, value in (('direction', 'up'), ('inclusive', None), ('unit', ''), ('statistic', '')):
             self.assertTrue(self.errors([self.limit_rule(**{key: value})], phase='cp1'), key)
