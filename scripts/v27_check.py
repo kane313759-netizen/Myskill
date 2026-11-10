@@ -605,6 +605,13 @@ def _check(plan, root, kit, phase='final', source=None):
             except (OSError, ValueError, TypeError) as exc:
                 errors.append('study participant choice: ' + str(exc))
 
+    if 'hard_rules' not in records:
+        errors.append('hard_rules: void/zero/reject/penalty rule table missing (.hackathon-kit/run/HARD_RULES.json; template templates/HARD_RULES.json)')
+    else:
+        hard = record('hard_rules')
+        if hard is not None:
+            errors.extend(module('hard_rules')['validate'](hard, root, phase, bound))
+
     reviews = record('finals_reviews' if phase == 'final' else 'cp1_reviews')
     if reviews:
         try:
@@ -613,19 +620,19 @@ def _check(plan, root, kit, phase='final', source=None):
                 current = dict(replay.get('input_sha256', {}))
                 current.update({x['path']: x['sha256'] for x in replay.get('artifacts', [])})
                 current.update({x['path']: x['sha256'] for x in (audit or {}).get('files', []) if x.get('sha256')})
-                for ref in (records.get('data_audit'), plan.get('spec_draft'), records.get('data_audit_resolution')):
+                for ref in (records.get('data_audit'), plan.get('spec_draft'), records.get('data_audit_resolution'), records.get('hard_rules')):
                     if ref:
                         current[ref['path']] = ref['sha256']
                 if not current or any(reviews.get('required_scope', {}).get(path) != digest for path, digest in current.items()):
-                    errors.append('CP3 independent scope must cover current replay inputs/artifacts, audited sources, SPEC_DRAFT and DATA_AUDIT evidence')
+                    errors.append('CP3 independent scope must cover current replay inputs/artifacts, audited sources, SPEC_DRAFT, DATA_AUDIT evidence and HARD_RULES')
                 errors.extend(module('finals_review_check')['check_reviews'](reviews, kit, 'FINAL'))
             else:
                 policy = module('review_execution')
                 base = module('finals_review_check')
                 errors.extend(base['check_hashes'](reviews.get('required_scope'), root, policy, 'CP1 required_scope'))
-                for ref in (records.get('data_audit'), plan.get('spec_draft'), records.get('data_audit_resolution')):
+                for ref in (records.get('data_audit'), plan.get('spec_draft'), records.get('data_audit_resolution'), records.get('hard_rules')):
                     if ref and reviews.get('required_scope', {}).get(ref['path']) != ref['sha256']:
-                        errors.append('CP1 independent scope must contain current DATA_AUDIT, SPEC_DRAFT and any semantic resolution')
+                        errors.append('CP1 independent scope must contain current DATA_AUDIT, SPEC_DRAFT, HARD_RULES and any semantic resolution')
                 workers, reports = set(), set()
                 for role in ('CONSTRAINT_RED', 'DATA_EVAL_RED'):
                     entry = reviews.get('reviews', {}).get(role, {})

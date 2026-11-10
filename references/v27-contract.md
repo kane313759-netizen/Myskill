@@ -28,6 +28,9 @@ python -I .hackathon-kit/scripts/v27_check.py --root . --plan .hackathon-kit/run
 python -I .hackathon-kit/scripts/v27_check.py --root . --plan .hackathon-kit/run/V27_EVIDENCE.json --phase final
 ```
 
+### 무효·감점 규칙 표 (r4-3.16)
+`records.hard_rules`는 `.hackathon-kit/run/HARD_RULES.json`이다(틀 `templates/HARD_RULES.json`). cp1과 final은 이 기록이 없으면 FAIL이다. 규칙마다 consequence(VOID·ZERO·REJECT·PENALTY·SOFT)를 적는다. VOID·ZERO·REJECT는 결과를 정하는 낱말(term)과 그 낱말의 모든 읽기(candidates: meaning·source)를 적고, decision은 ALL_MEANINGS, OFFICIAL_ANSWER(official_answer의 quote가 source 파일에 그대로 있고 한 후보를 짚으며 "문서에 없음"류가 아님), SINGLE_MEANING(후보가 하나일 때만), COST_EXCEPTION(loss_all_meanings > probability_wrong × loss_if_wrong) 가운데 하나다. final은 지킨 뜻마다 checks(meaning·scenario·violations·evidence{path,sha256})를 요구하고, 위반이 1건이라도 있으면 FAIL이다. PENALTY는 final에 tradeoff(chosen·chosen_expected_loss·alternatives[label·expected_loss])를 요구하고, 더 작은 기대 손실의 대안이 있으면 reason이 없을 때 FAIL이다. 규칙이 하나도 없으면 rules를 비우고 no_hard_rules_reason을 적는다. 다만 과제 자료(키트·가상환경·라이선스 문서 제외)에 무효·0점·반려·감점·실격·불합격 같은 결과 낱말이 있으면 빈 표는 FAIL이다. 그 줄을 규칙으로 적고, 점수나 접수를 정하지 않는 줄이면 SOFT로 적는다. CP1·final 리뷰의 required_scope에는 이 기록의 현재 SHA256이 들어가야 한다. `hard_rules.py scan --root <과제 폴더> --term <낱말>`은 그 낱말이 나오는 문서 줄, CSV·TSV 머리글, XLSX 윗줄을 나열한다(키트·에이전트 폴더 제외).
+
 인수 검사는 환경과 별도 상태를 확인한다. CP1은 데이터 감사·채점·결정·안전 및 CONSTRAINT_RED/DATA_EVAL_RED의 실제 실행을 확인한다. 최종 논리 단계 CP3에서는 기존 `checkpoint: FINAL` 계획·영수증을 그대로 두 검사에서 쓴다. 여섯 핵심 RED와 조건부 SECURITY_RED의 FINAL 집계, 최신 제출·보안·복사 재실행·학습 기록을 추가 확인한다. CP1·이전 CP2 기록의 이름은 그대로다. 스냅샷은 M1과 FINAL에만 보관하며 추가 리뷰 관문이 아니다. 본선에 예선 CP1의 고정 문서 게이트를 강요하지 않는다.
 
 독립 리뷰는 기존 `review_execution.py`와 `finals_review_check.py` 계약을 재사용한다. 깨끗한 별도 작업자 컨텍스트와 실제 LAUNCHED/RUNNING/COMPLETED 관측·보고서·검토 파일 해시가 필요하다. 생성 계획, 본체의 셀프 체크, 완료 문구만으로 대체하지 않는다. 실행 불가 때 미실행이라고 보고한다. SECURITY_RED는 실제 인증·권한·비밀·외부 데이터/서비스 경로·특권 도구·민감 자료 경계가 있을 때 발동한다. P1/P0 발견은 수정 검증 또는 근거 있는 반증으로 닫는다.

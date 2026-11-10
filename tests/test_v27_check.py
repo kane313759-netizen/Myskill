@@ -82,12 +82,13 @@ class EvidenceTests(unittest.TestCase):
                                 'local_grader_used': False, 'holdout': {'applicable': False}})
         self.record('decisions', {'type_b_cards': []})
         self.record('safety', {'enabled_core': list(CHECK['CORE']), 'agent_or_interactive': False})
+        self.record('hard_rules', {'version': 1, 'rules': [], 'no_hard_rules_reason': 'Synthetic document contract has no void, zero-point, rejection or penalty rule.'})
 
     def reviews(self, checkpoint, roles, scope_extra=None):
         value = {'version': 1, 'checkpoint': checkpoint, 'required_scope': {'input.csv': digest(self.root / 'input.csv')}, 'reviews': {}}
         value['required_scope'].update(scope_extra or {})
         if checkpoint == 'CP1':
-            for ref in (self.plan['records'].get('data_audit'), self.plan.get('spec_draft'), self.plan['records'].get('data_audit_resolution')):
+            for ref in (self.plan['records'].get('data_audit'), self.plan.get('spec_draft'), self.plan['records'].get('data_audit_resolution'), self.plan['records'].get('hard_rules')):
                 if ref:
                     value['required_scope'][ref['path']] = ref['sha256']
         for role in roles:
@@ -462,7 +463,7 @@ print(json.dumps({'tests':{name:'PASS' for name in %r},'scope':scope}))
         test_ref = self.write('safety_test.py', script)
         scope = {'product.py': digest(self.root / 'product.py'), 'result.txt': digest(self.root / 'result.txt'), 'safety_test.py': test_ref['sha256']}
         review_scope = dict(scope)
-        for ref in (audit_ref, self.plan['spec_draft'], self.plan['records']['data_audit_resolution']):
+        for ref in (audit_ref, self.plan['spec_draft'], self.plan['records']['data_audit_resolution'], self.plan['records']['hard_rules']):
             review_scope[ref['path']] = ref['sha256']
         reviews = self.reviews('FINAL', ('CONSTRAINT_RED', 'DATA_EVAL_RED', 'ALGORITHM_RED', 'CODE_RED', 'EDGE_RED', 'SUBMISSION_RED'), review_scope)
         reviews['security'] = {'decision': 'NOT_TRIGGERED', 'reason': 'Synthetic local file-only task source inspected.', 'inspected_sources': {'TASK.md': digest(self.root / 'TASK.md')}, 'triggers': []}

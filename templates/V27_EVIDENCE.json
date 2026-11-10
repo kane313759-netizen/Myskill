@@ -9,6 +9,7 @@
     "grading",
     "decisions",
     "safety",
+    "hard_rules",
     "independent_reviews",
     "submission",
     "clean_run",
@@ -34,7 +35,7 @@
   "snapshots": [],
   "schema_notes": [
     "records NAME is {path: task-relative retained JSON or one JSON fence markdown, sha256: current SHA256}.",
-    "intake reads state; cp1 additionally reads data_audit, grading, decisions, safety, cp1_reviews; final additionally requires study, finals_reviews, submission, security, clean_run.",
+    "intake reads state; cp1 additionally reads data_audit, grading, decisions, safety, hard_rules, cp1_reviews; final additionally requires study, finals_reviews, submission, security, clean_run.",
     "state refers to V27_STATE; its deadline is the exact deadline.calculate(ENV) object. Do not overwrite official STATE with planning targets.",
     "spec_draft is {path,sha256}; its text must contain the data_audit record path and SHA256.",
     "grading is {baseline:{status:UNAVAILABLE_WITH_REASON,reason:...},local_grader_used:false,holdout:{applicable:false}} until an actual grader exists. No fabricated numeric score required.",

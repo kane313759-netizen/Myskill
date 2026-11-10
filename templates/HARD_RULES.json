@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "rules": [],
+  "no_hard_rules_reason": "",
+  "schema_notes": [
+    "List every rule whose breach voids results, gives zero points or rejects a submission (consequence VOID, ZERO or REJECT), every penalty limit (PENALTY: points or cost per unit beyond a limit) and, optionally, SOFT preferences.",
+    "Each rule: {id, rule (quote), source (file:line), consequence, term, candidates:[{meaning, source}], decision, ...}.",
+    "candidates: every reading of the rule term that some document, column, header or definition supports. Run `hard_rules.py scan --root <task folder> --term <word>` for each term and turn every distinct reading into a candidate.",
+    "decision: ALL_MEANINGS (the plan satisfies every candidate), OFFICIAL_ANSWER {official_answer:{quote, source, meaning}} where the quote names one reading and is in a recorded answer file, SINGLE_MEANING (only when there is exactly one candidate), or COST_EXCEPTION {exception:{meanings_kept, loss_all_meanings, loss_if_wrong, probability_wrong, basis}} allowed only when loss_all_meanings > probability_wrong * loss_if_wrong.",
+    "A document that says how a field is recorded, or which document takes precedence, does not decide what the rule refers to. A reply such as 'not in the documents' is not an official answer.",
+    "final: checks:[{meaning, scenario, violations, evidence:{path, sha256}}] for every kept meaning: the public replay and every stress scenario the team ran. Any violation must be fixed before submission.",
+    "PENALTY at final: tradeoff:{chosen, chosen_expected_loss, alternatives:[{label, expected_loss}], reason?}. Margin on a penalty limit is paid for in points; choose the lowest expected loss or say why.",
+    "Record it in V27_EVIDENCE as records.hard_rules {path, sha256}. CP1 and final review scopes must include its current SHA256."
+  ]
+}
