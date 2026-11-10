@@ -6,10 +6,10 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import runpy
-import shlex
-import subprocess
 import sys
+import unicodedata
 
 
 SWITCHES = ('FOLLOWUP', 'T_SUB', 'WINDOW_END', 'LUNCH_POLICY', 'WORK_ENV',
@@ -33,7 +33,131 @@ def meaningful(value):
 
 
 def utf8_warning(is_windows, utf8_mode):
-    return 'Windows Python UTF-8 mode is off; use PYTHONUTF8=1 and an actual Python executable' if is_windows and not utf8_mode else None
+    return ('Windows Python UTF-8 mode is off; run kit checks as <actual python.exe> -X utf8 -I <script> '
+            '(-I ignores PYTHONUTF8)') if is_windows and not utf8_mode else None
+
+
+# A retained native command is accepted only when its meaning does not depend on which shell ran it:
+# every shell that could have received it (PowerShell, cmd.exe, bash) either reads exactly argv or cannot run it.
+# Environment assignments allowed in front: -I already makes Python ignore PYTHON* variables, and the thread
+# counts only size numeric libraries.
+SAFE_COMMAND_ENV = frozenset(('PYTHONUTF8', 'PYTHONIOENCODING', 'OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS',
+                              'MKL_NUM_THREADS', 'NUMEXPR_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'))
+_ENV_VALUE = r"[A-Za-z0-9_.:-]{0,64}"
+_PS_ENV = re.compile(r"\$env:([A-Za-z_][A-Za-z0-9_]*)[ \t]*=[ \t]*(?:'(%s)'|\"(%s)\"|(%s))[ \t]*;[ \t]*" % ((_ENV_VALUE,) * 3))
+_SH_ENV = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(?:'(%s)'|\"(%s)\"|(%s))[ \t]+" % ((_ENV_VALUE,) * 3))
+_RAW_TOKEN = re.compile(r"'([^']*)'|\"([^\"]*)\"|([^\s'\"]+)")
+_BARE_PUNCT = frozenset('_-./:=+')
+_QUOTED_PUNCT = frozenset('_-./:=+,()@# ')
+
+
+def _plain(text, punct, backslash):
+    """Letters, digits and marks of any script plus an explicit punctuation set; nothing any shell treats specially."""
+    for ch in text:
+        if ch == '\\':
+            if not backslash:
+                return False
+        elif ch in punct or (ch.isascii() and ch.isalnum()):
+            continue
+        elif ch.isascii() or unicodedata.category(ch)[0] not in 'LNM':
+            return False
+    return True
+
+
+def command_tokens(command):
+    """argv of a retained command whose meaning is the same in every shell that could run it, else None.
+
+    PowerShell shape: `[$env:NAME='v'; ...] & 'python.exe' '-I' ...`. bash rejects the line as a syntax error;
+      cmd.exe either rejects it or fails on the single-quoted interpreter, so only PowerShell can run it.
+    POSIX shape: `NAME=v ... python -I ...` or a single-quoted interpreter without `&`. PowerShell and cmd.exe
+      cannot run either form, so only a POSIX shell can.
+    Neutral shape: bare and double-quoted words only. PowerShell, cmd.exe and bash split these identically.
+    Words hold only letters, digits, marks and plain punctuation, so no shell expands, joins, splits or redirects them."""
+    if not isinstance(command, str) or not command or command != command.strip(' \t') or '\n' in command or '\r' in command:
+        return None
+    position, ps_env, posix_env = 0, False, False
+    while True:
+        match = _PS_ENV.match(command, position)
+        if not match:
+            break
+        if match.group(1) not in SAFE_COMMAND_ENV:
+            return None
+        ps_env, position = True, match.end()
+    while not ps_env:
+        match = _SH_ENV.match(command, position)
+        if not match:
+            break
+        if match.group(1) not in SAFE_COMMAND_ENV:
+            return None
+        posix_env, position = True, match.end()
+    call = not posix_env and command.startswith('& ', position)
+    if call:
+        position += 2
+        while position < len(command) and command[position] in ' \t':
+            position += 1
+    elif ps_env:
+        return None  # without the call operator PowerShell would only print the strings
+    words = []
+    while position < len(command):
+        match = _RAW_TOKEN.match(command, position)
+        if not match:
+            return None
+        kind = 'single' if match.group(1) is not None else 'double' if match.group(2) is not None else 'bare'
+        words.append((kind, match.group(match.lastindex)))
+        position = match.end()
+        if position < len(command):
+            if command[position] not in ' \t':
+                return None
+            while command[position] in ' \t':
+                position += 1
+    if not words:
+        return None
+    first_kind, first = words[0]
+    if call:
+        mode = 'powershell'
+        if first_kind != 'single' and any(kind == 'single' for kind, _ in words):
+            return None  # cmd.exe could run an unquoted interpreter after `&` and keep the single quotes
+    elif posix_env or first_kind == 'single':
+        mode = 'posix'
+    else:
+        mode = 'neutral'
+    if '=' in first:
+        return None
+    # bash reads backslashes differently; allow them only where bash cannot run the command at all.
+    backslash = mode == 'powershell' or (mode == 'neutral' and '\\' in first and '/' not in first)
+    for kind, text in words:
+        if kind == 'bare':
+            if not text or text.endswith('\\') or not _plain(text, _BARE_PUNCT, backslash):
+                return None
+            if text[0] in '+=:' or text[0].isdigit() or (text[0] == '.' and text[1:2].isdigit()):
+                return None  # PowerShell reads numbers, signs and these leading marks in its own way
+            if text.startswith('-') and (not any(ch.isascii() and ch.isalnum() for ch in text) or text[1:2].isdigit()
+                                         or not all(ch in '-_' or (ch.isascii() and ch.isalnum()) for ch in text)):
+                return None  # PowerShell splits -name.part / -name:value, and may consume -- or read -5 as a number
+        else:
+            if kind == 'single' and mode == 'neutral':
+                return None
+            if not text or text.endswith('\\') or not _plain(text, _QUOTED_PUNCT, backslash):
+                return None
+    return [text for _, text in words]
+
+
+def command_matches(command, argv):
+    """True when the retained tool command is, in any shell that could run it, exactly the retained argv."""
+    return isinstance(argv, list) and command_tokens(command) == argv
+
+
+def interpreter_flags_ok(flags):
+    """Only isolation/buffering flags and UTF-8 mode may sit between the interpreter and the kit script."""
+    index = 0
+    while index < len(flags):
+        if flags[index] in ('-I', '-B', '-u', '-Xutf8'):
+            index += 1
+        elif flags[index] == '-X' and index + 1 < len(flags) and flags[index + 1] == 'utf8':
+            index += 2
+        else:
+            return False
+    return True
 
 
 def audit_limit_warnings(audit):
@@ -188,8 +312,7 @@ def _check(plan, root, kit, phase='final', source=None):
         command, argv = request.get('cmd', ''), proof.get('argv', [])
         if not isinstance(argv, list) or not argv or not all(isinstance(x, str) for x in argv):
             raise ValueError('actual argv required alongside native command')
-        renderings = (subprocess.list2cmdline(argv), shlex.join(argv))
-        if '\n' in command or '\r' in command or command not in renderings + tuple('& ' + value for value in renderings):
+        if not command_matches(command, argv):
             raise ValueError('native command is not the exact retained argv')
         if '-I' not in argv or any(x in argv for x in ('-c', '-m', '--eval')):
             raise ValueError('actual isolated native command/result required')
@@ -218,7 +341,7 @@ def _check(plan, root, kit, phase='final', source=None):
             proof = h['read_json'](bound(ref))
             argv, output = native(proof)
             script_index = path_index(argv, Path(__file__).with_name(script))
-            if script_index is None or any(flag not in ('-I', '-B', '-u') for flag in argv[1:script_index]):
+            if script_index is None or not interpreter_flags_ok(argv[1:script_index]):
                 raise ValueError('actual isolated native command/result required')
             if argv.index('-I') > script_index:
                 raise ValueError('unexpected interpreter or isolation flag placement')
@@ -376,7 +499,7 @@ def _check(plan, root, kit, phase='final', source=None):
                     observed = h['read_json'](bound(control.get('execution')))
                     argv, output = native(observed)
                     selected = next((index for index in (path_index(argv, root / name) for name in grading.get('evaluator_hashes', {})) if index is not None), None)
-                    if selected is None or argv.index('-I') > selected or any(flag not in ('-I', '-B', '-u') for flag in argv[1:selected]):
+                    if selected is None or argv.index('-I') > selected or not interpreter_flags_ok(argv[1:selected]):
                         raise ValueError('control native command did not invoke its bound evaluator')
                     if observed.get('input') != control.get('input') or observed.get('output') != control.get('output') or any(path_index(argv, root / control[key]['path']) is None for key in ('input', 'output')):
                         raise ValueError('control native invocation does not bind its input and candidate output')

@@ -125,8 +125,13 @@ def clean_run(root, plan, scratch):
             if '-I' not in argv[1:]:
                 argv.insert(1, '-I')
             script_index = 1
-            while script_index < len(argv) and argv[script_index] in ('-I', '-B', '-u', '-O', '-OO'):
-                script_index += 1
+            while script_index < len(argv):
+                if argv[script_index] in ('-I', '-B', '-u', '-O', '-OO', '-Xutf8'):
+                    script_index += 1
+                elif argv[script_index] == '-X' and script_index + 1 < len(argv) and argv[script_index + 1] == 'utf8':
+                    script_index += 2
+                else:
+                    break
             if script_index == len(argv) or argv[script_index].startswith('-'):
                 raise ValueError('Python replay needs an allowlisted copied script, without inline/module execution')
             script = helper['safe_path'](replay, argv[script_index])

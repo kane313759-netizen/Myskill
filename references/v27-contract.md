@@ -34,7 +34,7 @@ python -I .hackathon-kit/scripts/v27_check.py --root . --plan .hackathon-kit/run
 
 `submission`, `security`, `clean_run` 참조에는 추가 `execution:{path,sha256}`가 필요하다. 해당 JSON은 실제 도구 호출의 `{tool:"exec_command",argv:[실제 인터프리터 절대경로,"-I",도우미 절대경로,...],request:{cmd:...},result:{exit_code:0,output:실제 JSON stdout}}`을 보존한다. tool은 ENV의 EXECUTION_TOOLS 목록으로 확인하며 기본은 `["exec_command"]`라는 PLAN_DEFAULT다. 실제 플랫폼의 도구 이름을 확인하면 예를 들어 `bash`를 추가하고 동일한 구조·명령·현재 파일 검사를 적용한다. 목록에 없는 도구 또는 `MANUAL_TRANSCRIPT`는 실행 확인 불가로 UNVERIFIED이며 PASS로 승격하지 않는다. 별도의 실제 파일 변경·잘못된 형식은 계속 FAIL이다.
 
-`argv`는 실제 명령의 구조화된 사본이다. 단일 명령을 `subprocess.list2cmdline(argv)` 또는 `shlex.join(argv)`로 렌더링하고 PowerShell이면 앞에 `& `를 붙일 수 있다. 이 렌더링과 실제 cmd가 같아야 한다. 인터프리터는 실행 중 Python의 `sys.executable` 실제 경로를 사용하며, `--root`와 현재 `--rules`/`--plan` 경로를 명시한다. 셸 블록·별칭·`-c`를 대신 쓰지 않는다. 실제 stdout이 결과 문서와 일치해야 하며 기록 자체를 스크립트가 생성한 결과로 가장하지 않는다.
+`argv`는 실제 명령의 구조화된 사본이다. 실제 cmd는 어느 셸이 실행했든 같은 뜻인 인터프리터 호출 하나여야 하고, 그 낱말 목록이 argv와 같아야 한다. 인정하는 모양은 셋이다: (가) PowerShell `[$env:NAME='값'; …] & '<인터프리터>' …`(bash는 문법 오류, cmd.exe는 작은따옴표 인터프리터를 실행하지 못한다), (나) POSIX `NAME=값 … <인터프리터> …` 또는 작은따옴표로 감싼 인터프리터로 시작하는 줄(PowerShell·cmd.exe는 실행하지 못한다), (다) 따옴표 없는 낱말과 큰따옴표 낱말만 쓴 줄(세 셸이 같게 나눈다). NAME은 PYTHONUTF8·PYTHONIOENCODING·OMP_NUM_THREADS·OPENBLAS_NUM_THREADS·MKL_NUM_THREADS·NUMEXPR_NUM_THREADS·VECLIB_MAXIMUM_THREADS만 허용한다. 낱말에는 글자·숫자와 `_ - . / : = +`(따옴표 안에서는 공백 `, ( ) @ #`도)만 올 수 있고, 역슬래시는 bash가 그 줄을 실행할 수 없는 경우에만 허용한다. 빈 낱말, 역슬래시로 끝나는 낱말, `-`로 시작하며 `.`·`:`가 든 따옴표 없는 낱말은 거절한다. 인터프리터와 도우미 사이의 옵션은 `-I`·`-B`·`-u`·`-X utf8`만 허용한다. 인터프리터는 실행 중 Python의 `sys.executable` 실제 경로를 사용하며, `--root`와 현재 `--rules`/`--plan` 경로를 명시한다. 셸 블록·별칭·`-c`를 대신 쓰지 않는다. 실제 stdout이 결과 문서와 일치해야 하며 기록 자체를 스크립트가 생성한 결과로 가장하지 않는다.
 
 ## 데이터와 채점
 
