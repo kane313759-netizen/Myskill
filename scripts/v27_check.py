@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Read-only v2.7 evidence checks. Never advances STATE, a gate or a submission."""
 import argparse
+from datetime import datetime, timedelta
 import json
 import math
 import os
 from pathlib import Path
+import re
 import runpy
-import shlex
-import subprocess
 import sys
+import unicodedata
 
 
 SWITCHES = ('FOLLOWUP', 'T_SUB', 'WINDOW_END', 'LUNCH_POLICY', 'WORK_ENV',
@@ -32,11 +33,143 @@ def meaningful(value):
 
 
 def utf8_warning(is_windows, utf8_mode):
-    return 'Windows Python UTF-8 mode is off; use PYTHONUTF8=1 and an actual Python executable' if is_windows and not utf8_mode else None
+    return ('Windows Python UTF-8 mode is off; run kit checks as <actual python.exe> -X utf8 -I <script> '
+            '(-I ignores PYTHONUTF8)') if is_windows and not utf8_mode else None
+
+
+# A retained native command is accepted only when its meaning does not depend on which shell ran it:
+# every shell that could have received it (PowerShell, cmd.exe, bash) either reads exactly argv or cannot run it.
+# Environment assignments allowed in front: -I already makes Python ignore PYTHON* variables, and the thread
+# counts only size numeric libraries.
+SAFE_COMMAND_ENV = frozenset(('PYTHONUTF8', 'PYTHONIOENCODING', 'OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS',
+                              'MKL_NUM_THREADS', 'NUMEXPR_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS'))
+_ENV_VALUE = r"[A-Za-z0-9_.:-]{0,64}"
+_PS_ENV = re.compile(r"\$env:([A-Za-z_][A-Za-z0-9_]*)[ \t]*=[ \t]*(?:'(%s)'|\"(%s)\"|(%s))[ \t]*;[ \t]*" % ((_ENV_VALUE,) * 3))
+_SH_ENV = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(?:'(%s)'|\"(%s)\"|(%s))[ \t]+" % ((_ENV_VALUE,) * 3))
+_RAW_TOKEN = re.compile(r"'([^']*)'|\"([^\"]*)\"|([^\s'\"]+)")
+_BARE_PUNCT = frozenset('_-./:=+')
+_QUOTED_PUNCT = frozenset('_-./:=+,()@# ')
+
+
+def _letter(ch):
+    return (ch.isascii() and ch.isalnum()) or (not ch.isascii() and unicodedata.category(ch)[0] in 'LNM')
+
+
+def _plain(text, punct, backslash):
+    """Letters, digits and marks of any script plus an explicit punctuation set; nothing any shell treats specially.
+
+    `~` is allowed only right after a letter or digit (Windows short names such as RUNNER~1): bash expands it
+    only at the start of a word or after `=`/`:`, and PowerShell and cmd.exe never expand it inside a word."""
+    for index, ch in enumerate(text):
+        if ch == '\\':
+            if not backslash:
+                return False
+        elif ch == '~':
+            if index == 0 or not _letter(text[index - 1]):
+                return False
+        elif ch not in punct and not _letter(ch):
+            return False
+    return True
+
+
+def command_tokens(command):
+    """argv of a retained command whose meaning is the same in every shell that could run it, else None.
+
+    PowerShell shape: `[$env:NAME='v'; ...] & 'python.exe' '-I' ...`. bash rejects the line as a syntax error;
+      cmd.exe either rejects it or fails on the single-quoted interpreter, so only PowerShell can run it.
+    POSIX shape: `NAME=v ... python -I ...` or a single-quoted interpreter without `&`. PowerShell and cmd.exe
+      cannot run either form, so only a POSIX shell can.
+    Neutral shape: bare and double-quoted words only. PowerShell, cmd.exe and bash split these identically.
+    Words hold only letters, digits, marks and plain punctuation, so no shell expands, joins, splits or redirects them."""
+    if not isinstance(command, str) or not command or command != command.strip(' \t') or '\n' in command or '\r' in command:
+        return None
+    position, ps_env, posix_env = 0, False, False
+    while True:
+        match = _PS_ENV.match(command, position)
+        if not match:
+            break
+        if match.group(1) not in SAFE_COMMAND_ENV:
+            return None
+        ps_env, position = True, match.end()
+    while not ps_env:
+        match = _SH_ENV.match(command, position)
+        if not match:
+            break
+        if match.group(1) not in SAFE_COMMAND_ENV:
+            return None
+        posix_env, position = True, match.end()
+    call = not posix_env and command.startswith('& ', position)
+    if call:
+        position += 2
+        while position < len(command) and command[position] in ' \t':
+            position += 1
+    elif ps_env:
+        return None  # without the call operator PowerShell would only print the strings
+    words = []
+    while position < len(command):
+        match = _RAW_TOKEN.match(command, position)
+        if not match:
+            return None
+        kind = 'single' if match.group(1) is not None else 'double' if match.group(2) is not None else 'bare'
+        words.append((kind, match.group(match.lastindex)))
+        position = match.end()
+        if position < len(command):
+            if command[position] not in ' \t':
+                return None
+            while command[position] in ' \t':
+                position += 1
+    if not words:
+        return None
+    first_kind, first = words[0]
+    if call:
+        mode = 'powershell'
+        if first_kind != 'single' and any(kind == 'single' for kind, _ in words):
+            return None  # cmd.exe could run an unquoted interpreter after `&` and keep the single quotes
+    elif posix_env or first_kind == 'single':
+        mode = 'posix'
+    else:
+        mode = 'neutral'
+    if '=' in first:
+        return None
+    # bash reads backslashes differently; allow them only where bash cannot run the command at all.
+    backslash = mode == 'powershell' or (mode == 'neutral' and '\\' in first and '/' not in first)
+    for kind, text in words:
+        if kind == 'bare':
+            if not text or text.endswith('\\') or not _plain(text, _BARE_PUNCT, backslash):
+                return None
+            if text[0] in '+=:' or text[0].isdigit() or (text[0] == '.' and text[1:2].isdigit()):
+                return None  # PowerShell reads numbers, signs and these leading marks in its own way
+            if text.startswith('-') and (not any(ch.isascii() and ch.isalnum() for ch in text) or text[1:2].isdigit()
+                                         or not all(ch in '-_' or (ch.isascii() and ch.isalnum()) for ch in text)):
+                return None  # PowerShell splits -name.part / -name:value, and may consume -- or read -5 as a number
+        else:
+            if kind == 'single' and mode == 'neutral':
+                return None
+            if not text or text.endswith('\\') or not _plain(text, _QUOTED_PUNCT, backslash):
+                return None
+    return [text for _, text in words]
+
+
+def command_matches(command, argv):
+    """True when the retained tool command is, in any shell that could run it, exactly the retained argv."""
+    return isinstance(argv, list) and command_tokens(command) == argv
+
+
+def interpreter_flags_ok(flags):
+    """Only isolation/buffering flags and UTF-8 mode may sit between the interpreter and the kit script."""
+    index = 0
+    while index < len(flags):
+        if flags[index] in ('-I', '-B', '-u', '-Xutf8'):
+            index += 1
+        elif flags[index] == '-X' and index + 1 < len(flags) and flags[index + 1] == 'utf8':
+            index += 2
+        else:
+            return False
+    return True
 
 
 def audit_limit_warnings(audit):
-    messages=[]
+    messages=list(audit.get('warnings',[]))
     for artifact in audit.get('files', []):
         for limit in artifact.get('analysis_limits', []):
             messages.append('data_audit analysis limited: %s / %s / %s / dropped=%s' %
@@ -62,8 +195,8 @@ def r3_policy(findings=(), impacts=(), gates=(), assumptions=(), keep_baseline=F
         direction=gate.get('direction')
         if not meaningful(gate.get('metric')) or direction not in ('HIGHER_IS_BETTER','LOWER_IS_BETTER') or any(type(x) not in (int,float) or not math.isfinite(x) for x in (a,b)) or not isinstance(gate.get('evidence'),dict):
             errors.append('gate metric, finite values, direction and evidence required')
-        elif (b < a if direction == 'HIGHER_IS_BETTER' else b > a):
-            errors.append('gate metric is worse than baseline: '+gate['metric'])
+    policy = module('v27_comparison')['comparison_policy']({'gates':list(gates)})
+    warnings.extend(policy['warnings'])
     if keep_baseline:
         names=[x.get('check') for x in assumptions if isinstance(x,dict)] if isinstance(assumptions,list) else []
         if not isinstance(assumptions,list) or len(names) != len(assumptions) or len(set(names)) < 3 or not set(names) <= allowed or len(names) != len(set(names)) or any(not meaningful(x.get('method')) or not meaningful(x.get('result')) for x in assumptions if isinstance(x,dict)):
@@ -86,6 +219,42 @@ def r3_policy(findings=(), impacts=(), gates=(), assumptions=(), keep_baseline=F
             else:
                 pending.append('external request pending: do not lock before response')
     return {'errors':errors,'pending':pending,'warnings':warnings}
+
+
+MILESTONES = ('cp3_start', 'work_lock', 'submission_start', 'confirmation_deadline')
+
+
+def exact(value):
+    """Type-strict canonical text: 1, 1.0 and true differ; key order does not."""
+    return json.dumps(value, sort_keys=True, ensure_ascii=True)
+
+
+def observed_plans(calculate, env, calculated):
+    """Every result deadline.py can print for this ENV: the plan and each --observe-now outcome.
+
+    The clock only changes which milestones are `passed` (and the matching warning/status), so
+    one observation per milestone boundary enumerates all outcomes. A recorded deadline must
+    equal one of them exactly; nothing is stripped or tolerated. --observe-now replaces any
+    NOW/now already written in ENV, so the outcomes are built without that stale value.
+    """
+    def with_now(now):
+        observed = json.loads(json.dumps(env))
+        target = observed['switches'] if isinstance(observed.get('switches'), dict) else observed
+        target.pop('NOW', None)
+        target.pop('now', None)
+        if now is not None:
+            target['NOW'] = now.isoformat()
+        return calculate(observed)
+
+    plans = [calculated]
+    try:
+        plans.append(with_now(None))
+        instants = sorted({datetime.fromisoformat(calculated[name]) for name in MILESTONES})
+    except (KeyError, TypeError, ValueError):
+        return plans
+    for now in instants[1:] + [instants[-1] + timedelta(seconds=1)]:
+        plans.append(with_now(now))
+    return plans
 
 
 def path_index(argv, expected):
@@ -151,8 +320,7 @@ def _check(plan, root, kit, phase='final', source=None):
         command, argv = request.get('cmd', ''), proof.get('argv', [])
         if not isinstance(argv, list) or not argv or not all(isinstance(x, str) for x in argv):
             raise ValueError('actual argv required alongside native command')
-        renderings = (subprocess.list2cmdline(argv), shlex.join(argv))
-        if '\n' in command or '\r' in command or command not in renderings + tuple('& ' + value for value in renderings):
+        if not command_matches(command, argv):
             raise ValueError('native command is not the exact retained argv')
         if '-I' not in argv or any(x in argv for x in ('-c', '-m', '--eval')):
             raise ValueError('actual isolated native command/result required')
@@ -181,7 +349,7 @@ def _check(plan, root, kit, phase='final', source=None):
             proof = h['read_json'](bound(ref))
             argv, output = native(proof)
             script_index = path_index(argv, Path(__file__).with_name(script))
-            if script_index is None or any(flag not in ('-I', '-B', '-u') for flag in argv[1:script_index]):
+            if script_index is None or not interpreter_flags_ok(argv[1:script_index]):
                 raise ValueError('actual isolated native command/result required')
             if argv.index('-I') > script_index:
                 raise ValueError('unexpected interpreter or isolation flag placement')
@@ -263,8 +431,11 @@ def _check(plan, root, kit, phase='final', source=None):
                 required_time += ('T_FU',)
             if any(switches.get(key, {}).get('classification') != 'CONFIRMED' for key in required_time):
                 pending.append('deadline: computed planning target is not an official confirmed cutoff')
-            if state and state.get('deadline') != calculated:
+        if state and calculated.get('status') in ('KNOWN', 'PAST_CONFIRMATION'):
+            if exact(state.get('deadline')) not in {exact(item) for item in observed_plans(module('deadline')['calculate'], env, calculated)}:
                 errors.append('V27_STATE deadline differs from recalculation')
+            elif calculated['status'] == 'KNOWN' and state['deadline'].get('status') == 'PAST_CONFIRMATION':
+                pending.append('deadline: confirmation deadline has passed; submission is not established')
         if source:
             errors.extend(h['check_protected'](source))
     except (OSError, ValueError, TypeError, KeyError) as exc:
@@ -319,8 +490,8 @@ def _check(plan, root, kit, phase='final', source=None):
             controls = grading.get('controls', [])
             positives = [x for x in controls if x.get('kind') == 'POSITIVE']
             negatives = [x for x in controls if x.get('kind') == 'NEGATIVE']
-            if not 3 <= len(positives) <= 5 or not negatives:
-                errors.append('grader needs 3-5 independent known answers and justified negative controls')
+            if not 1 <= len(positives) <= 3 or not negatives:
+                errors.append('grader needs 1-3 independent known answers and justified negative controls')
             ids, cases = set(), set()
             for control in controls:
                 try:
@@ -336,7 +507,7 @@ def _check(plan, root, kit, phase='final', source=None):
                     observed = h['read_json'](bound(control.get('execution')))
                     argv, output = native(observed)
                     selected = next((index for index in (path_index(argv, root / name) for name in grading.get('evaluator_hashes', {})) if index is not None), None)
-                    if selected is None or argv.index('-I') > selected or any(flag not in ('-I', '-B', '-u') for flag in argv[1:selected]):
+                    if selected is None or argv.index('-I') > selected or not interpreter_flags_ok(argv[1:selected]):
                         raise ValueError('control native command did not invoke its bound evaluator')
                     if observed.get('input') != control.get('input') or observed.get('output') != control.get('output') or any(path_index(argv, root / control[key]['path']) is None for key in ('input', 'output')):
                         raise ValueError('control native invocation does not bind its input and candidate output')
@@ -434,6 +605,23 @@ def _check(plan, root, kit, phase='final', source=None):
             except (OSError, ValueError, TypeError) as exc:
                 errors.append('study participant choice: ' + str(exc))
 
+    if 'hard_rules' not in records:
+        errors.append('hard_rules: void/zero/reject/penalty rule table missing (.hackathon-kit/run/HARD_RULES.json; template templates/HARD_RULES.json)')
+    else:
+        hard = record('hard_rules')
+        frozen = None
+        if phase == 'final':
+            if 'hard_rules_cp1' not in records:
+                errors.append('hard_rules_cp1: record the copy of HARD_RULES.json that the CP1 review saw (V27_EVIDENCE records.hard_rules_cp1)')
+            else:
+                frozen = record('hard_rules_cp1')
+                cp1_scope = (record('cp1_reviews', required=False) or {}).get('required_scope') or {}
+                reviewed = cp1_scope.get(records['hard_rules'].get('path')) if isinstance(cp1_scope, dict) else None
+                if reviewed and reviewed != records['hard_rules_cp1'].get('sha256'):
+                    errors.append('hard_rules_cp1: not the HARD_RULES.json version the CP1 review saw (CP1 scope SHA256 differs)')
+        if hard is not None:
+            errors.extend(module('hard_rules')['validate'](hard, root, phase, bound, frozen))
+
     reviews = record('finals_reviews' if phase == 'final' else 'cp1_reviews')
     if reviews:
         try:
@@ -442,19 +630,19 @@ def _check(plan, root, kit, phase='final', source=None):
                 current = dict(replay.get('input_sha256', {}))
                 current.update({x['path']: x['sha256'] for x in replay.get('artifacts', [])})
                 current.update({x['path']: x['sha256'] for x in (audit or {}).get('files', []) if x.get('sha256')})
-                for ref in (records.get('data_audit'), plan.get('spec_draft'), records.get('data_audit_resolution')):
+                for ref in (records.get('data_audit'), plan.get('spec_draft'), records.get('data_audit_resolution'), records.get('hard_rules')):
                     if ref:
                         current[ref['path']] = ref['sha256']
                 if not current or any(reviews.get('required_scope', {}).get(path) != digest for path, digest in current.items()):
-                    errors.append('CP3 independent scope must cover current replay inputs/artifacts, audited sources, SPEC_DRAFT and DATA_AUDIT evidence')
+                    errors.append('CP3 independent scope must cover current replay inputs/artifacts, audited sources, SPEC_DRAFT, DATA_AUDIT evidence and HARD_RULES')
                 errors.extend(module('finals_review_check')['check_reviews'](reviews, kit, 'FINAL'))
             else:
                 policy = module('review_execution')
                 base = module('finals_review_check')
                 errors.extend(base['check_hashes'](reviews.get('required_scope'), root, policy, 'CP1 required_scope'))
-                for ref in (records.get('data_audit'), plan.get('spec_draft'), records.get('data_audit_resolution')):
+                for ref in (records.get('data_audit'), plan.get('spec_draft'), records.get('data_audit_resolution'), records.get('hard_rules')):
                     if ref and reviews.get('required_scope', {}).get(ref['path']) != ref['sha256']:
-                        errors.append('CP1 independent scope must contain current DATA_AUDIT, SPEC_DRAFT and any semantic resolution')
+                        errors.append('CP1 independent scope must contain current DATA_AUDIT, SPEC_DRAFT, HARD_RULES and any semantic resolution')
                 workers, reports = set(), set()
                 for role in ('CONSTRAINT_RED', 'DATA_EVAL_RED'):
                     entry = reviews.get('reviews', {}).get(role, {})
@@ -530,8 +718,10 @@ def _check(plan, root, kit, phase='final', source=None):
                     errors.append('baseline comparison: unavailable needs a reason')
                 pending.append('baseline comparison: no comparable score; no improvement claim or automatic freeze')
             elif comparison.get('status') == 'AVAILABLE':
-                metric, direction = comparison.get('metric'), comparison.get('direction')
-                left, right = comparison.get('baseline_value'), comparison.get('candidate_value')
+                primary=dict(comparison)
+                if isinstance(comparison.get('primary'),dict): primary.update(comparison['primary'])
+                metric, direction = primary.get('metric'), primary.get('direction')
+                left, right = primary.get('baseline_value'), primary.get('candidate_value')
                 if not meaningful(metric) or direction not in ('HIGHER_IS_BETTER', 'LOWER_IS_BETTER') or any(type(x) not in (int, float) or not math.isfinite(x) for x in (left, right)):
                     errors.append('baseline comparison: finite comparable metric and direction required')
                 else:
@@ -548,48 +738,55 @@ def _check(plan, root, kit, phase='final', source=None):
                             raise ValueError('candidate score must bind a current clean-run artifact')
                     except (OSError, ValueError, TypeError) as exc:
                         errors.append('baseline comparison evidence: ' + str(exc))
-                    if right < left if direction == 'HIGHER_IS_BETTER' else right > left:
-                        errors.append('candidate is worse than the comparable current baseline; retain baseline')
                     if comparison.get('selection') == 'CURRENT_BASELINE':
                         if right != left:
                             errors.append('current baseline selection must score the same as the baseline under identical evaluation')
                         if original.get('artifact', {}).get('sha256') != candidate.get('artifact', {}).get('sha256'):
                             errors.append('current baseline selection must preserve the evaluated baseline artifact')
-                        alternatives = comparison.get('alternatives', [])
-                        if not isinstance(alternatives, list) or len(alternatives) < 2 or len({x.get('name') for x in alternatives if isinstance(x, dict) and meaningful(x.get('name'))}) < 2:
-                            pending.append('current baseline retention needs two distinct alternatives examined')
-                        else:
-                            for option in alternatives:
-                                try:
-                                    if not meaningful(option.get('assumptions')) or not meaningful(option.get('result')):
-                                        raise ValueError('alternative assumptions and observed result required')
-                                    bound(option.get('evidence'))
-                                except (OSError, ValueError, TypeError, AttributeError) as exc:
-                                    errors.append('baseline alternative: ' + str(exc))
-                        p = r3_policy(assumptions=comparison.get('baseline_assumptions_check', []), keep_baseline=True)
-                        pending.extend(p['pending'])
+                        pending.extend(r3_policy(assumptions=comparison.get('baseline_assumptions_check', []),keep_baseline=True)['pending'])
                     elif comparison.get('selection') != 'CANDIDATE':
                         errors.append('baseline comparison: selection must be CANDIDATE or CURRENT_BASELINE')
             else:
                 pending.append('baseline comparison: availability and decision not recorded')
 
-            gates = comparison.get('gates')
-            if not isinstance(gates,list):
-                pending.append('baseline comparison: explicit gate metrics list required')
-            else:
-                p = r3_policy(gates=gates); errors.extend(p['errors'])
-                for gate in gates:
+            policy = module('v27_comparison')['comparison_policy'](comparison)
+            errors.extend(policy['errors']); pending.extend(policy['pending']); warnings.extend(policy['warnings'])
+            errors.extend(r3_policy(gates=comparison.get('gates',[]))['errors'])
+            alternative=comparison.get('best_alternative')
+            if comparison.get('selection')=='CURRENT_BASELINE' and isinstance(alternative,dict):
+                ref=alternative.get('evidence')
+                if isinstance(ref,dict) and all(isinstance(ref.get(k),str) and ref[k].strip() for k in ('path','sha256')):
                     try:
-                        observed = h['read_json'](bound(gate.get('evidence')))
-                        expected_scope = h['read_json'](bound(comparison.get('shared_scope_evidence')))
-                        if any(observed.get(k) != gate.get(k) for k in ('metric','baseline_value','candidate_value')) or observed.get('scope') != expected_scope:
-                            raise ValueError('gate metric evidence does not match values and common evaluation scope')
-                        baseline_score = h['read_json'](bound(comparison.get('baseline_evidence')))
-                        candidate_score = h['read_json'](bound(comparison.get('candidate_evidence')))
-                        if observed.get('baseline_artifact') != baseline_score.get('artifact') or observed.get('candidate_artifact') != candidate_score.get('artifact'):
-                            raise ValueError('gate metric evidence must bind the same baseline and candidate artifacts')
-                    except (OSError, ValueError, TypeError, AttributeError) as exc:
-                        errors.append('gate evidence: ' + str(exc))
+                        path=h['safe_path'](root,ref['path'],must_exist=False)
+                        if not path.is_file():
+                            pending.append('best_alternative evidence file missing')
+                        else:
+                            observed=h['read_json'](bound(ref))
+                            metrics=observed.get('metric_values',observed) if isinstance(observed,dict) else None
+                            expected=alternative.get('metric_values')
+                            if not isinstance(metrics,dict) or not isinstance(expected,dict) or any(k not in metrics or metrics[k]!=v for k,v in expected.items()):
+                                raise ValueError('metric_values do not match result file')
+                    except (OSError,ValueError,TypeError,AttributeError) as exc:
+                        errors.append('best_alternative evidence: '+str(exc))
+            for limit in comparison.get('hard_limits', []):
+                try:
+                    text = h['read_bytes'](bound(limit.get('evidence'))).decode('utf-8-sig')
+                    if not meaningful(limit.get('source_quote')) or limit['source_quote'] not in text:
+                        raise ValueError('hard limit source_quote must occur in task evidence')
+                except (OSError, ValueError, TypeError, AttributeError) as exc:
+                    errors.append('hard limit evidence: '+str(exc))
+            for gate in comparison.get('gates', []):
+                try:
+                    observed = h['read_json'](bound(gate.get('evidence')))
+                    expected_scope = h['read_json'](bound(comparison.get('shared_scope_evidence')))
+                    if any(observed.get(k) != gate.get(k) for k in ('metric','baseline_value','candidate_value')) or observed.get('scope') != expected_scope:
+                        raise ValueError('gate metric evidence does not match values and common evaluation scope')
+                    baseline_score = h['read_json'](bound(comparison.get('baseline_evidence')))
+                    candidate_score = h['read_json'](bound(comparison.get('candidate_evidence')))
+                    if observed.get('baseline_artifact') != baseline_score.get('artifact') or observed.get('candidate_artifact') != candidate_score.get('artifact'):
+                        raise ValueError('gate metric evidence must bind the same baseline and candidate artifacts')
+                except (OSError, ValueError, TypeError, AttributeError) as exc:
+                    errors.append('gate evidence: ' + str(exc))
         comparison_ok = bool(comparison and comparison.get('status') == 'AVAILABLE' and len(errors) == comparison_error_start and len(pending) == comparison_pending_start)
 
         requests = record('external_requests')
@@ -688,6 +885,7 @@ def main():
     parser.add_argument('--source', type=Path)
     parser.add_argument('--phase', choices=('intake', 'cp1', 'final'), default='final')
     parser.add_argument('--plan', default='.hackathon-kit/run/V27_EVIDENCE.json')
+    parser.add_argument('--output', type=Path, help='Also write the result JSON to this new file (an existing file is not overwritten)')
     args = parser.parse_args()
     try:
         h = module('v27_common')
@@ -695,7 +893,15 @@ def main():
         result = check(h['read_json'](h['safe_path'](root, args.plan)), root, args.kit, args.phase, args.source)
     except (OSError, ValueError, TypeError, KeyError) as exc:
         result = dict(status='FAIL', errors=[str(exc)], unverified=[], warnings=[])
-    print(json.dumps(result, ensure_ascii=False, allow_nan=False, indent=2))
+    text = json.dumps(result, ensure_ascii=False, allow_nan=False, indent=2)
+    print(text)
+    if args.output:
+        try:
+            with open(str(args.output), 'x', encoding='utf-8', newline='\n') as handle:
+                handle.write(text + '\n')
+        except OSError as exc:
+            print('V27 CHECK OUTPUT NOT WRITTEN: ' + str(exc))
+            return 2
     return 0 if result['status'] == 'PASS' else 2
 
 

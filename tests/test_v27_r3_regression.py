@@ -109,7 +109,7 @@ class SyntheticPolicyTests(unittest.TestCase):
   r=self.apply(findings=[{'item_id':2,'finding_ref':'f1'}],impacts=[{'item_id':2,'finding_ref':'f1','action':'check','metric':'x','before':1,'after':2,'split':'holdout','grader_sha256':'a'*64}]);self.assertFalse(r['errors'])
   r=self.apply(findings=[{'item_id':2,'finding_ref':'f1'}],impacts=[{'item_id':2,'unmeasurable_reason':'no outcome labels'}]);self.assertFalse(r['errors']);self.assertTrue(r['warnings'])
  def test_f5_worse_gate_blocks(self):
-  r=self.apply(gates=[{'metric':'violations','direction':'LOWER_IS_BETTER','baseline_value':2,'candidate_value':3,'evidence':{'path':'synthetic','sha256':'a'*64}}]);self.assertTrue(r['errors'])
+  r=self.apply(gates=[{'metric':'violations','direction':'LOWER_IS_BETTER','baseline_value':2,'candidate_value':3,'evidence':{'path':'synthetic','sha256':'a'*64}}]);self.assertFalse(r['errors']);self.assertTrue(any('legacy gate treated as proxy' in x for x in r['warnings']));self.assertTrue(any('proxy metric is worse' in x for x in r['warnings']))
   r=self.apply(gates=[{'metric':'violations','direction':'LOWER_IS_BETTER','baseline_value':2,'candidate_value':1,'evidence':{'path':'synthetic','sha256':'a'*64}}]);self.assertFalse(r['errors'])
  def test_f6_assumptions_are_distinct_known_checks(self):
   valid=[{'check':x,'method':'observed comparison','result':'reviewed'} for x in ('response_shape','progress_variable','operating_shift')]
@@ -145,10 +145,14 @@ class IntegrationR3Tests(unittest.TestCase):
   baseline=json.loads((t.root/comp['baseline_evidence']['path']).read_text(encoding='utf8')); candidate=json.loads((t.root/comp['candidate_evidence']['path']).read_text(encoding='utf8'))
   evidence=dict(gate,scope=scope,baseline_artifact=baseline['artifact'],candidate_artifact=candidate['artifact'])
   gate['evidence']=t.write('gate.json',json.dumps(evidence));comp['gates']=[gate];t.record('baseline_comparison',comp)
-  self.assertTrue(any('gate metric is worse' in x for x in t.result('final')['errors']))
+  self.assertFalse(any('gate metric is worse' in x for x in t.result('final')['errors']));self.assertTrue(any('legacy gate treated as proxy' in x for x in t.result('final')['warnings']));self.assertTrue(any('proxy metric is worse' in x for x in t.result('final')['warnings']))
+  quote='Synthetic failure count must not exceed 1.'
+  comp['hard_limits']=[{'metric':'failure_count','direction':'LOWER_IS_BETTER','limit':1,'candidate_value':2,'source_quote':quote,'evidence':t.write('limit-rule.txt',quote)}];t.record('baseline_comparison',comp)
+  self.assertTrue(any('hard limit violated' in x for x in t.result('final')['errors']))
   req={'state':'PENDING','hypothesis':'h','target':'local','expected_if_true':'yes','expected_if_false':'no','budget_left':1,'layer_check':'checked','deadline_fallback':True}
   t.record('external_requests',{'status':'TRACKED','requests':[req]})
   self.assertTrue(any('external request pending' in x for x in t.result('final')['unverified']))
+  comp['hard_limits'][0]['candidate_value']=0
   gate['candidate_value']=0;evidence['candidate_value']=0;gate['evidence']=t.write('gate.json',json.dumps(evidence));comp['gates']=[gate];t.record('baseline_comparison',comp)
   result=t.result('final');self.assertTrue(any('deadline fallback' in x for x in result['warnings']),result)
  def test_final_finding_requires_impact_record(self):

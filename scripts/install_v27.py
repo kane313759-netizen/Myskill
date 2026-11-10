@@ -13,11 +13,12 @@ COMMON = runpy.run_path(str(Path(__file__).with_name('v27_common.py')))
 ADDON_SKILL = 'hackathon-orchestrator-universal'
 MANDATORY = ('scripts/v27_common.py', 'scripts/deadline.py', 'scripts/v27_check.py',
              'scripts/snapshot.py', 'scripts/submit_check.py', 'scripts/clean_run.py',
-             'scripts/security_check.py', 'scripts/data_audit.py', 'scripts/install_v27.py',
+             'scripts/security_check.py', 'scripts/data_audit.py', 'scripts/install_v27.py', 'scripts/hard_rules.py',
              'references/v27-baseline.json', 'references/v27-contract.md',
              'references/v27-r81-map.md', 'templates/ENV.md', 'templates/EXAM_POLICY_FINAL.md',
              'templates/DATA_AUDIT.md', 'templates/SAFETY_TESTS.md', 'templates/STUDY_BRIEF.md',
-             'templates/V27_STATE.json', 'templates/V27_EVIDENCE.json', 'BOOTSTRAP_V27.md')
+             'templates/V27_STATE.json', 'templates/V27_EVIDENCE.json', 'templates/HARD_RULES.json',
+             'templates/PARTICIPANT_GUIDE.md', 'BOOTSTRAP_V27.md')
 
 
 def install(source, target, allow_internal_source=False):
@@ -103,7 +104,17 @@ def install(source, target, allow_internal_source=False):
             'target': str(target), 'limits': 'Installation integrity only; no exam gate, runtime model or submission approval.'}
 
 
+def _safe_console():
+    """Korean/space paths are printed by the protected backend; a non-UTF-8 console (e.g. cp1252) must not abort the install."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors='backslashreplace')
+        except (AttributeError, ValueError):
+            pass
+
+
 def main():
+    _safe_console()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, default=ROOT)
     parser.add_argument('--target', type=Path, default=Path.cwd())

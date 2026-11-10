@@ -83,9 +83,13 @@ class DeadlineTests(unittest.TestCase):
         self.assertEqual(sequential['cp3_start'], at('13:20'))
         self.assertEqual(sequential['c_basis']['batches'], 7)
         self.assertEqual(sequential['c_basis']['parallel_assumption'], 'NO')
-        parallel = deadline.calculate(dict(base, REVIEW_PARALLEL='YES'))
-        self.assertEqual(parallel['review_reserve_minutes'], 30)
-        self.assertEqual(parallel['c_basis']['batches'], 1)
+        parallel = deadline.calculate(dict(base, REVIEW_PARALLEL='YES', REVIEW_CONCURRENCY=7))
+        self.assertEqual(parallel['review_reserve_minutes'], 40)  # six at once, then SUBMISSION_RED after their fixes
+        self.assertEqual(parallel['c_basis']['batches'], 2)
+        unknown_width = deadline.calculate(dict(base, REVIEW_PARALLEL='YES'))
+        self.assertEqual(unknown_width['review_reserve_minutes'], 90)
+        self.assertEqual(unknown_width['c_basis']['parallel_assumption'], 'NO')
+        self.assertIn('REVIEW_CONCURRENCY', unknown_width['c_basis']['note'])
         no_security = deadline.calculate(dict(base, FINAL_REVIEW_ROLES=6, REVIEW_PARALLEL='NO'))
         self.assertEqual(no_security['review_reserve_minutes'], 80)
         self.assertEqual(no_security['c_basis']['final_review_roles'], 6)
@@ -115,7 +119,7 @@ class DeadlineTests(unittest.TestCase):
 
     def test_invalid_review_assumptions_and_lunch_intervals_fail(self):
         base = {'FOLLOWUP': 'NONE', 'T_SUB': at('16:00')}
-        for change in ({'REVIEW_PARALLEL': 'MAYBE'}, {'REVIEW_MINUTES_EACH': 0},
+        for change in ({'REVIEW_PARALLEL': 'MAYBE'}, {'REVIEW_CONCURRENCY': 0}, {'REVIEW_CONCURRENCY': 2.5}, {'REVIEW_CONCURRENCY': True}, {'REVIEW_MINUTES_EACH': 0},
                        {'FIX_BUFFER': -1}, {'FINAL_REVIEW_ROLES': True}, {'FINAL_REVIEW_ROLES': 0},
                        {'FINAL_REVIEW_ROLES': 8}, {'REVIEW_MINUTES_EACH': 1440},
                        {'LUNCH_POLICY': 'PAUSE', 'LUNCH_START': at('13:00'), 'LUNCH_END': at('12:00')}):
