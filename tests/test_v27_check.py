@@ -82,7 +82,9 @@ class EvidenceTests(unittest.TestCase):
                                 'local_grader_used': False, 'holdout': {'applicable': False}})
         self.record('decisions', {'type_b_cards': []})
         self.record('safety', {'enabled_core': list(CHECK['CORE']), 'agent_or_interactive': False})
-        self.record('hard_rules', {'version': 1, 'rules': [], 'no_hard_rules_reason': 'Synthetic document contract has no void, zero-point, rejection or penalty rule.'})
+        table = {'version': 1, 'rules': [], 'materials': ['TASK.md'], 'no_hard_rules_reason': 'Synthetic document contract has no void, zero-point, rejection or penalty rule.', 'no_baseline_reason': 'Synthetic contract has no tuned decision output.'}
+        self.record('hard_rules', table)
+        self.record('hard_rules_cp1', table)
 
     def reviews(self, checkpoint, roles, scope_extra=None):
         value = {'version': 1, 'checkpoint': checkpoint, 'required_scope': {'input.csv': digest(self.root / 'input.csv')}, 'reviews': {}}

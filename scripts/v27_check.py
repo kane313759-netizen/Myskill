@@ -609,8 +609,18 @@ def _check(plan, root, kit, phase='final', source=None):
         errors.append('hard_rules: void/zero/reject/penalty rule table missing (.hackathon-kit/run/HARD_RULES.json; template templates/HARD_RULES.json)')
     else:
         hard = record('hard_rules')
+        frozen = None
+        if phase == 'final':
+            if 'hard_rules_cp1' not in records:
+                errors.append('hard_rules_cp1: record the copy of HARD_RULES.json that the CP1 review saw (V27_EVIDENCE records.hard_rules_cp1)')
+            else:
+                frozen = record('hard_rules_cp1')
+                cp1_scope = (record('cp1_reviews', required=False) or {}).get('required_scope') or {}
+                reviewed = cp1_scope.get(records['hard_rules'].get('path')) if isinstance(cp1_scope, dict) else None
+                if reviewed and reviewed != records['hard_rules_cp1'].get('sha256'):
+                    errors.append('hard_rules_cp1: not the HARD_RULES.json version the CP1 review saw (CP1 scope SHA256 differs)')
         if hard is not None:
-            errors.extend(module('hard_rules')['validate'](hard, root, phase, bound))
+            errors.extend(module('hard_rules')['validate'](hard, root, phase, bound, frozen))
 
     reviews = record('finals_reviews' if phase == 'final' else 'cp1_reviews')
     if reviews:
